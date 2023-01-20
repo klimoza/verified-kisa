@@ -19,17 +19,23 @@ list *list_copy(list *l) {
     return NULL;
 
   list *new = malloc(sizeof(list));
+  if(!new) exit(1);
+
   new->shift = l->shift;
   new->line = malloc(strlen(l->line) + 1);
+  if(!new->line) exit(1);
   strcpy(new->line, l->line);
 
   list *cur_tail = new;
   l = l->tail;
   while (l != NULL) {
     cur_tail->tail = malloc(sizeof(list));
+    if(!cur_tail->tail) exit(1);
+
     cur_tail = cur_tail->tail;
     cur_tail->shift = l->shift;
     cur_tail->line = malloc(strlen(l->line) + 1);
+    if(!cur_tail->line) exit(1);
     strcpy(cur_tail->line, l->line);
     l = l->tail;
   }
