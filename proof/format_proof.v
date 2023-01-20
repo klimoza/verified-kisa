@@ -1,6 +1,7 @@
 Require Import VST.floyd.proofauto.
 Require Import VST.floyd.library.
-Require Import printer_files.format.
+Require Import printer_files.compiled_format.
+Require Import printer_files.verified_printer.Format.
 
 Instance CompSpecs : compspecs. make_compspecs prog. Defined.
 Definition Vprog : varspecs. mk_varspecs prog. Defined.
@@ -26,6 +27,7 @@ Fixpoint listrep (sigma: list (val * val)) (p: val) : mpred :=
  match sigma with
  | (a, b)::hs =>
     EX x:val,
+    !! (is_int I32 Unsigned a) &&
     data_at Tsh t_list ((a, (b, x)) : @reptype CompSpecs t_list) p *
     listrep hs x
  | nil =>
@@ -45,12 +47,15 @@ DECLARE _list_copy
     RETURN(q)
     SEP(listrep s q; listrep s p; mem_mgr gv).
 
-Definition Gprog : funspecs :=
-        ltac:(with_library prog [
-                   max_spec
- ]).
+Definition t_format := Tstruct _t noattr.
 
 (* ================================================================= *)
+
+
+Definition Gprog : funspecs :=
+        ltac:(with_library prog [
+                   max_spec; list_copy_spec
+ ]).
 
 (* ================================================================= *)
 
@@ -121,8 +126,7 @@ Proof.
   unfold listrep; fold listrep.
   destruct p0.
   Intros x.
-  forward.
-  {entailer!. }
+  repeat forward.
 Admitted.
       
   
