@@ -1,7 +1,7 @@
 Require Import VST.floyd.proofauto.
 Require Import VST.floyd.library.
 Require Import printer_files.compiled_format.
-Require Import printer_files.verified_printer.Format.
+Require Import printer_files.Format.
 
 Instance CompSpecs : compspecs. make_compspecs prog. Defined.
 Definition Vprog : varspecs. mk_varspecs prog. Defined.
@@ -46,8 +46,6 @@ DECLARE _list_copy
     PROP(p <> nullval -> p <> q)
     RETURN(q)
     SEP(listrep s q; listrep s p; mem_mgr gv).
-
-Definition t_format := Tstruct _t noattr.
 
 (* ================================================================= *)
 

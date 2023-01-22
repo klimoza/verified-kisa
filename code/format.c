@@ -1,6 +1,42 @@
 #include <stdbool.h>
 #include <stdlib.h>
-#include <string.h>
+
+size_t strlen(const char *str) {
+  size_t i;
+  for (i=0; ; i++)
+    if (str[i]==0) return i;
+}
+
+char *strcpy(char *dest, const char *src) {
+  size_t i;
+  for(i = 0;; i++){
+    char d = src[i];
+    dest[i] = d;
+    if(d == 0) return dest;
+  }
+}
+
+char *strcat(char *dest, const char *src) {
+  size_t i,j; char d;
+  for(i = 0;; i++){
+    d = dest[i];
+    if(d == 0) break;
+  }
+  for(j = 0;; j++){
+    d = src[j];
+    dest[i + j] = d;
+    if(d == 0) return dest;
+  }
+}
+
+void *memcpy(void *dest, const void * src, size_t n) {
+  size_t i;
+  for(i = 0; i < n; i++){
+    char d = ((char*)src)[i];
+    ((char*)dest)[i] = d;
+  }
+  return dest;
+}
 
 unsigned int max(unsigned int a, unsigned int b) {
   if (a <= b)
@@ -274,16 +310,8 @@ unsigned int total_width(t *f) {
 }
 
 t *of_string(char* s) {
-  t *result = empty();
-
-  char* pch = NULL;
-  pch = strtok(s, "\n");
-
-  while (pch != NULL) {
-    result = add_above(result, line(pch));
-    pch = strtok(NULL, "\n");
-  }
-  return result;
+  // TODO
+  return NULL;
 }
 
 t *indent(t *f, unsigned int shift) {

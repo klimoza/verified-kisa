@@ -85,6 +85,8 @@ Definition _add_beside : ident := $"add_beside".
 Definition _add_fill : ident := $"add_fill".
 Definition _b : ident := $"b".
 Definition _cur_tail : ident := $"cur_tail".
+Definition _d : ident := $"d".
+Definition _dest : ident := $"dest".
 Definition _empty : ident := $"empty".
 Definition _exit : ident := $"exit".
 Definition _f : ident := $"f".
@@ -94,6 +96,7 @@ Definition _height : ident := $"height".
 Definition _i : ident := $"i".
 Definition _indent : ident := $"indent".
 Definition _is_less_than : ident := $"is_less_than".
+Definition _j : ident := $"j".
 Definition _l : ident := $"l".
 Definition _last_line_width : ident := $"last_line_width".
 Definition _last_line_width_new : ident := $"last_line_width_new".
@@ -112,16 +115,16 @@ Definition _new : ident := $"new".
 Definition _newline : ident := $"newline".
 Definition _nt : ident := $"nt".
 Definition _of_string : ident := $"of_string".
-Definition _pch : ident := $"pch".
 Definition _realloc : ident := $"realloc".
 Definition _result : ident := $"result".
 Definition _s : ident := $"s".
 Definition _shift : ident := $"shift".
 Definition _sp : ident := $"sp".
+Definition _src : ident := $"src".
+Definition _str : ident := $"str".
 Definition _strcat : ident := $"strcat".
 Definition _strcpy : ident := $"strcpy".
 Definition _strlen : ident := $"strlen".
-Definition _strtok : ident := $"strtok".
 Definition _t : ident := $"t".
 Definition _tail : ident := $"tail".
 Definition _to_string : ident := $"to_string".
@@ -220,6 +223,158 @@ Definition v___stringlit_2 := {|
   gvar_init := (Init_int8 (Int.repr 0) :: nil);
   gvar_readonly := true;
   gvar_volatile := false
+|}.
+
+Definition f_strlen := {|
+  fn_return := tulong;
+  fn_callconv := cc_default;
+  fn_params := ((_str, (tptr tschar)) :: nil);
+  fn_vars := nil;
+  fn_temps := ((_i, tulong) :: (_t'1, tschar) :: nil);
+  fn_body :=
+(Ssequence
+  (Sset _i (Ecast (Econst_int (Int.repr 0) tint) tulong))
+  (Sloop
+    (Ssequence
+      Sskip
+      (Ssequence
+        (Sset _t'1
+          (Ederef
+            (Ebinop Oadd (Etempvar _str (tptr tschar)) (Etempvar _i tulong)
+              (tptr tschar)) tschar))
+        (Sifthenelse (Ebinop Oeq (Etempvar _t'1 tschar)
+                       (Econst_int (Int.repr 0) tint) tint)
+          (Sreturn (Some (Etempvar _i tulong)))
+          Sskip)))
+    (Sset _i
+      (Ebinop Oadd (Etempvar _i tulong) (Econst_int (Int.repr 1) tint)
+        tulong))))
+|}.
+
+Definition f_strcpy := {|
+  fn_return := (tptr tschar);
+  fn_callconv := cc_default;
+  fn_params := ((_dest, (tptr tschar)) :: (_src, (tptr tschar)) :: nil);
+  fn_vars := nil;
+  fn_temps := ((_i, tulong) :: (_d, tschar) :: (_t'1, tschar) :: nil);
+  fn_body :=
+(Ssequence
+  (Sset _i (Ecast (Econst_int (Int.repr 0) tint) tulong))
+  (Sloop
+    (Ssequence
+      Sskip
+      (Ssequence
+        (Ssequence
+          (Sset _t'1
+            (Ederef
+              (Ebinop Oadd (Etempvar _src (tptr tschar)) (Etempvar _i tulong)
+                (tptr tschar)) tschar))
+          (Sset _d (Ecast (Etempvar _t'1 tschar) tschar)))
+        (Ssequence
+          (Sassign
+            (Ederef
+              (Ebinop Oadd (Etempvar _dest (tptr tschar))
+                (Etempvar _i tulong) (tptr tschar)) tschar)
+            (Etempvar _d tschar))
+          (Sifthenelse (Ebinop Oeq (Etempvar _d tschar)
+                         (Econst_int (Int.repr 0) tint) tint)
+            (Sreturn (Some (Etempvar _dest (tptr tschar))))
+            Sskip))))
+    (Sset _i
+      (Ebinop Oadd (Etempvar _i tulong) (Econst_int (Int.repr 1) tint)
+        tulong))))
+|}.
+
+Definition f_strcat := {|
+  fn_return := (tptr tschar);
+  fn_callconv := cc_default;
+  fn_params := ((_dest, (tptr tschar)) :: (_src, (tptr tschar)) :: nil);
+  fn_vars := nil;
+  fn_temps := ((_i, tulong) :: (_j, tulong) :: (_d, tschar) ::
+               (_t'2, tschar) :: (_t'1, tschar) :: nil);
+  fn_body :=
+(Ssequence
+  (Ssequence
+    (Sset _i (Ecast (Econst_int (Int.repr 0) tint) tulong))
+    (Sloop
+      (Ssequence
+        Sskip
+        (Ssequence
+          (Ssequence
+            (Sset _t'2
+              (Ederef
+                (Ebinop Oadd (Etempvar _dest (tptr tschar))
+                  (Etempvar _i tulong) (tptr tschar)) tschar))
+            (Sset _d (Ecast (Etempvar _t'2 tschar) tschar)))
+          (Sifthenelse (Ebinop Oeq (Etempvar _d tschar)
+                         (Econst_int (Int.repr 0) tint) tint)
+            Sbreak
+            Sskip)))
+      (Sset _i
+        (Ebinop Oadd (Etempvar _i tulong) (Econst_int (Int.repr 1) tint)
+          tulong))))
+  (Ssequence
+    (Sset _j (Ecast (Econst_int (Int.repr 0) tint) tulong))
+    (Sloop
+      (Ssequence
+        Sskip
+        (Ssequence
+          (Ssequence
+            (Sset _t'1
+              (Ederef
+                (Ebinop Oadd (Etempvar _src (tptr tschar))
+                  (Etempvar _j tulong) (tptr tschar)) tschar))
+            (Sset _d (Ecast (Etempvar _t'1 tschar) tschar)))
+          (Ssequence
+            (Sassign
+              (Ederef
+                (Ebinop Oadd (Etempvar _dest (tptr tschar))
+                  (Ebinop Oadd (Etempvar _i tulong) (Etempvar _j tulong)
+                    tulong) (tptr tschar)) tschar) (Etempvar _d tschar))
+            (Sifthenelse (Ebinop Oeq (Etempvar _d tschar)
+                           (Econst_int (Int.repr 0) tint) tint)
+              (Sreturn (Some (Etempvar _dest (tptr tschar))))
+              Sskip))))
+      (Sset _j
+        (Ebinop Oadd (Etempvar _j tulong) (Econst_int (Int.repr 1) tint)
+          tulong)))))
+|}.
+
+Definition f_memcpy := {|
+  fn_return := (tptr tvoid);
+  fn_callconv := cc_default;
+  fn_params := ((_dest, (tptr tvoid)) :: (_src, (tptr tvoid)) ::
+                (_n, tulong) :: nil);
+  fn_vars := nil;
+  fn_temps := ((_i, tulong) :: (_d, tschar) :: (_t'1, tschar) :: nil);
+  fn_body :=
+(Ssequence
+  (Ssequence
+    (Sset _i (Ecast (Econst_int (Int.repr 0) tint) tulong))
+    (Sloop
+      (Ssequence
+        (Sifthenelse (Ebinop Olt (Etempvar _i tulong) (Etempvar _n tulong)
+                       tint)
+          Sskip
+          Sbreak)
+        (Ssequence
+          (Ssequence
+            (Sset _t'1
+              (Ederef
+                (Ebinop Oadd
+                  (Ecast (Etempvar _src (tptr tvoid)) (tptr tschar))
+                  (Etempvar _i tulong) (tptr tschar)) tschar))
+            (Sset _d (Ecast (Etempvar _t'1 tschar) tschar)))
+          (Sassign
+            (Ederef
+              (Ebinop Oadd
+                (Ecast (Etempvar _dest (tptr tvoid)) (tptr tschar))
+                (Etempvar _i tulong) (tptr tschar)) tschar)
+            (Etempvar _d tschar))))
+      (Sset _i
+        (Ebinop Oadd (Etempvar _i tulong) (Econst_int (Int.repr 1) tint)
+          tulong))))
+  (Sreturn (Some (Etempvar _dest (tptr tvoid)))))
 |}.
 
 Definition f_max := {|
@@ -2885,59 +3040,9 @@ Definition f_of_string := {|
   fn_callconv := cc_default;
   fn_params := ((_s, (tptr tschar)) :: nil);
   fn_vars := nil;
-  fn_temps := ((_result, (tptr (Tstruct _t noattr))) ::
-               (_pch, (tptr tschar)) :: (_t'5, (tptr tschar)) ::
-               (_t'4, (tptr (Tstruct _t noattr))) ::
-               (_t'3, (tptr (Tstruct _t noattr))) :: (_t'2, (tptr tschar)) ::
-               (_t'1, (tptr (Tstruct _t noattr))) :: nil);
+  fn_temps := nil;
   fn_body :=
-(Ssequence
-  (Ssequence
-    (Scall (Some _t'1)
-      (Evar _empty (Tfunction Tnil (tptr (Tstruct _t noattr)) cc_default))
-      nil)
-    (Sset _result (Etempvar _t'1 (tptr (Tstruct _t noattr)))))
-  (Ssequence
-    (Sset _pch (Ecast (Econst_int (Int.repr 0) tint) (tptr tvoid)))
-    (Ssequence
-      (Ssequence
-        (Scall (Some _t'2)
-          (Evar _strtok (Tfunction
-                          (Tcons (tptr tschar) (Tcons (tptr tschar) Tnil))
-                          (tptr tschar) cc_default))
-          ((Etempvar _s (tptr tschar)) ::
-           (Evar ___stringlit_1 (tarray tschar 2)) :: nil))
-        (Sset _pch (Etempvar _t'2 (tptr tschar))))
-      (Ssequence
-        (Swhile
-          (Ebinop One (Etempvar _pch (tptr tschar))
-            (Ecast (Econst_int (Int.repr 0) tint) (tptr tvoid)) tint)
-          (Ssequence
-            (Ssequence
-              (Ssequence
-                (Scall (Some _t'3)
-                  (Evar _line (Tfunction (Tcons (tptr tschar) Tnil)
-                                (tptr (Tstruct _t noattr)) cc_default))
-                  ((Etempvar _pch (tptr tschar)) :: nil))
-                (Scall (Some _t'4)
-                  (Evar _add_above (Tfunction
-                                     (Tcons (tptr (Tstruct _t noattr))
-                                       (Tcons (tptr (Tstruct _t noattr))
-                                         Tnil)) (tptr (Tstruct _t noattr))
-                                     cc_default))
-                  ((Etempvar _result (tptr (Tstruct _t noattr))) ::
-                   (Etempvar _t'3 (tptr (Tstruct _t noattr))) :: nil)))
-              (Sset _result (Etempvar _t'4 (tptr (Tstruct _t noattr)))))
-            (Ssequence
-              (Scall (Some _t'5)
-                (Evar _strtok (Tfunction
-                                (Tcons (tptr tschar)
-                                  (Tcons (tptr tschar) Tnil)) (tptr tschar)
-                                cc_default))
-                ((Ecast (Econst_int (Int.repr 0) tint) (tptr tvoid)) ::
-                 (Evar ___stringlit_1 (tarray tschar 2)) :: nil))
-              (Sset _pch (Etempvar _t'5 (tptr tschar))))))
-        (Sreturn (Some (Etempvar _result (tptr (Tstruct _t noattr)))))))))
+(Sreturn (Some (Ecast (Econst_int (Int.repr 0) tint) (tptr tvoid))))
 |}.
 
 Definition f_indent := {|
@@ -3317,35 +3422,9 @@ Definition global_definitions : list (ident * globdef fundef type) :=
    Gfun(External (EF_external "exit"
                    (mksignature (AST.Tint :: nil) AST.Tvoid cc_default))
      (Tcons tint Tnil) tvoid cc_default)) ::
- (_memcpy,
-   Gfun(External (EF_external "memcpy"
-                   (mksignature (AST.Tlong :: AST.Tlong :: AST.Tlong :: nil)
-                     AST.Tlong cc_default))
-     (Tcons (tptr tvoid) (Tcons (tptr tvoid) (Tcons tulong Tnil)))
-     (tptr tvoid) cc_default)) ::
- (_strcat,
-   Gfun(External (EF_external "strcat"
-                   (mksignature (AST.Tlong :: AST.Tlong :: nil) AST.Tlong
-                     cc_default))
-     (Tcons (tptr tschar) (Tcons (tptr tschar) Tnil)) (tptr tschar)
-     cc_default)) ::
- (_strcpy,
-   Gfun(External (EF_external "strcpy"
-                   (mksignature (AST.Tlong :: AST.Tlong :: nil) AST.Tlong
-                     cc_default))
-     (Tcons (tptr tschar) (Tcons (tptr tschar) Tnil)) (tptr tschar)
-     cc_default)) ::
- (_strlen,
-   Gfun(External (EF_external "strlen"
-                   (mksignature (AST.Tlong :: nil) AST.Tlong cc_default))
-     (Tcons (tptr tschar) Tnil) tulong cc_default)) ::
- (_strtok,
-   Gfun(External (EF_external "strtok"
-                   (mksignature (AST.Tlong :: AST.Tlong :: nil) AST.Tlong
-                     cc_default))
-     (Tcons (tptr tschar) (Tcons (tptr tschar) Tnil)) (tptr tschar)
-     cc_default)) :: (_max, Gfun(Internal f_max)) ::
- (_list_copy, Gfun(Internal f_list_copy)) ::
+ (_strlen, Gfun(Internal f_strlen)) :: (_strcpy, Gfun(Internal f_strcpy)) ::
+ (_strcat, Gfun(Internal f_strcat)) :: (_memcpy, Gfun(Internal f_memcpy)) ::
+ (_max, Gfun(Internal f_max)) :: (_list_copy, Gfun(Internal f_list_copy)) ::
  (_less_components, Gfun(Internal f_less_components)) ::
  (_is_less_than, Gfun(Internal f_is_less_than)) ::
  (_empty, Gfun(Internal f_empty)) :: (_line, Gfun(Internal f_line)) ::
@@ -3361,8 +3440,8 @@ Definition global_definitions : list (ident * globdef fundef type) :=
 Definition public_idents : list ident :=
 (_indent :: _of_string :: _total_width :: _to_string :: _add_fill ::
  _add_beside :: _add_above :: _sp :: _newline :: _line :: _empty ::
- _is_less_than :: _less_components :: _list_copy :: _max :: _strtok ::
- _strlen :: _strcpy :: _strcat :: _memcpy :: _exit :: _realloc :: _malloc ::
+ _is_less_than :: _less_components :: _list_copy :: _max :: _memcpy ::
+ _strcat :: _strcpy :: _strlen :: _exit :: _realloc :: _malloc ::
  ___builtin_debug :: ___builtin_fmin :: ___builtin_fmax ::
  ___builtin_fnmsub :: ___builtin_fnmadd :: ___builtin_fmsub ::
  ___builtin_fmadd :: ___builtin_clsll :: ___builtin_clsl :: ___builtin_cls ::
