@@ -61,6 +61,7 @@ list *list_copy(list *l) {
   new->line = malloc(strlen(l->line) + 1);
   if(!new->line) exit(1);
   strcpy(new->line, l->line);
+  new->tail = NULL;
 
   list *cur_tail = new;
   l = l->tail;
@@ -73,6 +74,7 @@ list *list_copy(list *l) {
     cur_tail->line = malloc(strlen(l->line) + 1);
     if(!cur_tail->line) exit(1);
     strcpy(cur_tail->line, l->line);
+    cur_tail->tail = NULL;
     l = l->tail;
   }
   return new;
