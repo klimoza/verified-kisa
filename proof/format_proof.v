@@ -226,6 +226,22 @@ Proof.
   apply firstn_exact_length.
 Qed.
 
+Lemma list_copy_fact2:
+  forall (A : Type) (t : list A),
+  Z.to_nat (Zlength t) =  Datatypes.length (firstn (Z.to_nat (Zlength t + 1)) t).
+Proof.
+  intros.
+  induction t.
+  - list_solve.
+  - replace (Zlength (a :: t)) with (Zlength t + 1) by list_solve.
+    replace (Z.to_nat (Zlength t + 1 + 1)) with (S (Z.to_nat (Zlength t + 1))) by list_solve.
+    rewrite firstn_cons.
+    simpl.
+    rewrite <- IHt.
+    list_solve.
+Qed.
+
+
 
 Lemma body_list_copy: semax_body Vprog Gprog f_list_copy list_copy_spec.
 Proof.
@@ -300,7 +316,7 @@ Proof.
         listrep (sublist i (i + 1) t) cur_tail;
         lseg (sublist 0 (i + 1) t) p l_tail;
         listrep (sublist (i + 1) (Zlength s + 1) t) l_tail)).
-  - Exists 1 vret x. entailer.
+  - Exists 0 vret x. entailer.
     replace (sublist 1 (Zlength s + 1) ((z, l) :: s)) with s by list_solve.
     replace (sublist 0 1 ((z, l) :: s)) with [(z, l)] by list_solve.
     unfold lseg; fold lseg.
@@ -320,79 +336,84 @@ Proof.
     entailer!.
   - entailer!.
   - forward_call(t_list, gv).
-    Intros vret1.
-    remember (sublist 0 i t) as f.
+    Intros cur_tail_tail.
+    remember (sublist 0 (i + 1) t) as processed_part.
     
-    destruct f. {
+    destruct processed_part as [ |first_element processed_part]. {
       destruct t. 
-      - replace (sublist (i - 1) i []) with ([] : list (Z * list byte)) by list_solve.
+      - replace (sublist i (i + 1) []) with ([] : list (Z * list byte)) by list_solve.
         unfold listrep; fold listrep.
         Intros. 
         contradiction.
       - destruct (eq_dec i 0).
-        + subst. replace (sublist (0 - 1) 0 (p0 :: t)) with ([] : list (Z * list byte)) by list_solve.
-          unfold listrep; fold listrep.
-          Intros.
-          contradiction.
-        + unfold sublist in Heqf.
-          unfold skipn in Heqf. simpl in Heqf.
-          Search firstn.
-          replace (Z.to_nat i) with (S (Z.to_nat (i - 1))) in Heqf by list_solve.
-          rewrite firstn_cons in Heqf.
-          inversion Heqf.
+        + subst. replace (sublist 0 (0 + 1) (p0 :: t)) with [p0] in Heqprocessed_part by list_solve.
+          inversion Heqprocessed_part.
+        + unfold sublist in Heqprocessed_part.
+          unfold skipn in Heqprocessed_part. simpl in Heqprocessed_part.
+          replace (Z.to_nat (i + 1)) with (S (Z.to_nat i)) in Heqprocessed_part by list_solve.
+          rewrite firstn_cons in Heqprocessed_part.
+          inversion Heqprocessed_part.
     }
 
-    destruct (eq_dec vret1 nullval). {
-      forward.
-      forward.
-      forward_if(vret1 <> nullval). 
-      - forward_call. entailer.
-      - forward. entailer.
-      - forward. contradiction.
+    destruct (eq_dec cur_tail_tail nullval). {
+      destruct (sublist i (i + 1) t).
+      + unfold listrep; fold listrep. Intros. contradiction.
+      + unfold listrep; fold listrep.
+        destruct p0. Intros x0 y0.
+        forward.
+        forward.
+        forward_if(cur_tail_tail <> nullval). 
+        - forward_call. entailer.
+        - forward. entailer.
+        - forward. contradiction.
     }
     Intros.
+
+    remember (sublist i (i + 1) t) as current_processed.
+    destruct (current_processed) as [| current_processed_element empty_proccessed]. {
+      unfold listrep; fold listrep. Intros. contradiction.
+    }
+    unfold listrep; fold listrep. destruct current_processed_element as (current_shift, current_line).
+    Intros empty_proccessed_address current_line_address.
     forward.
     forward.
-    forward_if(vret1 <> nullval). 
+    forward_if(cur_tail_tail <> nullval). 
     { forward_call. entailer. }
     { forward. entailer. }
     forward.
-    unfold lseg; fold lseg.
-    Intros h y1.
-    remember (sublist i (Zlength s + 1) t) as x_list.
-    destruct x_list. {
-      unfold listrep; fold listrep.
-      Intros.
-      contradiction.
+
+    remember (sublist (i + 1) (Zlength s + 1) t) as not_processed.
+    destruct not_processed as [| not_processed_element  not_processed]. {
+      unfold listrep; fold listrep. Intros. contradiction.
     }
-    unfold listrep; fold listrep.
-    destruct p0.
-    Intros x1 y2.
+    unfold listrep; fold listrep. destruct not_processed_element as (not_processed_shift, not_processed_line).
+    Intros not_processed_address not_processed_line_address.
     forward.
     forward.
     forward.
-    forward_call(Ews, l1, y2).
-    forward_call((Tarray (Tint I8 Signed noattr) (Zlength l1 + 1) noattr), gv). {
+    
+    forward_call(Ews, not_processed_line, not_processed_line_address).
+    forward_call((Tarray (Tint I8 Signed noattr) (Zlength not_processed_line + 1) noattr), gv). {
       unfold sizeof.
       unfold Ctypes.sizeof.
-      assert (In (z1, l1) t). 
-      assert (skipn (Z.to_nat i) t = sublist i (Zlength s + 1) t). 
+      assert (In (not_processed_shift, not_processed_line) t).
+      assert (skipn (Z.to_nat (i + 1)) t = sublist (i + 1) (Zlength s + 1) t). 
       replace (Zlength s + 1) with (Zlength t) by list_solve.
       apply list_copy_fact1. lia.
-      rewrite <- H3 in Heqx_list.
-      assert (In (z1, l1) (skipn (Z.to_nat i) t)). 
-      rewrite <- Heqx_list. simpl. auto.
-      apply initialize.In_skipn in H4. auto.
+      rewrite <- H4 in Heqnot_processed.
+      assert (In (not_processed_shift, not_processed_line) (skipn (Z.to_nat (i + 1)) t)). 
+      rewrite <- Heqnot_processed. simpl. auto.
+      apply initialize.In_skipn in H5. auto.
       split; try lia.
-      remember (computable_theorems.Forall_forall1 _ _ H0 (z1, l1) H3).
+      remember (computable_theorems.Forall_forall1 _ _ H0 (not_processed_shift, not_processed_line) H4).
       simpl in a. list_solve.
     }
     
-    Intros vret2.
-    destruct (eq_dec vret2 nullval). {
+    Intros current_tail_line_address.
+    destruct (eq_dec current_tail_line_address nullval). {
       forward.
       forward.
-      forward_if(vret2 <> nullval).
+      forward_if(current_tail_line_address <> nullval).
       - forward_call. entailer.
       - forward. entailer.
       - forward. contradiction.
@@ -400,32 +421,79 @@ Proof.
     Intros.
     forward.
     forward.
-    forward_if (vret2 <> nullval).
+    forward_if (current_tail_line_address <> nullval).
     { forward_call. entailer. }
     { forward. entailer. }
     forward. forward.
 
-    forward_call(Ews, Ews, vret2, (Zlength l1 + 1), y2, l1).
+    forward_call(Ews, Ews, current_tail_line_address, (Zlength not_processed_line + 1), not_processed_line_address, not_processed_line).
     forward.
-    Exists ((i + 1), vret1, x1 ).
-    simpl.
+    forward.
+
+    Exists (i + 1, cur_tail_tail, not_processed_address).
     entailer.
+    
     unfold cstring.
     unfold cstringn.
-    entailer!; try list_solve.
-    assert (x_list = sublist (i + 1) (Zlength s + 1) ((z, l) :: s)). admit.
-    rewrite <- H33.
-    autorewrite with sublist.
-    assert ((sublist 0 (i + 1) ((z, l) :: s)) = ((z, l) :: (sublist 0 i ( s)))). admit.
-    rewrite H34.
-    unfold listrep; fold listrep.
-    Exists 
-    unfold lseg; fold lseg.
-    
-    
-    
-    
-    
+    entailer.
+
+    entailer!.
+    + assert(i = Zlength ((z, l) :: s) \/ i < Zlength ((z, l) :: s)).
+      lia.
+      destruct H31. subst. 
+      assert (sublist (Zlength ((z, l) :: s)) (Zlength ((z, l) :: s) + 1) 
+      ((z, l) :: s) = []). 
+      unfold sublist.
+      
+      assert ((Z.to_nat (Zlength ((z, l) :: s))) = Datatypes.length (firstn (Z.to_nat (Zlength ((z, l) :: s) + 1)) ((z, l) :: s))).
+      apply list_copy_fact2.
+      rewrite H31.
+      apply (skipn_exact_length (firstn (Z.to_nat (Zlength ((z, l) :: s) + 1)) ((z, l) :: s))).
+      rewrite H31 in Heqcurrent_processed.
+      inversion Heqcurrent_processed.
+      list_solve.
+    + assert (not_processed = sublist (i + 1 + 1) (Zlength s + 1) ((z, l) :: s)).
+      remember Heqnot_processed as Heqnot_processed2.
+      clear HeqHeqnot_processed2.
+      rewrite sublist_next in Heqnot_processed2; try list_solve.
+      inversion Heqnot_processed2; try list_solve.
+      assert(i = Zlength ((z, l) :: s) \/ i < Zlength ((z, l) :: s)). lia.
+      destruct H31. subst. assert (sublist (Zlength ((z, l) :: s)) (Zlength ((z, l) :: s) + 1)  ((z, l) :: s) = []). 
+      unfold sublist.
+      assert ((Z.to_nat (Zlength ((z, l) :: s))) = Datatypes.length (firstn (Z.to_nat (Zlength ((z, l) :: s) + 1)) ((z, l) :: s))).
+      apply list_copy_fact2.
+      rewrite H31.
+      apply (skipn_exact_length (firstn (Z.to_nat (Zlength ((z, l) :: s) + 1)) ((z, l) :: s))).
+      rewrite H31 in Heqcurrent_processed.
+      inversion Heqcurrent_processed.
+      list_solve.
+      
+      rewrite <- H31.
+      entailer!.
+
+      remember (sublist (i + 1) (i + 1 + 1) ((z, l) :: s)) as cur_tail_tail_list.
+
+      assert (i < Zlength s ). {
+        assert (i >= Zlength s \/ i < Zlength s). lia.
+        destruct H31.
+        - assert(sublist (i + 1) (Zlength s + 1) ((z, l) :: s) = []). 
+          assert (i + 1 >= Zlength s + 1). lia.
+          assert (i < Zlength s + 2). list_solve.
+          apply sublist_nil_gen. lia.
+          rewrite H32 in Heqnot_processed.
+          inversion Heqnot_processed.
+        - apply H31.
+      }
+
+      rewrite sublist_next in Heqcur_tail_tail_list.
+      2: lia.
+      2: list_solve.
+
+      rewrite Heqcur_tail_tail_list.
+      unfold listrep; fold listrep.
+      Search current_tail_line_address.
+      destruct (Znth (i + 1) ((z, l) :: s)).
+      
 Admitted.
       
   
