@@ -336,7 +336,6 @@ Lemma less_components_fact2:
   ((Z.of_nat x)) <=? (Z.of_nat y) = (Nat.leb x y).
 Proof.
   intros.
-  Search (Z.of_nat _ <= Z.of_nat _).
   destruct (Nat.leb_spec0 x y).
   - apply inj_le in l.
     destruct (Z.leb_spec0 (Z.of_nat x) (Z.of_nat y)).
@@ -461,10 +460,9 @@ Proof.
   intros.
   destruct (Nat.eqb_spec x y).
   - subst. rewrite Int.eq_true. auto.
-  - Search Int.eq.
-    remember(Int.eq (Int.repr (Z.of_nat x)) (Int.repr (Z.of_nat y))).
+  - remember(Int.eq (Int.repr (Z.of_nat x)) (Int.repr (Z.of_nat y))).
     destruct b.
-    + symmetry in Heqb. apply Int.same_if_eq in Heqb. Search Int.repr. apply repr_inj_unsigned in Heqb; auto. lia.
+    + symmetry in Heqb. apply Int.same_if_eq in Heqb. apply repr_inj_unsigned in Heqb; auto. lia.
     + lia.
 Qed.
     
@@ -882,7 +880,6 @@ Proof.
 
       rewrite Heqcur_tail_tail_list.
       unfold listrep; fold listrep.
-      Search current_tail_line_address.
       destruct (Znth (i + 1) ((z, l) :: s)).
       
 Admitted.
