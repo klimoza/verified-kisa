@@ -102,6 +102,7 @@ bool is_less_than(t *G, t *F) {
 
 t *empty() {
   t *result = malloc(sizeof(t));
+  if(!result) exit(1);
   result->height = 0;
   result->first_line_width = 0;
   result->middle_width = 0;
@@ -112,6 +113,7 @@ t *empty() {
 
 t *line(char *nt) {
   t *result = malloc(sizeof(struct t));
+  if(!result) exit(1);
   result->height = 1;
   result->first_line_width = strlen(nt);
   result->middle_width = strlen(nt);
@@ -136,6 +138,7 @@ char *sp(int n) {
 
 t *add_above(t *G, t *F) {
   t* result = malloc(sizeof(t));
+  if(!result) exit(1);
   if (G->height == 0) {
     result = memcpy(result, F, sizeof(t));
   } else if (F->height == 0) {
@@ -174,6 +177,7 @@ t *add_above(t *G, t *F) {
 
 t *add_beside(t *G, t *F) {
   t* result = malloc(sizeof(t));
+  if(!result) exit(1);
   if (G->height == 0) {
     result = memcpy(result, F, sizeof(t));
   } else if (F->height == 0) {
@@ -226,6 +230,7 @@ t *add_beside(t *G, t *F) {
 
 t *add_fill(t *G, t *F, unsigned int shift) {
   t *result = malloc(sizeof(t));
+  if(!result) exit(1);
   if (G->height == 0) {
     memcpy(result, F, sizeof(t));
   } else if (F->height == 0) {
@@ -295,6 +300,7 @@ char *to_string(t *f) {
     to_text = to_text->tail;
   }
   char *result = malloc(total_length + 1);
+  if(!result) exit(1);
   to_text = f->to_text;
   while(to_text != NULL) {
     result = strcat(result, sp(to_text->shift));
@@ -318,6 +324,7 @@ t *of_string(char* s) {
 
 t *indent(t *f, unsigned int shift) {
   t *result = malloc(sizeof(t));
+  if(!result) exit(1);
   result->height = f->height;
   result->first_line_width = f->first_line_width + shift;
   result->middle_width = f->middle_width + shift;
