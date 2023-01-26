@@ -180,13 +180,35 @@ DECLARE _empty
     RETURN(p)
     SEP(mem_mgr gv; mformat empty p).
 
+
+Fixpoint list_byte_to_string (sigma: list byte) : string :=
+  match sigma with 
+  | nil => EmptyString
+  | (h :: hs) => String (Ascii.ascii_of_N (Z.to_N (Byte.unsigned h))) (list_byte_to_string hs)
+end.
+
+
+Definition line_spec : ident * funspec :=
+DECLARE _line
+  WITH p : val, sigma : list byte, gv : globals
+  PRE [ tptr tschar ]
+    PROP(0 <= Zlength sigma <= Int.max_unsigned)
+    PARAMS(p) GLOBALS(gv)
+    SEP(mem_mgr gv; cstring Ews sigma p)
+  POST [ tptr t_format ]
+    EX q : val,
+    PROP()
+    RETURN(q)
+    SEP(mem_mgr gv; mformat (line (list_byte_to_string sigma)) q).
+
 (* ================================================================= *)
 
 
 Definition Gprog : funspecs :=
         ltac:(with_library prog [
                    max_spec; strlen_spec; strcpy_spec; list_copy_spec;
-                   less_components_spec; is_less_than_spec; empty_spec
+                   less_components_spec; is_less_than_spec; empty_spec;
+                   line_spec
  ]).
 
 (* ================================================================= *)
@@ -646,6 +668,116 @@ Proof.
   - unfold listrep. entailer!.
 Qed.
 
+Lemma list_byte_to_string_length:
+  forall (s : list byte),
+    Z.of_nat (String.length (list_byte_to_string s)) = Zlength s.
+Proof.
+  intros.
+  induction s.
+  - list_solve.
+  - unfold list_byte_to_string; fold list_byte_to_string.
+    simpl. list_solve.
+Qed.
+
+Search (Ascii.N_of_ascii (Ascii.ascii_of_N _)).
+Compute (Byte.modulus).
+
+
+Lemma list_byte_to_list_byte_eq:
+  forall (s : list byte),
+    string_to_list_byte (list_byte_to_string s) = s.
+Proof.
+  intros.
+  induction s.
+  - list_solve.
+  - unfold list_byte_to_string; fold list_byte_to_string.
+    unfold string_to_list_byte; fold string_to_list_byte.
+    rewrite IHs.
+    assert (Byte.unsigned a < 256). {
+      remember (Byte.unsigned_range a).
+      unfold Byte.modulus in a0.
+      assert(two_power_nat Byte.wordsize = 256 ). list_solve.
+      lia.
+    }
+    assert ((Z.to_N (Byte.unsigned a) < 256)%N). {
+      list_solve.
+    }
+    assert ((N_of_ascii (ascii_of_N (Z.to_N (Byte.unsigned a)))) = Z.to_N (Byte.unsigned a)). {
+      apply N_ascii_embedding.
+      auto.
+    }
+    rewrite H1.
+    rewrite Z2N.id.
+    rewrite Byte.repr_unsigned.
+    auto.
+    apply Byte.unsigned_range.
+Qed.
+
+Lemma body_line: semax_body Vprog Gprog f_line line_spec.
+Proof.
+  start_function.
+  forward_call(t_format, gv).
+  Intros format_pointer.
+  destruct (eq_dec format_pointer nullval). {
+    forward_if(format_pointer <> nullval).
+    - forward_call. entailer!.
+    - forward. entailer!.
+    - Intros. contradiction.
+  }
+
+  forward_if(format_pointer <> nullval). {
+    forward_call. entailer!.
+  } {
+    forward. entailer!.
+  }
+  Intros.
+
+  forward.
+  forward_call(Ews, sigma, p).
+  forward.
+  forward_call(Ews, sigma, p).
+  forward.
+  forward_call(Ews, sigma, p).
+  forward.
+
+  forward_call(t_list, gv).
+  Intros to_text_pointer.
+  destruct (eq_dec to_text_pointer nullval). {
+    forward.
+    forward.
+    forward_if(to_text_pointer <> nullval).
+    - forward_call. entailer!.
+    - forward. entailer!.
+    - Intros. contradiction.
+  }
+
+  Intros.
+  forward.
+  forward.
+  forward_if(to_text_pointer <> nullval). {
+    forward_call. entailer!.
+  } {
+    forward. entailer.
+  }
+
+  forward.
+  forward.
+  forward.
+  forward.
+  forward.
+  forward.
+  forward.
+  Exists format_pointer.
+  unfold mformat.
+  unfold cstring.
+  Exists ([(0, sigma)]) to_text_pointer.
+  entailer!.
+  - unfold line. simpl. split.
+    + repeat rewrite list_byte_to_string_length. list_solve.
+    + unfold to_text_eq. simpl.
+      replace (append (list_byte_to_string sigma) "") with (list_byte_to_string sigmak) by list_solve.
+  
+
 
 Lemma list_copy_length_fact:
   forall (A : Type) (t : list A),
@@ -685,9 +817,6 @@ Proof.
     rewrite <- IHt.
     list_solve.
 Qed.
-
-
-
 Lemma body_list_copy: semax_body Vprog Gprog f_list_copy list_copy_spec.
 Proof.
 Admitted.

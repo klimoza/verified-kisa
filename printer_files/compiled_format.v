@@ -857,6 +857,7 @@ Definition f_line := {|
   fn_temps := ((_result, (tptr (Tstruct _t noattr))) ::
                (_t'5, (tptr tvoid)) :: (_t'4, tulong) :: (_t'3, tulong) ::
                (_t'2, tulong) :: (_t'1, (tptr tvoid)) ::
+               (_t'9, (tptr (Tstruct _list noattr))) ::
                (_t'8, (tptr (Tstruct _list noattr))) ::
                (_t'7, (tptr (Tstruct _list noattr))) ::
                (_t'6, (tptr (Tstruct _list noattr))) :: nil);
@@ -926,31 +927,34 @@ Definition f_line := {|
                   (Etempvar _t'5 (tptr tvoid))))
               (Ssequence
                 (Ssequence
-                  (Sset _t'8
+                  (Sset _t'9
                     (Efield
                       (Ederef (Etempvar _result (tptr (Tstruct _t noattr)))
                         (Tstruct _t noattr)) _to_text
                       (tptr (Tstruct _list noattr))))
-                  (Sassign
-                    (Efield
-                      (Ederef (Etempvar _t'8 (tptr (Tstruct _list noattr)))
-                        (Tstruct _list noattr)) _shift tuint)
-                    (Econst_int (Int.repr 0) tint)))
+                  (Sifthenelse (Eunop Onotbool
+                                 (Etempvar _t'9 (tptr (Tstruct _list noattr)))
+                                 tint)
+                    (Scall None
+                      (Evar _exit (Tfunction (Tcons tint Tnil) tvoid
+                                    cc_default))
+                      ((Econst_int (Int.repr 1) tint) :: nil))
+                    Sskip))
                 (Ssequence
                   (Ssequence
-                    (Sset _t'7
+                    (Sset _t'8
                       (Efield
                         (Ederef (Etempvar _result (tptr (Tstruct _t noattr)))
                           (Tstruct _t noattr)) _to_text
                         (tptr (Tstruct _list noattr))))
                     (Sassign
                       (Efield
-                        (Ederef (Etempvar _t'7 (tptr (Tstruct _list noattr)))
-                          (Tstruct _list noattr)) _line (tptr tschar))
-                      (Etempvar _nt (tptr tschar))))
+                        (Ederef (Etempvar _t'8 (tptr (Tstruct _list noattr)))
+                          (Tstruct _list noattr)) _shift tuint)
+                      (Econst_int (Int.repr 0) tint)))
                   (Ssequence
                     (Ssequence
-                      (Sset _t'6
+                      (Sset _t'7
                         (Efield
                           (Ederef
                             (Etempvar _result (tptr (Tstruct _t noattr)))
@@ -959,11 +963,25 @@ Definition f_line := {|
                       (Sassign
                         (Efield
                           (Ederef
-                            (Etempvar _t'6 (tptr (Tstruct _list noattr)))
-                            (Tstruct _list noattr)) _tail
-                          (tptr (Tstruct _list noattr)))
-                        (Ecast (Econst_int (Int.repr 0) tint) (tptr tvoid))))
-                    (Sreturn (Some (Etempvar _result (tptr (Tstruct _t noattr)))))))))))))))
+                            (Etempvar _t'7 (tptr (Tstruct _list noattr)))
+                            (Tstruct _list noattr)) _line (tptr tschar))
+                        (Etempvar _nt (tptr tschar))))
+                    (Ssequence
+                      (Ssequence
+                        (Sset _t'6
+                          (Efield
+                            (Ederef
+                              (Etempvar _result (tptr (Tstruct _t noattr)))
+                              (Tstruct _t noattr)) _to_text
+                            (tptr (Tstruct _list noattr))))
+                        (Sassign
+                          (Efield
+                            (Ederef
+                              (Etempvar _t'6 (tptr (Tstruct _list noattr)))
+                              (Tstruct _list noattr)) _tail
+                            (tptr (Tstruct _list noattr)))
+                          (Ecast (Econst_int (Int.repr 0) tint) (tptr tvoid))))
+                      (Sreturn (Some (Etempvar _result (tptr (Tstruct _t noattr))))))))))))))))
 |}.
 
 Definition v_newline := {|

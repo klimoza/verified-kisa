@@ -119,6 +119,7 @@ t *line(char *nt) {
   result->middle_width = strlen(nt);
   result->last_line_width = strlen(nt);
   result->to_text = malloc(sizeof(struct list));
+  if(!result->to_text) exit(1);
   result->to_text->shift = 0;
   result->to_text->line = nt;
   result->to_text->tail = NULL;
