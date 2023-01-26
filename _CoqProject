@@ -1,4 +1,0 @@
--R . printer_files
-printer_files/compiled_format.v
-verified_printer/Format.v
-proof/format_proof.v

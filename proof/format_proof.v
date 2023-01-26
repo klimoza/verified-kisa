@@ -1,7 +1,7 @@
 Require Import VST.floyd.proofauto.
 Require Import VST.floyd.library.
-Require Import printer_files.compiled_format.
-Require Import printer_files.verified_printer.Format.
+Require Import printer.printer_files.compiled_format.
+Require Import printer.verified_printer.Format.
 Require Import Coq.Strings.Ascii.
 
 Instance CompSpecs : compspecs. make_compspecs prog. Defined.
@@ -108,6 +108,10 @@ Definition mformat (G : t) (x : val) : mpred :=
   EX sigma : list (Z * list byte),
   EX p : val,
   !! (to_text_eq G.(to_text) sigma) &&
+  !! (0 <= Z.of_nat (height G) <= Int.max_unsigned) &&
+  !! (0 <= Z.of_nat (first_line_width G) <= Int.max_unsigned) &&
+  !! (0 <= Z.of_nat (middle_width G) <= Int.max_unsigned) &&
+  !! (0 <= Z.of_nat (last_line_width G) <= Int.max_unsigned) &&
   data_at Ews t_format (Vint (Int.repr (Z.of_nat G.(height))),
                         (Vint (Int.repr (Z.of_nat G.(first_line_width))),
                          (Vint (Int.repr (Z.of_nat G.(middle_width))),
@@ -117,6 +121,11 @@ Definition mformat (G : t) (x : val) : mpred :=
 
  Definition concrete_mformat (G : t) (x : val) (sigma : list (Z * list byte)) (p : val) : mpred :=
   !! (to_text_eq G.(to_text) sigma) &&
+  !! (to_text_eq G.(to_text) sigma) &&
+  !! (0 <= Z.of_nat (height G) <= Int.max_unsigned) &&
+  !! (0 <= Z.of_nat (first_line_width G) <= Int.max_unsigned) &&
+  !! (0 <= Z.of_nat (middle_width G) <= Int.max_unsigned) &&
+  !! (0 <= Z.of_nat (last_line_width G) <= Int.max_unsigned) &&
   sepcon 
   (data_at Ews t_format (Vint (Int.repr (Z.of_nat G.(height))),
                         (Vint (Int.repr (Z.of_nat G.(first_line_width))),
@@ -139,13 +148,27 @@ Definition mformat (G : t) (x : val) : mpred :=
     RETURN(Val.of_bool a)
     SEP(mformat G p; mformat G' q).
 
+
+Definition is_less_than_spec : ident * funspec :=
+DECLARE _is_less_than
+  WITH p : val, G : t, q : val, G' : t
+  PRE [ tptr t_format, tptr t_format]
+    PROP()
+    PARAMS(p; q)
+    SEP(mformat G p; mformat G' q)
+  POST [ tbool ]
+    EX a : bool,
+    PROP(a = is_less_than G G')
+    RETURN(Val.of_bool a)
+    SEP(mformat G p; mformat G' q).
+
 (* ================================================================= *)
 
 
 Definition Gprog : funspecs :=
         ltac:(with_library prog [
                    max_spec; strlen_spec; strcpy_spec; list_copy_spec;
-                   less_components_spec
+                   less_components_spec; is_less_than_spec
  ]).
 
 (* ================================================================= *)
@@ -260,81 +283,69 @@ Qed.
 
 Lemma less_components_fact1: 
   forall (x y : nat), 
-    Val.of_bool (Int.unsigned (Int.repr (Z.of_nat x)) <=? Int.unsigned (Int.repr (Z.of_nat y))) =
+    (0 <= (Z.of_nat x) <= Int.max_unsigned) ->
+    (0 <= (Z.of_nat y) <= Int.max_unsigned) ->
+    Val.of_bool (Z.of_nat x <=? Z.of_nat y) =
     Val.of_bool (negb (Int.ltu (Int.repr (Z.of_nat y)) (Int.repr (Z.of_nat x)))).
 Proof.
   intros.
   f_equal.
-  remember ((Int.unsigned (Int.repr (Z.of_nat x)) <=? Int.unsigned (Int.repr (Z.of_nat y)))) as comp.
+  remember (Z.of_nat x <=? Z.of_nat y) as comp.
   destruct comp.
-  + remember (Int.repr (Z.of_nat y)) as Y.
-    remember (Int.repr (Z.of_nat x)) as X.
-    assert (Int.unsigned X <= Int.unsigned Y \/ Int.unsigned X > Int.unsigned Y). lia.
-    destruct H.
-    remember (Int.ltu Y X).
-    destruct b.
-    symmetry in Heqb.
-    apply ltu_inv in Heqb.
-    lia. lia.
-    remember (Int.ltu Y X).
-    destruct b.
-    symmetry in Heqb.
-    apply ltu_inv in Heqb.
-    lia. lia.
-  + remember (Int.repr (Z.of_nat y)) as Y.
-    remember (Int.repr (Z.of_nat x)) as X.
-    assert (Int.unsigned X <= Int.unsigned Y \/ Int.unsigned X > Int.unsigned Y). lia.
-    destruct H.
-    remember (Int.ltu Y X).
-    destruct b.
-    lia.
-    symmetry in Heqb.
-    apply ltu_false_inv in Heqb.
-    lia.
-    remember (Int.ltu Y X).
-    destruct b.
-    lia.
-    symmetry in Heqb.
-    apply ltu_false_inv in Heqb.
-    lia.
+  + remember (Z.of_nat y) as Y.
+    remember (Z.of_nat x) as X.
+    assert (X <= Y \/  X > Y). lia.
+    destruct H1. {
+      remember (Int.ltu (Int.repr Y) (Int.repr X)).
+      destruct b.
+      symmetry in Heqb.
+      apply ltu_inv in Heqb.
+      repeat rewrite Int.unsigned_repr in Heqb by auto.
+      lia. lia.
+    } {
+      remember (Int.ltu (Int.repr Y) (Int.repr X)).
+      destruct b.
+      - destruct (Z.leb_spec0 X Y).
+        + lia.
+        + lia.
+      - lia.
+    }
+  + remember (Z.of_nat y) as Y.
+    remember (Z.of_nat x) as X.
+    assert (X <= Y \/  X > Y). lia.
+    destruct H1. {
+      remember (Int.ltu (Int.repr Y) (Int.repr X)).
+      destruct b. lia.
+      symmetry in Heqb.
+      apply ltu_false_inv in Heqb.
+      repeat rewrite Int.unsigned_repr in Heqb by auto.
+      destruct (Z.leb_spec0 X Y).
+      lia. lia.
+    } {
+      remember (Int.ltu (Int.repr Y) (Int.repr X)).
+      destruct b. lia.
+      symmetry in Heqb.
+      apply ltu_false_inv in Heqb.
+      repeat rewrite Int.unsigned_repr in Heqb by auto.
+      lia.
+    }
 Qed.
-
-Lemma less_components_fact2_lemma:
-  forall (y : nat),
-  (y = 0%nat \/ exists (p : positive), (Z.of_nat y) = Z.pos p).
-Proof.
-  intros.
-  induction y.
-  - left. lia.
-  - destruct y.
-    + right. exists (xH). lia.
-    + destruct IHy.
-      * right. exists xH. lia.
-      * right. destruct H. exists (x + 1)%positive. lia.
-Qed.
-
+  
 Lemma less_components_fact2:
   forall (x y : nat),
-  (Int.unsigned (Int.repr (Z.of_nat x)) <=? Int.unsigned (Int.repr (Z.of_nat y))) = (Nat.leb x y).
+  ((Z.of_nat x)) <=? (Z.of_nat y) = (Nat.leb x y).
 Proof.
   intros.
-  remember (Nat.leb x y).
-  destruct b.
-  - symmetry in Heqb.
-    assert ((x <= y)%nat). remember (Nat.leb_spec0 x y).
-    clear Heqr.
-    apply reflect_iff in r.
-    destruct r.
-    auto.
-    apply inj_le in H.
-    unfold Int.unsigned.
-    unfold Int.repr. simpl.
-    destruct x.
-    + destruct y.
-      * simpl. lia.
-      * remember (less_components_fact2_lemma (S y)). destruct o. lia.
-        destruct e. rewrite e. simpl.
-    
+  Search (Z.of_nat _ <= Z.of_nat _).
+  destruct (Nat.leb_spec0 x y).
+  - apply inj_le in l.
+    destruct (Z.leb_spec0 (Z.of_nat x) (Z.of_nat y)).
+    + auto.
+    + auto.
+  - destruct (Z.leb_spec0 (Z.of_nat x) (Z.of_nat y)).
+    + apply Nat2Z.inj_le in l. lia.
+    + auto.
+Qed.
 
 Lemma body_less_components: semax_body Vprog Gprog f_less_components less_components_spec.
 Proof.
@@ -347,8 +358,8 @@ Proof.
   forward_if(
     EX t1: bool,
     PROP(t1 = andb 
-    (Int.unsigned (Int.repr (Z.of_nat (height G))) <=? Int.unsigned (Int.repr (Z.of_nat (height G'))))
-    (Int.unsigned (Int.repr (Z.of_nat (first_line_width G))) <=? Int.unsigned (Int.repr (Z.of_nat (first_line_width G'))))
+    ((Z.of_nat (height G)) <=? Z.of_nat (height G'))
+    ((Z.of_nat (first_line_width G)) <=? Z.of_nat (first_line_width G'))
     )
     LOCAL(temp _t'1 (Val.of_bool t1); temp _G p; temp _F q)
     SEP(
@@ -359,10 +370,10 @@ Proof.
   forward.
   forward.
   forward.
-  Exists (Int.unsigned (Int.repr (Z.of_nat (first_line_width G))) <=? Int.unsigned (Int.repr (Z.of_nat (first_line_width G')))).
+  Exists ((Z.of_nat (first_line_width G)) <=? (Z.of_nat (first_line_width G'))).
   unfold mformat.
   entailer!.
-  + apply less_components_fact1.
+  + apply less_components_fact1; auto.
   + unfold concrete_mformat. entailer!.
   } {
   forward.
@@ -376,8 +387,8 @@ Proof.
   forward_if(
     EX t2: bool,
     PROP(t2 = andb first_two_comp 
-      ((Int.unsigned (Int.repr (Z.of_nat (middle_width G))) <=?
-      Int.unsigned (Int.repr (Z.of_nat (middle_width G'))))))
+      (((Z.of_nat (middle_width G))) <=?
+      (Z.of_nat (middle_width G'))))
     LOCAL(temp _t'2 (Val.of_bool t2); temp _G p; temp _F q)
     SEP(concrete_mformat G p sigmaG pG; concrete_mformat G' q sigmaG' pG')
   ). {
@@ -386,9 +397,9 @@ Proof.
     forward.
     forward.
     forward.
-    Exists (first_two_comp && (Int.unsigned (Int.repr (Z.of_nat (middle_width G))) <=? Int.unsigned (Int.repr (Z.of_nat (middle_width G')))))%bool.
+    Exists (first_two_comp && ((Z.of_nat (middle_width G)) <=? (Z.of_nat (middle_width G'))))%bool.
     entailer!.
-    + rewrite H2. simpl. apply less_components_fact1.
+    + rewrite H10. simpl. apply less_components_fact1; auto.
     + unfold concrete_mformat. entailer!.
   } {
     forward.
@@ -400,8 +411,8 @@ Proof.
   forward_if(
     EX t3: bool,
     PROP(t3 = andb first_three_comp
-      ((Int.unsigned (Int.repr (Z.of_nat (last_line_width G))) <=?
-      Int.unsigned (Int.repr (Z.of_nat (last_line_width G'))))))
+      (((Z.of_nat (last_line_width G))) <=?
+       (Z.of_nat (last_line_width G'))))
     LOCAL(temp _t'3 (Val.of_bool t3); temp _G p; temp _F q)
     SEP(concrete_mformat G p sigmaG pG; concrete_mformat G' q sigmaG' pG')
   ). {
@@ -410,9 +421,9 @@ Proof.
     forward.
     forward.
     forward.
-    Exists (first_three_comp && (Int.unsigned (Int.repr (Z.of_nat (last_line_width G))) <=? Int.unsigned (Int.repr (Z.of_nat (last_line_width G')))))%bool.
+    Exists (first_three_comp && (((Z.of_nat (last_line_width G))) <=? (Z.of_nat (last_line_width G'))))%bool.
     entailer!.
-    + rewrite H3. simpl. apply less_components_fact1.
+    + rewrite H11. simpl. apply less_components_fact1; auto.
     + unfold concrete_mformat. entailer!.
   } {
     forward.
@@ -425,8 +436,162 @@ Proof.
   Exists (less_components G G').
   entailer!.
 
-  + f_equal. unfold less_components. Search (Int.unsigned _ <=? Int.unsigned _).
+  + f_equal. unfold less_components. repeat rewrite less_components_fact2. auto.
+  + unfold concrete_mformat. unfold mformat. Exists sigmaG pG sigmaG' pG'. entailer!.
+Qed.
+
+Lemma is_less_than_fact1:
+  forall (x y : nat),
+    (x <> y)%nat <-> (x =? y)%nat = false.
+Proof.
+  intros.
+  remember (Nat.eqb_spec x y).
+  clear Heqr.
+  split.
+  - intros. destruct r. contradiction. auto.
+  - intros. destruct r. lia. auto.
+Qed.
+
+Lemma is_less_than_fact2:
+  forall (x y : nat),
+    (0 <= (Z.of_nat x) <= Int.max_unsigned) ->
+    (0 <= (Z.of_nat y) <= Int.max_unsigned) ->
+    (x =? y)%nat = Int.eq (Int.repr (Z.of_nat x)) (Int.repr (Z.of_nat y)).
+Proof.
+  intros.
+  destruct (Nat.eqb_spec x y).
+  - subst. rewrite Int.eq_true. auto.
+  - Search Int.eq.
+    remember(Int.eq (Int.repr (Z.of_nat x)) (Int.repr (Z.of_nat y))).
+    destruct b.
+    + symmetry in Heqb. apply Int.same_if_eq in Heqb. Search Int.repr. apply repr_inj_unsigned in Heqb; auto. lia.
+    + lia.
+Qed.
     
+Lemma body_is_less_than: semax_body Vprog Gprog f_is_less_than is_less_than_spec.
+Proof.
+  start_function.
+  unfold mformat.
+  Intros sigmaG pG sigmaG' pG'.
+  forward.
+  forward_if(
+    EX t1: bool,
+    PROP(t1 = andb (negb (Nat.eqb (height G) 1%nat)) (Nat.eqb (height G') 1))
+    LOCAL(temp _t'2 (Val.of_bool t1); temp _G p; temp _F q)
+    SEP(concrete_mformat G p sigmaG pG; concrete_mformat G' q sigmaG' pG')
+  ). {
+    forward.
+    forward.
+    Exists (negb (height G =? 1)%nat && (height G' =? 1)%nat)%bool.
+    entailer!.
+    - f_equal. 
+      assert ((Nat.eqb (height G) 1) = false). destruct (eq_dec (height G) 1%nat).
+      + rewrite e in H9. simpl in H9. list_solve.
+      + apply is_less_than_fact1. auto.
+      + rewrite H17. simpl. apply is_less_than_fact2; auto. simpl. 
+        unfold Int.max_unsigned. simpl. lia.
+    - unfold concrete_mformat. entailer!.
+  } {
+    forward.
+    Exists false.
+    entailer!.
+    - assert (height G = 1%nat). lia. rewrite H16. simpl. auto.
+    - unfold concrete_mformat. entailer!.
+  }
+
+  Intros first_comp.
+  forward_if(
+    EX t2: bool,
+    PROP(t2 = orb first_comp (andb (Nat.eqb (height G) 1%nat) (negb (Nat.eqb (height G') 1%nat))))
+    LOCAL(temp _t'3 (Val.of_bool t2); temp _G p; temp _F q)
+    SEP(concrete_mformat G p sigmaG pG; concrete_mformat G' q sigmaG' pG')
+  ). {
+    forward.
+    Exists (first_comp || (height G =? 1)%nat && negb (height G' =? 1)%nat)%bool.
+    entailer!.
+    rewrite H10. list_solve.
+  } {
+    forward.
+    forward_if(
+      EX t3: bool,
+      PROP(t3 = andb (Nat.eqb (height G) 1%nat) (negb (Nat.eqb (height G') 1%nat)))
+      LOCAL(temp _t'3 (Val.of_bool t3); temp _G p; temp _F q)
+      SEP(concrete_mformat G p sigmaG pG; concrete_mformat G' q sigmaG' pG')
+    ). {
+      forward.
+      forward.
+      forward.
+      Exists ((height G =? 1)%nat && negb (height G' =? 1)%nat)%bool.
+      entailer!.
+      - f_equal. replace (height G) with 1%nat by list_solve. simpl. f_equal.
+        apply is_less_than_fact2; auto. simpl. unfold Int.max_unsigned. simpl. lia.
+      - unfold concrete_mformat. entailer!.
+    } {
+      forward.
+      Exists false.
+      entailer!.
+      assert (height G <> 1%nat). list_solve.
+      destruct (Nat.eqb_spec (height G) 1%nat).
+      + contradiction.
+      + auto.
+      + unfold concrete_mformat. entailer!.
+    }
+    Intros second_comp.
+    Exists (first_comp || second_comp)%bool.
+    entailer!.
+    rewrite H10.
+    simpl.
+    f_equal.
+  }
+  Intros all_comp.
+  forward_if. {
+    forward.
+    Exists false.
+    unfold is_less_than.
+    destruct (height G).
+    - destruct (height G').
+      + simpl. simpl in H11. lia.
+      + destruct n.
+        * unfold concrete_mformat. unfold mformat. Exists sigmaG pG sigmaG' pG'. entailer!.
+        * simpl in H11. lia.
+    - destruct n.
+      + destruct (height G').
+        * unfold concrete_mformat. unfold mformat. Exists sigmaG pG sigmaG' pG'. entailer!.
+        * destruct n.  
+          { simpl in H11. lia. }
+          { unfold concrete_mformat. unfold mformat. Exists sigmaG pG sigmaG' pG'. entailer!. }
+      + destruct (height G').
+        * simpl in H11. lia.
+        * destruct n0.
+          { unfold concrete_mformat. unfold mformat. Exists sigmaG pG sigmaG' pG'. entailer!. }
+          { simpl in H11. lia. }
+  }
+
+  forward_call(p, G, q, G').
+  - unfold concrete_mformat. unfold mformat. Exists sigmaG pG sigmaG' pG'. entailer!.
+  - Intros ans. forward.
+    Exists (less_components G G').
+    entailer!.
+    unfold is_less_than. {
+      destruct (height G).
+      - destruct (height G').
+        + auto.
+        + destruct n.
+          * simpl in H11. lia.
+          * auto.
+      - destruct n.
+        + destruct (height G').
+          * simpl in H11. lia.
+          * destruct n.
+            { auto. }
+            { simpl in H11. lia. }
+        + destruct (height G').
+          * auto.
+          * destruct n0.
+            { simpl in H11. lia. }
+            { auto. }
+    }
+Qed.
 
 Lemma list_copy_length_fact:
   forall (A : Type) (t : list A),
