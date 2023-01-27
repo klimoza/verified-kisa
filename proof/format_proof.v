@@ -679,10 +679,6 @@ Proof.
     simpl. list_solve.
 Qed.
 
-Search (Ascii.N_of_ascii (Ascii.ascii_of_N _)).
-Compute (Byte.modulus).
-
-
 Lemma list_byte_to_list_byte_eq:
   forall (s : list byte),
     string_to_list_byte (list_byte_to_string s) = s.
@@ -711,6 +707,16 @@ Proof.
     rewrite Byte.repr_unsigned.
     auto.
     apply Byte.unsigned_range.
+Qed.
+
+Lemma empty_string_app:
+  forall (s : string),
+    (s ++ "")%string = s.
+Proof.
+  intros.
+  induction s.
+  - simpl. reflexivity.
+  - unfold append; fold append. rewrite IHs. reflexivity.
 Qed.
 
 Lemma body_line: semax_body Vprog Gprog f_line line_spec.
@@ -774,9 +780,20 @@ Proof.
   entailer!.
   - unfold line. simpl. split.
     + repeat rewrite list_byte_to_string_length. list_solve.
-    + unfold to_text_eq. simpl.
-      replace (append (list_byte_to_string sigma) "") with (list_byte_to_string sigmak) by list_solve.
-  
+    + unfold to_text_eq. simpl. split.
+      * replace (sigma ++ []) with sigma by list_solve.
+        rewrite empty_string_app.
+        apply list_byte_to_list_byte_eq.
+      * unfold Int.max_unsigned.
+        simpl. lia.
+  - unfold listrep.
+    Exists (Vlong (Int64.repr 0)) p.
+    unfold cstring.
+    entailer!.
+    unfold line. simpl.
+    repeat rewrite list_byte_to_string_length.
+    entailer!.
+Qed.
 
 
 Lemma list_copy_length_fact:
@@ -817,6 +834,7 @@ Proof.
     rewrite <- IHt.
     list_solve.
 Qed.
+
 Lemma body_list_copy: semax_body Vprog Gprog f_list_copy list_copy_spec.
 Proof.
 Admitted.
