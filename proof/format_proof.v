@@ -217,8 +217,8 @@ Lemma body_max: semax_body Vprog Gprog f_max max_spec.
 Proof.
   start_function. 
   forward_if.
-  - forward. Exists b. entailer!.
-  - forward. Exists a. entailer!.
+  { forward. Exists b. entailer!. }
+  forward. Exists a. entailer!.
 Qed.
 
 Lemma body_strlen: semax_body Vprog Gprog f_strlen strlen_spec.
@@ -235,28 +235,22 @@ forward_loop  (EX i : Z,
           (map Vbyte (s ++ [Byte.zero])) str)).
 
 assert (Example: Archi.ptr64=false -> 
-          forall n, Vptrofs (Ptrofs.repr n) = Vint (Int.repr n)). {
- intro Hx; try discriminate Hx.
- 
-all:  intros.
-all:  hint.
-all:  autorewrite with norm.
-all:  auto.
-} clear Example.
-
-* Exists 0. entailer.
-* Intros i. forward. forward_if. forward. entailer!. 
-  repeat f_equal. cstring.
-  forward. entailer. Exists (i + 1). entailer!.
-  assert(0 <= i + 1 < Zlength (s ++ [Byte.zero])).
-  assert (i < Zlength s) by cstring.
+          forall n, Vptrofs (Ptrofs.repr n) = Vint (Int.repr n)).
+{ intro Hx; try discriminate Hx. }
+clear Example.
+{ Exists 0. entailer. }
+Intros i. forward. forward_if. forward. entailer!. 
+repeat f_equal. cstring.
+forward. entailer. Exists (i + 1). entailer!.
+assert(0 <= i + 1 < Zlength (s ++ [Byte.zero])).
+{ assert (i < Zlength s) by cstring.
   autorewrite with sublist.
-  cstring.
-  autorewrite with sublist in H6. simpl in H6.
-  apply H6.
+  cstring. }
+autorewrite with sublist in H6. simpl in H6.
+apply H6.
 Qed.
 
-Lemma body_strcpy: semax_body Vprog Gprog f_strcpy strcpy_spec.
+Lemma body_strcpy : semax_body Vprog Gprog f_strcpy strcpy_spec.
 Proof.
 start_function.
 
@@ -269,28 +263,28 @@ forward_loop (EX i : Z,
   SEP (data_at wsh (tarray tschar n)
         (map Vbyte (sublist 0 i s) ++ Zrepeat Vundef (n - i)) dest;
        data_at rsh (tarray tschar (Zlength s + 1)) (map Vbyte (s ++ [Byte.zero])) src)).
-+ Exists 0. entailer.
-+ Intros i. forward. forward. forward. forward_if.
-  * forward. entailer!. apply derives_refl'. f_equal.
-    rewrite upd_Znth_app2. {
-      assert (i - Zlength (map Vbyte (sublist 0 i s)) = 0). list_solve.
-      rewrite H12. unfold Zrepeat.
-      remember (Z.to_nat (n - i)). destruct n0. lia.
-      simpl. 
-      assert (i = Zlength s). cstring.
-      replace (Z.to_nat (n - (Zlength s + 1))) with n0 by lia.
-      list_solve.
-    } {
-      list_solve.
-    }
-  * forward. Exists (i + 1). entailer!. 
-    assert (0 <= i + 1 < (Zlength (s ++ [Byte.zero]))).
-    assert (i < Zlength s) by cstring.
-    autorewrite with sublist.
-    cstring.
-    autorewrite with sublist in H11. simpl in H11.
-    apply H11. rewrite upd_Znth_app2. list_solve.
-    list_solve.
+{ Exists 0. entailer. }
+Intros i. forward. forward. forward. forward_if.
+{ forward. entailer!. apply derives_refl'. f_equal.
+  rewrite upd_Znth_app2.
+  2: { list_solve. }
+  assert (i - Zlength (map Vbyte (sublist 0 i s)) = 0) as AA by list_solve.
+  rewrite AA. unfold Zrepeat.
+  remember (Z.to_nat (n - i)). destruct n0.
+  { lia. }
+  simpl. 
+  assert (i = Zlength s) by cstring.
+  replace (Z.to_nat (n - (Zlength s + 1))) with n0 by lia.
+  list_solve. }
+forward. Exists (i + 1). entailer!. 
+2: { rewrite upd_Znth_app2.
+     all: list_solve. }
+assert (0 <= i + 1 < (Zlength (s ++ [Byte.zero]))) as AA.
+{ assert (i < Zlength s) as LT by cstring.
+  autorewrite with sublist.
+  cstring. }
+autorewrite with sublist in AA. simpl in AA.
+apply AA.
 Qed.
 
 Arguments listrep sigma p : simpl never.
@@ -303,10 +297,10 @@ Proof.
   intros.
 
   revert p; induction sigma; intros p.
-  - unfold listrep. entailer!. split; auto.
-  - unfold listrep; fold listrep. destruct a. entailer. entailer!. split; intro.
-    + subst p. eapply field_compatible_nullval; eauto.
-    + inversion H4.
+  { unfold listrep. entailer!. split; auto. }
+  unfold listrep; fold listrep. destruct a. entailer. entailer!. split; intro.
+  2: now inversion H4.
+  subst p. eapply field_compatible_nullval; eauto.
 Qed.
 #[export] Hint Resolve listrep_local_facts : saturate_local.
 
@@ -314,10 +308,10 @@ Lemma listrep_valid_pointer:
   forall sigma p,
    listrep sigma p |-- valid_pointer p.
 Proof.
- intros.
- unfold listrep. destruct sigma; simpl.
-  - entailer!.
-  - destruct p0. Intros x y. auto with valid_pointer.
+intros.
+unfold listrep. destruct sigma; simpl.
+{ entailer!. }
+destruct p0. Intros x y. auto with valid_pointer.
 Qed.
 #[export] Hint Resolve listrep_valid_pointer : valid_pointer.
 
@@ -341,13 +335,11 @@ Proof.
       symmetry in Heqb.
       apply ltu_inv in Heqb.
       repeat rewrite Int.unsigned_repr in Heqb by auto.
-      lia. lia.
+      all: lia.
     } {
       remember (Int.ltu (Int.repr Y) (Int.repr X)).
       destruct b.
-      - destruct (Z.leb_spec0 X Y).
-        + lia.
-        + lia.
+      - destruct (Z.leb_spec0 X Y); lia.
       - lia.
     }
   + remember (Z.of_nat y) as Y.
@@ -378,12 +370,9 @@ Proof.
   intros.
   destruct (Nat.leb_spec0 x y).
   - apply inj_le in l.
-    destruct (Z.leb_spec0 (Z.of_nat x) (Z.of_nat y)).
-    + auto.
-    + auto.
-  - destruct (Z.leb_spec0 (Z.of_nat x) (Z.of_nat y)).
-    + apply Nat2Z.inj_le in l. lia.
-    + auto.
+    destruct (Z.leb_spec0 (Z.of_nat x) (Z.of_nat y)); auto.
+  - destruct (Z.leb_spec0 (Z.of_nat x) (Z.of_nat y)); auto.
+    apply Nat2Z.inj_le in l. lia.
 Qed.
 
 Lemma body_less_components: semax_body Vprog Gprog f_less_components less_components_spec.
@@ -406,9 +395,7 @@ Proof.
           concrete_mformat G' q sigmaG' pG'
     )
   ). {
-  forward.
-  forward.
-  forward.
+  do 3 forward.
   Exists ((Z.of_nat (first_line_width G)) <=? (Z.of_nat (first_line_width G'))).
   unfold mformat.
   entailer!.
@@ -479,11 +466,9 @@ Proof.
   + unfold concrete_mformat. unfold mformat. Exists sigmaG pG sigmaG' pG'. entailer!.
 Qed.
 
-Lemma is_less_than_fact1:
-  forall (x y : nat),
+Lemma is_less_than_fact1 x y :
     (x <> y)%nat <-> (x =? y)%nat = false.
 Proof.
-  intros.
   remember (Nat.eqb_spec x y).
   clear Heqr.
   split.
@@ -491,19 +476,17 @@ Proof.
   - intros. destruct r. lia. auto.
 Qed.
 
-Lemma is_less_than_fact2:
-  forall (x y : nat),
-    (0 <= (Z.of_nat x) <= Int.max_unsigned) ->
-    (0 <= (Z.of_nat y) <= Int.max_unsigned) ->
+Lemma is_less_than_fact2 x y
+    (XBOUND : 0 <= (Z.of_nat x) <= Int.max_unsigned)
+    (YBOUND : 0 <= (Z.of_nat y) <= Int.max_unsigned) :
     (x =? y)%nat = Int.eq (Int.repr (Z.of_nat x)) (Int.repr (Z.of_nat y)).
 Proof.
-  intros.
   destruct (Nat.eqb_spec x y).
-  - subst. rewrite Int.eq_true. auto.
-  - remember(Int.eq (Int.repr (Z.of_nat x)) (Int.repr (Z.of_nat y))).
-    destruct b.
-    + symmetry in Heqb. apply Int.same_if_eq in Heqb. apply repr_inj_unsigned in Heqb; auto. lia.
-    + lia.
+  { subst. rewrite Int.eq_true. auto. }
+  remember(Int.eq (Int.repr (Z.of_nat x)) (Int.repr (Z.of_nat y))).
+  destruct b.
+  2: lia.
+  symmetry in Heqb. apply Int.same_if_eq in Heqb. apply repr_inj_unsigned in Heqb; auto. lia.
 Qed.
     
 Lemma body_is_less_than: semax_body Vprog Gprog f_is_less_than is_less_than_spec.
@@ -640,7 +623,7 @@ Proof.
     forward_if(empty_pointer <> nullval).
     - forward_call. entailer!.
     - forward. entailer!.
-    - Intros. contradiction.
+    - now Intros.
   }
 
   forward_if(empty_pointer <> nullval). {
@@ -652,12 +635,7 @@ Proof.
   }
 
   Intros.
-  forward.
-  forward.
-  forward.
-  forward.
-  forward.
-  forward.
+  do 6 forward.
 
   Exists empty_pointer.
   entailer!.

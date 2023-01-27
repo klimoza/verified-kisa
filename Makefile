@@ -16,7 +16,7 @@ _CoqProject:
 	echo $(ALLVFILES)) > _CoqProject
 
 Makefile.coq: _CoqProject
-	coq_makefile $(COQMFFLAGS) -o Makefile.coq -f _CoqProject
+	coq_makefile -o Makefile.coq -f _CoqProject
 
 -include Makefile.coq
 
