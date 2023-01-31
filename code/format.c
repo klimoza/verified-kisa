@@ -57,25 +57,23 @@ list *list_copy(list *l) {
   list *new = malloc(sizeof(list));
   if(!new) exit(1);
 
-  new->shift = l->shift;
-  new->line = malloc(strlen(l->line) + 1);
-  if(!new->line) exit(1);
-  strcpy(new->line, l->line);
-  new->tail = NULL;
+  list *cur = new;
+  list *l_cur = l;
+  while(true) {
+    cur->shift = l_cur->shift;
+    cur->line = malloc(strlen(l_cur->line) + 1);
+    if(!cur->line) exit(1);
+    strcpy(cur->line, l_cur->line);
+    cur->tail = NULL;
 
-  list *cur_tail = new;
-  l = l->tail;
-  while (l != NULL) {
-    cur_tail->tail = malloc(sizeof(list));
-    if(!cur_tail->tail) exit(1);
-
-    cur_tail = cur_tail->tail;
-    cur_tail->shift = l->shift;
-    cur_tail->line = malloc(strlen(l->line) + 1);
-    if(!cur_tail->line) exit(1);
-    strcpy(cur_tail->line, l->line);
-    cur_tail->tail = NULL;
-    l = l->tail;
+    if (l_cur->tail == NULL) {
+      cur = NULL;
+      break;
+    }
+    cur->tail = malloc(sizeof(list));
+    if(!cur->tail) exit(1);
+    cur = cur->tail;
+    l_cur = l_cur->tail;
   }
   return new;
 }

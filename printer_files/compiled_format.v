@@ -84,7 +84,7 @@ Definition _add_above : ident := $"add_above".
 Definition _add_beside : ident := $"add_beside".
 Definition _add_fill : ident := $"add_fill".
 Definition _b : ident := $"b".
-Definition _cur_tail : ident := $"cur_tail".
+Definition _cur : ident := $"cur".
 Definition _d : ident := $"d".
 Definition _dest : ident := $"dest".
 Definition _empty : ident := $"empty".
@@ -98,6 +98,7 @@ Definition _indent : ident := $"indent".
 Definition _is_less_than : ident := $"is_less_than".
 Definition _j : ident := $"j".
 Definition _l : ident := $"l".
+Definition _l_cur : ident := $"l_cur".
 Definition _last_line_width : ident := $"last_line_width".
 Definition _last_line_width_new : ident := $"last_line_width_new".
 Definition _less_components : ident := $"less_components".
@@ -397,15 +398,14 @@ Definition f_list_copy := {|
   fn_params := ((_l, (tptr (Tstruct _list noattr))) :: nil);
   fn_vars := nil;
   fn_temps := ((_new, (tptr (Tstruct _list noattr))) ::
-               (_cur_tail, (tptr (Tstruct _list noattr))) ::
-               (_t'6, (tptr tvoid)) :: (_t'5, tulong) ::
+               (_cur, (tptr (Tstruct _list noattr))) ::
+               (_l_cur, (tptr (Tstruct _list noattr))) ::
                (_t'4, (tptr tvoid)) :: (_t'3, (tptr tvoid)) ::
-               (_t'2, tulong) :: (_t'1, (tptr tvoid)) :: (_t'17, tuint) ::
-               (_t'16, (tptr tschar)) :: (_t'15, (tptr tschar)) ::
-               (_t'14, (tptr tschar)) :: (_t'13, (tptr tschar)) ::
-               (_t'12, (tptr (Tstruct _list noattr))) :: (_t'11, tuint) ::
+               (_t'2, tulong) :: (_t'1, (tptr tvoid)) :: (_t'11, tuint) ::
                (_t'10, (tptr tschar)) :: (_t'9, (tptr tschar)) ::
-               (_t'8, (tptr tschar)) :: (_t'7, (tptr tschar)) :: nil);
+               (_t'8, (tptr tschar)) :: (_t'7, (tptr tschar)) ::
+               (_t'6, (tptr (Tstruct _list noattr))) ::
+               (_t'5, (tptr (Tstruct _list noattr))) :: nil);
   fn_body :=
 (Ssequence
   (Sifthenelse (Ebinop Oeq (Etempvar _l (tptr (Tstruct _list noattr)))
@@ -426,234 +426,160 @@ Definition f_list_copy := {|
           ((Econst_int (Int.repr 1) tint) :: nil))
         Sskip)
       (Ssequence
+        (Sset _cur (Etempvar _new (tptr (Tstruct _list noattr))))
         (Ssequence
-          (Sset _t'17
-            (Efield
-              (Ederef (Etempvar _l (tptr (Tstruct _list noattr)))
-                (Tstruct _list noattr)) _shift tuint))
-          (Sassign
-            (Efield
-              (Ederef (Etempvar _new (tptr (Tstruct _list noattr)))
-                (Tstruct _list noattr)) _shift tuint) (Etempvar _t'17 tuint)))
-        (Ssequence
+          (Sset _l_cur (Etempvar _l (tptr (Tstruct _list noattr))))
           (Ssequence
-            (Ssequence
+            (Sloop
               (Ssequence
-                (Sset _t'16
-                  (Efield
-                    (Ederef (Etempvar _l (tptr (Tstruct _list noattr)))
-                      (Tstruct _list noattr)) _line (tptr tschar)))
-                (Scall (Some _t'2)
-                  (Evar _strlen (Tfunction (Tcons (tptr tschar) Tnil) tulong
-                                  cc_default))
-                  ((Etempvar _t'16 (tptr tschar)) :: nil)))
-              (Scall (Some _t'3)
-                (Evar _malloc (Tfunction (Tcons tulong Tnil) (tptr tvoid)
-                                cc_default))
-                ((Ebinop Oadd (Etempvar _t'2 tulong)
-                   (Econst_int (Int.repr 1) tint) tulong) :: nil)))
-            (Sassign
-              (Efield
-                (Ederef (Etempvar _new (tptr (Tstruct _list noattr)))
-                  (Tstruct _list noattr)) _line (tptr tschar))
-              (Etempvar _t'3 (tptr tvoid))))
-          (Ssequence
-            (Ssequence
-              (Sset _t'15
-                (Efield
-                  (Ederef (Etempvar _new (tptr (Tstruct _list noattr)))
-                    (Tstruct _list noattr)) _line (tptr tschar)))
-              (Sifthenelse (Eunop Onotbool (Etempvar _t'15 (tptr tschar))
-                             tint)
-                (Scall None
-                  (Evar _exit (Tfunction (Tcons tint Tnil) tvoid cc_default))
-                  ((Econst_int (Int.repr 1) tint) :: nil))
-                Sskip))
-            (Ssequence
-              (Ssequence
-                (Sset _t'13
-                  (Efield
-                    (Ederef (Etempvar _new (tptr (Tstruct _list noattr)))
-                      (Tstruct _list noattr)) _line (tptr tschar)))
+                Sskip
                 (Ssequence
-                  (Sset _t'14
-                    (Efield
-                      (Ederef (Etempvar _l (tptr (Tstruct _list noattr)))
-                        (Tstruct _list noattr)) _line (tptr tschar)))
-                  (Scall None
-                    (Evar _strcpy (Tfunction
-                                    (Tcons (tptr tschar)
-                                      (Tcons (tptr tschar) Tnil))
-                                    (tptr tschar) cc_default))
-                    ((Etempvar _t'13 (tptr tschar)) ::
-                     (Etempvar _t'14 (tptr tschar)) :: nil))))
-              (Ssequence
-                (Sassign
-                  (Efield
-                    (Ederef (Etempvar _new (tptr (Tstruct _list noattr)))
-                      (Tstruct _list noattr)) _tail
-                    (tptr (Tstruct _list noattr)))
-                  (Ecast (Econst_int (Int.repr 0) tint) (tptr tvoid)))
-                (Ssequence
-                  (Sset _cur_tail
-                    (Etempvar _new (tptr (Tstruct _list noattr))))
                   (Ssequence
-                    (Sset _l
+                    (Sset _t'11
                       (Efield
-                        (Ederef (Etempvar _l (tptr (Tstruct _list noattr)))
-                          (Tstruct _list noattr)) _tail
-                        (tptr (Tstruct _list noattr))))
+                        (Ederef
+                          (Etempvar _l_cur (tptr (Tstruct _list noattr)))
+                          (Tstruct _list noattr)) _shift tuint))
+                    (Sassign
+                      (Efield
+                        (Ederef (Etempvar _cur (tptr (Tstruct _list noattr)))
+                          (Tstruct _list noattr)) _shift tuint)
+                      (Etempvar _t'11 tuint)))
+                  (Ssequence
                     (Ssequence
-                      (Swhile
-                        (Ebinop One
-                          (Etempvar _l (tptr (Tstruct _list noattr)))
-                          (Ecast (Econst_int (Int.repr 0) tint) (tptr tvoid))
-                          tint)
+                      (Ssequence
                         (Ssequence
+                          (Sset _t'10
+                            (Efield
+                              (Ederef
+                                (Etempvar _l_cur (tptr (Tstruct _list noattr)))
+                                (Tstruct _list noattr)) _line (tptr tschar)))
+                          (Scall (Some _t'2)
+                            (Evar _strlen (Tfunction
+                                            (Tcons (tptr tschar) Tnil) tulong
+                                            cc_default))
+                            ((Etempvar _t'10 (tptr tschar)) :: nil)))
+                        (Scall (Some _t'3)
+                          (Evar _malloc (Tfunction (Tcons tulong Tnil)
+                                          (tptr tvoid) cc_default))
+                          ((Ebinop Oadd (Etempvar _t'2 tulong)
+                             (Econst_int (Int.repr 1) tint) tulong) :: nil)))
+                      (Sassign
+                        (Efield
+                          (Ederef
+                            (Etempvar _cur (tptr (Tstruct _list noattr)))
+                            (Tstruct _list noattr)) _line (tptr tschar))
+                        (Etempvar _t'3 (tptr tvoid))))
+                    (Ssequence
+                      (Ssequence
+                        (Sset _t'9
+                          (Efield
+                            (Ederef
+                              (Etempvar _cur (tptr (Tstruct _list noattr)))
+                              (Tstruct _list noattr)) _line (tptr tschar)))
+                        (Sifthenelse (Eunop Onotbool
+                                       (Etempvar _t'9 (tptr tschar)) tint)
+                          (Scall None
+                            (Evar _exit (Tfunction (Tcons tint Tnil) tvoid
+                                          cc_default))
+                            ((Econst_int (Int.repr 1) tint) :: nil))
+                          Sskip))
+                      (Ssequence
+                        (Ssequence
+                          (Sset _t'7
+                            (Efield
+                              (Ederef
+                                (Etempvar _cur (tptr (Tstruct _list noattr)))
+                                (Tstruct _list noattr)) _line (tptr tschar)))
                           (Ssequence
-                            (Scall (Some _t'4)
-                              (Evar _malloc (Tfunction (Tcons tulong Tnil)
-                                              (tptr tvoid) cc_default))
-                              ((Esizeof (Tstruct _list noattr) tulong) ::
-                               nil))
-                            (Sassign
+                            (Sset _t'8
                               (Efield
                                 (Ederef
-                                  (Etempvar _cur_tail (tptr (Tstruct _list noattr)))
-                                  (Tstruct _list noattr)) _tail
-                                (tptr (Tstruct _list noattr)))
-                              (Etempvar _t'4 (tptr tvoid))))
+                                  (Etempvar _l_cur (tptr (Tstruct _list noattr)))
+                                  (Tstruct _list noattr)) _line
+                                (tptr tschar)))
+                            (Scall None
+                              (Evar _strcpy (Tfunction
+                                              (Tcons (tptr tschar)
+                                                (Tcons (tptr tschar) Tnil))
+                                              (tptr tschar) cc_default))
+                              ((Etempvar _t'7 (tptr tschar)) ::
+                               (Etempvar _t'8 (tptr tschar)) :: nil))))
+                        (Ssequence
+                          (Sassign
+                            (Efield
+                              (Ederef
+                                (Etempvar _cur (tptr (Tstruct _list noattr)))
+                                (Tstruct _list noattr)) _tail
+                              (tptr (Tstruct _list noattr)))
+                            (Ecast (Econst_int (Int.repr 0) tint)
+                              (tptr tvoid)))
                           (Ssequence
                             (Ssequence
-                              (Sset _t'12
+                              (Sset _t'6
                                 (Efield
                                   (Ederef
-                                    (Etempvar _cur_tail (tptr (Tstruct _list noattr)))
+                                    (Etempvar _l_cur (tptr (Tstruct _list noattr)))
                                     (Tstruct _list noattr)) _tail
                                   (tptr (Tstruct _list noattr))))
-                              (Sifthenelse (Eunop Onotbool
-                                             (Etempvar _t'12 (tptr (Tstruct _list noattr)))
-                                             tint)
-                                (Scall None
-                                  (Evar _exit (Tfunction (Tcons tint Tnil)
-                                                tvoid cc_default))
-                                  ((Econst_int (Int.repr 1) tint) :: nil))
+                              (Sifthenelse (Ebinop Oeq
+                                             (Etempvar _t'6 (tptr (Tstruct _list noattr)))
+                                             (Ecast
+                                               (Econst_int (Int.repr 0) tint)
+                                               (tptr tvoid)) tint)
+                                (Ssequence
+                                  (Sset _cur
+                                    (Ecast (Econst_int (Int.repr 0) tint)
+                                      (tptr tvoid)))
+                                  Sbreak)
                                 Sskip))
                             (Ssequence
-                              (Sset _cur_tail
-                                (Efield
-                                  (Ederef
-                                    (Etempvar _cur_tail (tptr (Tstruct _list noattr)))
-                                    (Tstruct _list noattr)) _tail
-                                  (tptr (Tstruct _list noattr))))
+                              (Ssequence
+                                (Scall (Some _t'4)
+                                  (Evar _malloc (Tfunction
+                                                  (Tcons tulong Tnil)
+                                                  (tptr tvoid) cc_default))
+                                  ((Esizeof (Tstruct _list noattr) tulong) ::
+                                   nil))
+                                (Sassign
+                                  (Efield
+                                    (Ederef
+                                      (Etempvar _cur (tptr (Tstruct _list noattr)))
+                                      (Tstruct _list noattr)) _tail
+                                    (tptr (Tstruct _list noattr)))
+                                  (Etempvar _t'4 (tptr tvoid))))
                               (Ssequence
                                 (Ssequence
-                                  (Sset _t'11
+                                  (Sset _t'5
                                     (Efield
                                       (Ederef
-                                        (Etempvar _l (tptr (Tstruct _list noattr)))
-                                        (Tstruct _list noattr)) _shift tuint))
-                                  (Sassign
-                                    (Efield
-                                      (Ederef
-                                        (Etempvar _cur_tail (tptr (Tstruct _list noattr)))
-                                        (Tstruct _list noattr)) _shift tuint)
-                                    (Etempvar _t'11 tuint)))
+                                        (Etempvar _cur (tptr (Tstruct _list noattr)))
+                                        (Tstruct _list noattr)) _tail
+                                      (tptr (Tstruct _list noattr))))
+                                  (Sifthenelse (Eunop Onotbool
+                                                 (Etempvar _t'5 (tptr (Tstruct _list noattr)))
+                                                 tint)
+                                    (Scall None
+                                      (Evar _exit (Tfunction
+                                                    (Tcons tint Tnil) tvoid
+                                                    cc_default))
+                                      ((Econst_int (Int.repr 1) tint) :: nil))
+                                    Sskip))
                                 (Ssequence
-                                  (Ssequence
-                                    (Ssequence
-                                      (Ssequence
-                                        (Sset _t'10
-                                          (Efield
-                                            (Ederef
-                                              (Etempvar _l (tptr (Tstruct _list noattr)))
-                                              (Tstruct _list noattr)) _line
-                                            (tptr tschar)))
-                                        (Scall (Some _t'5)
-                                          (Evar _strlen (Tfunction
-                                                          (Tcons
-                                                            (tptr tschar)
-                                                            Tnil) tulong
-                                                          cc_default))
-                                          ((Etempvar _t'10 (tptr tschar)) ::
-                                           nil)))
-                                      (Scall (Some _t'6)
-                                        (Evar _malloc (Tfunction
-                                                        (Tcons tulong Tnil)
-                                                        (tptr tvoid)
-                                                        cc_default))
-                                        ((Ebinop Oadd (Etempvar _t'5 tulong)
-                                           (Econst_int (Int.repr 1) tint)
-                                           tulong) :: nil)))
-                                    (Sassign
-                                      (Efield
-                                        (Ederef
-                                          (Etempvar _cur_tail (tptr (Tstruct _list noattr)))
-                                          (Tstruct _list noattr)) _line
-                                        (tptr tschar))
-                                      (Etempvar _t'6 (tptr tvoid))))
-                                  (Ssequence
-                                    (Ssequence
-                                      (Sset _t'9
-                                        (Efield
-                                          (Ederef
-                                            (Etempvar _cur_tail (tptr (Tstruct _list noattr)))
-                                            (Tstruct _list noattr)) _line
-                                          (tptr tschar)))
-                                      (Sifthenelse (Eunop Onotbool
-                                                     (Etempvar _t'9 (tptr tschar))
-                                                     tint)
-                                        (Scall None
-                                          (Evar _exit (Tfunction
-                                                        (Tcons tint Tnil)
-                                                        tvoid cc_default))
-                                          ((Econst_int (Int.repr 1) tint) ::
-                                           nil))
-                                        Sskip))
-                                    (Ssequence
-                                      (Ssequence
-                                        (Sset _t'7
-                                          (Efield
-                                            (Ederef
-                                              (Etempvar _cur_tail (tptr (Tstruct _list noattr)))
-                                              (Tstruct _list noattr)) _line
-                                            (tptr tschar)))
-                                        (Ssequence
-                                          (Sset _t'8
-                                            (Efield
-                                              (Ederef
-                                                (Etempvar _l (tptr (Tstruct _list noattr)))
-                                                (Tstruct _list noattr)) _line
-                                              (tptr tschar)))
-                                          (Scall None
-                                            (Evar _strcpy (Tfunction
-                                                            (Tcons
-                                                              (tptr tschar)
-                                                              (Tcons
-                                                                (tptr tschar)
-                                                                Tnil))
-                                                            (tptr tschar)
-                                                            cc_default))
-                                            ((Etempvar _t'7 (tptr tschar)) ::
-                                             (Etempvar _t'8 (tptr tschar)) ::
-                                             nil))))
-                                      (Ssequence
-                                        (Sassign
-                                          (Efield
-                                            (Ederef
-                                              (Etempvar _cur_tail (tptr (Tstruct _list noattr)))
-                                              (Tstruct _list noattr)) _tail
-                                            (tptr (Tstruct _list noattr)))
-                                          (Ecast
-                                            (Econst_int (Int.repr 0) tint)
-                                            (tptr tvoid)))
-                                        (Sset _l
-                                          (Efield
-                                            (Ederef
-                                              (Etempvar _l (tptr (Tstruct _list noattr)))
-                                              (Tstruct _list noattr)) _tail
-                                            (tptr (Tstruct _list noattr)))))))))))))
-                      (Sreturn (Some (Etempvar _new (tptr (Tstruct _list noattr))))))))))))))))
+                                  (Sset _cur
+                                    (Efield
+                                      (Ederef
+                                        (Etempvar _cur (tptr (Tstruct _list noattr)))
+                                        (Tstruct _list noattr)) _tail
+                                      (tptr (Tstruct _list noattr))))
+                                  (Sset _l_cur
+                                    (Efield
+                                      (Ederef
+                                        (Etempvar _l_cur (tptr (Tstruct _list noattr)))
+                                        (Tstruct _list noattr)) _tail
+                                      (tptr (Tstruct _list noattr))))))))))))))
+              Sskip)
+            (Sreturn (Some (Etempvar _new (tptr (Tstruct _list noattr)))))))))))
 |}.
 
 Definition f_less_components := {|
