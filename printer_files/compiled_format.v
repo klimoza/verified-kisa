@@ -86,6 +86,7 @@ Definition _add_fill : ident := $"add_fill".
 Definition _b : ident := $"b".
 Definition _cur : ident := $"cur".
 Definition _d : ident := $"d".
+Definition _d__1 : ident := $"d__1".
 Definition _dest : ident := $"dest".
 Definition _empty : ident := $"empty".
 Definition _exit : ident := $"exit".
@@ -292,7 +293,7 @@ Definition f_strcat := {|
   fn_params := ((_dest, (tptr tschar)) :: (_src, (tptr tschar)) :: nil);
   fn_vars := nil;
   fn_temps := ((_i, tulong) :: (_j, tulong) :: (_d, tschar) ::
-               (_t'2, tschar) :: (_t'1, tschar) :: nil);
+               (_d__1, tschar) :: (_t'2, tschar) :: (_t'1, tschar) :: nil);
   fn_body :=
 (Ssequence
   (Ssequence
@@ -325,14 +326,14 @@ Definition f_strcat := {|
               (Ederef
                 (Ebinop Oadd (Etempvar _src (tptr tschar))
                   (Etempvar _j tulong) (tptr tschar)) tschar))
-            (Sset _d (Ecast (Etempvar _t'1 tschar) tschar)))
+            (Sset _d__1 (Ecast (Etempvar _t'1 tschar) tschar)))
           (Ssequence
             (Sassign
               (Ederef
                 (Ebinop Oadd (Etempvar _dest (tptr tschar))
                   (Ebinop Oadd (Etempvar _i tulong) (Etempvar _j tulong)
-                    tulong) (tptr tschar)) tschar) (Etempvar _d tschar))
-            (Sifthenelse (Ebinop Oeq (Etempvar _d tschar)
+                    tulong) (tptr tschar)) tschar) (Etempvar _d__1 tschar))
+            (Sifthenelse (Ebinop Oeq (Etempvar _d__1 tschar)
                            (Econst_int (Int.repr 0) tint) tint)
               (Sreturn (Some (Etempvar _dest (tptr tschar))))
               Sskip))))

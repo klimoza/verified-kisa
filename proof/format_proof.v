@@ -46,6 +46,18 @@ Definition strcpy_spec :=
     RETURN (dest)
     SEP (cstringn wsh s n dest; cstring rsh s src).
 
+Definition strcat_spec :=
+ DECLARE _strcat
+  WITH wsh: share, rsh: share, dest : val, n : Z, src : val, b : list byte, s : list byte
+  PRE [ tptr tschar, tptr tschar ]
+    PROP (writable_share wsh; readable_share rsh; Zlength b + Zlength s < n)
+    PARAMS (dest; src)
+    SEP (cstringn wsh b n dest; cstring rsh s src)
+  POST [ tptr tschar]
+    PROP ()
+    RETURN (dest)
+    SEP (cstringn wsh (b ++ s) n dest; cstring rsh s src).
+
 Definition t_list := Tstruct _list noattr.
 
 Fixpoint listrep (sigma: list (Z * (list byte))) (p: val) : mpred :=
@@ -283,6 +295,73 @@ assert (0 <= i + 1 < (Zlength (s ++ [Byte.zero]))) as AA.
   cstring. }
 autorewrite with sublist in AA. simpl in AA.
 apply AA.
+Qed.
+
+Lemma body_strcat: semax_body Vprog Gprog f_strcat strcat_spec.
+Proof.
+  leaf_function.
+  start_function.
+  unfold cstringn, cstring in *.
+  forward.
+  forward_loop(
+    EX i : Z,
+    PROP (0 <= i < Zlength b + 1)
+    LOCAL (temp _i (Vptrofs (Ptrofs.repr i)); temp _dest dest; temp _src src)
+    SEP (cstringn wsh b n dest; cstring rsh s src))
+  break:
+  (
+    PROP ()
+    LOCAL (temp _i (Vptrofs (Ptrofs.repr (Zlength b))); temp _dest dest; temp _src src)
+    SEP (cstringn wsh b n dest; cstring rsh s src)).
+  { Exists 0. unfold cstringn, cstring. entailer!. }
+  {
+    unfold cstringn, cstring.
+    Intros i.
+    forward. 
+    { entailer!. }
+    { entailer!. list_solve. }
+    autorewrite with sublist norm.
+    forward.
+    forward_if.
+    { forward. unfold cstringn, cstring. entailer!. do 2 f_equal. list_solve. }
+    forward.
+    Exists (i + 1).
+    unfold cstringn, cstring.
+    entailer!.
+    list_solve.
+  }
+  unfold cstringn, cstring.
+  forward.
+  autorewrite with sublist norm in *.
+  forward_loop(
+    EX j : Z,
+    PROP (0 <= j < Zlength s + 1)
+    LOCAL (temp _i (Vptrofs (Ptrofs.repr (Zlength b)));
+            temp _j (Vptrofs (Ptrofs.repr j));
+            temp _dest dest; temp _src src)
+    SEP ( data_at wsh (tarray tschar n) (map Vbyte (b ++ sublist 0 j s) ++ 
+    Zrepeat Vundef (n - (Zlength b + j))) dest;
+        cstring rsh s src)
+  ).
+  { Exists 0. unfold cstring, cstringn. autorewrite with sublist norm. entailer!. list_solve. }
+  { 
+    Intros j.
+    unfold cstringn, cstring.
+    autorewrite with sublist norm in *.
+    Intros.
+    do 3 forward.
+    { entailer!. }
+    forward_if.
+    { forward. autorewrite with sublist norm. entailer!; list_solve. }
+    forward.
+    Exists (j + 1).
+    entailer!.
+    { list_solve. }
+    unfold cstringn, cstring.
+    autorewrite with sublist norm.
+    entailer!.
+    list_solve.
+  }
 Qed.
 
 Arguments listrep sigma p : simpl never.

@@ -17,13 +17,13 @@ char *strcpy(char *dest, const char *src) {
 }
 
 char *strcat(char *dest, const char *src) {
-  size_t i,j; char d;
+  size_t i,j;
   for(i = 0;; i++){
-    d = dest[i];
+    char d = dest[i];
     if(d == 0) break;
   }
   for(j = 0;; j++){
-    d = src[j];
+    char d = src[j];
     dest[i + j] = d;
     if(d == 0) return dest;
   }
