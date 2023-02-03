@@ -214,15 +214,30 @@ DECLARE _line
     PROP()
     RETURN(q)
     SEP(mem_mgr gv; mformat (line (list_byte_to_string sigma)) q).
+    
+
+Definition sp_spec : ident * funspec :=
+DECLARE _sp
+  WITH n : Z, gv : globals
+  PRE [ size_t ]
+    PROP (0 <= n <= Int.max_unsigned)
+    PARAMS(Vptrofs (Ptrofs.repr n)) GLOBALS(gv)
+    SEP(mem_mgr gv)
+  POST [ tptr tschar ]
+    EX p : val,
+    PROP()
+    RETURN(p)
+    SEP(cstring Ews (string_to_list_byte (sp (Z.to_nat n))) p;
+         malloc_token Ews (tptr tschar) p; mem_mgr gv).
 
 (* ================================================================= *)
 
 
 Definition Gprog : funspecs :=
         ltac:(with_library prog [
-                   max_spec; strlen_spec; strcpy_spec; list_copy_spec;
-                   less_components_spec; is_less_than_spec; empty_spec;
-                   line_spec
+                   max_spec; strlen_spec; strcpy_spec; strcat_spec;
+                   list_copy_spec; less_components_spec; is_less_than_spec; 
+                   empty_spec; line_spec
  ]).
 
 (* ================================================================= *)
@@ -1246,3 +1261,42 @@ forward_if(l_cur_tail <> nullval). {
   }
 Qed.
 
+Lemma body_sp : semax_body Vprog Gprog f_sp sp_spec.
+Proof.
+  start_function.
+  forward_call((Tarray tschar (n + 1) noattr), gv).
+  { unfold Int.max_unsigned in H. unfold Ptrofs.max_unsigned. simpl in *. lia. }
+  Intros result_pointer.
+  destruct (eq_dec result_pointer nullval). {
+    forward_if(result_pointer <> nullval).
+    { forward_call. entailer!. }
+    { forward. entailer!. }
+    { forward. contradiction. }
+  }
+  forward_if(result_pointer <> nullval).
+  { forward_call. entailer!. }
+  { forward. entailer. }
+  Intros.
+  forward.
+  forward_loop (
+    EX i : Z,
+    PROP(0 <= i <= n)
+    LOCAL(temp _i (Vint (Int.repr i)); temp _result result_pointer; temp _n (Vptrofs (Ptrofs.repr n)))
+    SEP(data_at Ews (Tarray tschar (n + 1) noattr) (map Vbyte (Zrepeat (Byte.repr 32) i) ++ Zrepeat Vundef (n + 1 - i)) result_pointer;
+        malloc_token Ews (Tarray tschar (n + 1) noattr) result_pointer;
+        mem_mgr gv)
+  ) break: (
+    PROP()
+    LOCAL(temp _result result_pointer)
+    SEP(cstring Ews (string_to_list_byte (sp (Z.to_nat n))) result_pointer;
+        malloc_token Ews (Tarray tschar (n + 1) noattr) result_pointer;
+        mem_mgr gv)
+  ).
+  { forward. Exists 0. entailer!. autorewrite with sublist norm. unfold data_at_.
+    unfold data_at. unfold field_at_. entailer!. }
+  { 
+    Intros i. 
+    forward_if.
+    { forward. } 
+  }
+  

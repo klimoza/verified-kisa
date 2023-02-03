@@ -126,11 +126,14 @@ t *line(char *nt) {
 
 char *newline = "\n";
 
-char *sp(int n) {
-  char *result = "";
-  for (int i = 0; i < n; i++) {
-    result = strcat(" ", result);
+char *sp(size_t n) {
+  char *result = malloc(n + 1);
+  if(!result) exit(1);
+  char space = ' ';
+  for (size_t i = 0; i < n; i++) {
+    result[i] = space;
   }
+  result[n] = 0;
   return result;
 }
 

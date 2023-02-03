@@ -77,8 +77,6 @@ Definition ___compcert_va_float64 : ident := $"__compcert_va_float64".
 Definition ___compcert_va_int32 : ident := $"__compcert_va_int32".
 Definition ___compcert_va_int64 : ident := $"__compcert_va_int64".
 Definition ___stringlit_1 : ident := $"__stringlit_1".
-Definition ___stringlit_2 : ident := $"__stringlit_2".
-Definition ___stringlit_3 : ident := $"__stringlit_3".
 Definition _a : ident := $"a".
 Definition _add_above : ident := $"add_above".
 Definition _add_beside : ident := $"add_beside".
@@ -122,6 +120,7 @@ Definition _result : ident := $"result".
 Definition _s : ident := $"s".
 Definition _shift : ident := $"shift".
 Definition _sp : ident := $"sp".
+Definition _space : ident := $"space".
 Definition _src : ident := $"src".
 Definition _str : ident := $"str".
 Definition _strcat : ident := $"strcat".
@@ -209,20 +208,6 @@ Definition _t'9 : ident := 136%positive.
 Definition v___stringlit_1 := {|
   gvar_info := (tarray tschar 2);
   gvar_init := (Init_int8 (Int.repr 10) :: Init_int8 (Int.repr 0) :: nil);
-  gvar_readonly := true;
-  gvar_volatile := false
-|}.
-
-Definition v___stringlit_3 := {|
-  gvar_info := (tarray tschar 2);
-  gvar_init := (Init_int8 (Int.repr 32) :: Init_int8 (Int.repr 0) :: nil);
-  gvar_readonly := true;
-  gvar_volatile := false
-|}.
-
-Definition v___stringlit_2 := {|
-  gvar_info := (tarray tschar 1);
-  gvar_init := (Init_int8 (Int.repr 0) :: nil);
   gvar_readonly := true;
   gvar_volatile := false
 |}.
@@ -921,35 +906,49 @@ Definition v_newline := {|
 Definition f_sp := {|
   fn_return := (tptr tschar);
   fn_callconv := cc_default;
-  fn_params := ((_n, tint) :: nil);
+  fn_params := ((_n, tulong) :: nil);
   fn_vars := nil;
-  fn_temps := ((_result, (tptr tschar)) :: (_i, tint) ::
-               (_t'1, (tptr tschar)) :: nil);
+  fn_temps := ((_result, (tptr tschar)) :: (_space, tschar) ::
+               (_i, tulong) :: (_t'1, (tptr tvoid)) :: nil);
   fn_body :=
 (Ssequence
-  (Sset _result (Evar ___stringlit_2 (tarray tschar 1)))
   (Ssequence
+    (Scall (Some _t'1)
+      (Evar _malloc (Tfunction (Tcons tulong Tnil) (tptr tvoid) cc_default))
+      ((Ebinop Oadd (Etempvar _n tulong) (Econst_int (Int.repr 1) tint)
+         tulong) :: nil))
+    (Sset _result (Etempvar _t'1 (tptr tvoid))))
+  (Ssequence
+    (Sifthenelse (Eunop Onotbool (Etempvar _result (tptr tschar)) tint)
+      (Scall None (Evar _exit (Tfunction (Tcons tint Tnil) tvoid cc_default))
+        ((Econst_int (Int.repr 1) tint) :: nil))
+      Sskip)
     (Ssequence
-      (Sset _i (Econst_int (Int.repr 0) tint))
-      (Sloop
+      (Sset _space (Ecast (Econst_int (Int.repr 32) tint) tschar))
+      (Ssequence
         (Ssequence
-          (Sifthenelse (Ebinop Olt (Etempvar _i tint) (Etempvar _n tint)
-                         tint)
-            Sskip
-            Sbreak)
-          (Ssequence
-            (Scall (Some _t'1)
-              (Evar _strcat (Tfunction
-                              (Tcons (tptr tschar)
-                                (Tcons (tptr tschar) Tnil)) (tptr tschar)
-                              cc_default))
-              ((Evar ___stringlit_3 (tarray tschar 2)) ::
-               (Etempvar _result (tptr tschar)) :: nil))
-            (Sset _result (Etempvar _t'1 (tptr tschar)))))
-        (Sset _i
-          (Ebinop Oadd (Etempvar _i tint) (Econst_int (Int.repr 1) tint)
-            tint))))
-    (Sreturn (Some (Etempvar _result (tptr tschar))))))
+          (Sset _i (Ecast (Econst_int (Int.repr 0) tint) tulong))
+          (Sloop
+            (Ssequence
+              (Sifthenelse (Ebinop Olt (Etempvar _i tulong)
+                             (Etempvar _n tulong) tint)
+                Sskip
+                Sbreak)
+              (Sassign
+                (Ederef
+                  (Ebinop Oadd (Etempvar _result (tptr tschar))
+                    (Etempvar _i tulong) (tptr tschar)) tschar)
+                (Etempvar _space tschar)))
+            (Sset _i
+              (Ebinop Oadd (Etempvar _i tulong)
+                (Econst_int (Int.repr 1) tint) tulong))))
+        (Ssequence
+          (Sassign
+            (Ederef
+              (Ebinop Oadd (Etempvar _result (tptr tschar))
+                (Etempvar _n tulong) (tptr tschar)) tschar)
+            (Econst_int (Int.repr 0) tint))
+          (Sreturn (Some (Etempvar _result (tptr tschar)))))))))
 |}.
 
 Definition f_add_above := {|
@@ -1880,7 +1879,8 @@ Definition f_add_beside := {|
                                           (Tstruct _list noattr)) _shift
                                         tuint))
                                     (Scall (Some _t'12)
-                                      (Evar _sp (Tfunction (Tcons tint Tnil)
+                                      (Evar _sp (Tfunction
+                                                  (Tcons tulong Tnil)
                                                   (tptr tschar) cc_default))
                                       ((Etempvar _t'31 tuint) :: nil))))
                                 (Ssequence
@@ -2704,7 +2704,7 @@ Definition f_add_fill := {|
                                           tuint))
                                       (Scall (Some _t'13)
                                         (Evar _sp (Tfunction
-                                                    (Tcons tint Tnil)
+                                                    (Tcons tulong Tnil)
                                                     (tptr tschar) cc_default))
                                         ((Etempvar _t'29 tuint) :: nil))))
                                   (Ssequence
@@ -2994,7 +2994,7 @@ Definition f_to_string := {|
                               (Etempvar _to_text (tptr (Tstruct _list noattr)))
                               (Tstruct _list noattr)) _shift tuint))
                         (Scall (Some _t'3)
-                          (Evar _sp (Tfunction (Tcons tint Tnil)
+                          (Evar _sp (Tfunction (Tcons tulong Tnil)
                                       (tptr tschar) cc_default))
                           ((Etempvar _t'10 tuint) :: nil)))
                       (Scall (Some _t'4)
@@ -3300,8 +3300,6 @@ Definition global_definitions : list (ident * globdef fundef type) :=
                    (mksignature (AST.Tlong :: AST.Tlong :: nil) AST.Tlong
                      cc_default)) (Tcons tulong (Tcons tulong Tnil)) tulong
      cc_default)) :: (___stringlit_1, Gvar v___stringlit_1) ::
- (___stringlit_3, Gvar v___stringlit_3) ::
- (___stringlit_2, Gvar v___stringlit_2) ::
  (___builtin_bswap64,
    Gfun(External (EF_builtin "__builtin_bswap64"
                    (mksignature (AST.Tlong :: nil) AST.Tlong cc_default))
