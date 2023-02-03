@@ -228,7 +228,7 @@ DECLARE _sp
     PROP()
     RETURN(p)
     SEP(cstring Ews (string_to_list_byte (sp (Z.to_nat n))) p;
-         malloc_token Ews (tptr tschar) p; mem_mgr gv).
+         malloc_token Ews (Tarray tschar (n + 1) noattr) p; mem_mgr gv).
 
 (* ================================================================= *)
 
@@ -1261,6 +1261,28 @@ forward_if(l_cur_tail <> nullval). {
   }
 Qed.
 
+Lemma sp_fact1 (n : Z):
+  Zrepeat (Byte.repr 32) n = string_to_list_byte (sp (Z.to_nat n)).
+Proof.
+  unfold Zrepeat.
+  remember (Z.to_nat n) as m.
+  clear Heqm. clear n.
+  induction m.
+  - auto.
+  - simpl. f_equal. apply IHm.
+Qed.
+
+Lemma sp_fact2 (n : nat):
+  ~In Byte.zero (string_to_list_byte (sp n)).
+Proof.
+  induction n.
+  - list_solve.
+  - unfold not in *. unfold sp; fold sp. simpl.
+    intros. destruct H.
+    + inversion H.
+    + auto.
+Qed.
+
 Lemma body_sp : semax_body Vprog Gprog f_sp sp_spec.
 Proof.
   start_function.
@@ -1281,22 +1303,42 @@ Proof.
   forward_loop (
     EX i : Z,
     PROP(0 <= i <= n)
-    LOCAL(temp _i (Vint (Int.repr i)); temp _result result_pointer; temp _n (Vptrofs (Ptrofs.repr n)))
+    LOCAL(temp _i (Vptrofs (Ptrofs.repr i)); temp _space (Vint (Int.repr 32));
+          temp _result result_pointer; temp _n (Vptrofs (Ptrofs.repr n)))
     SEP(data_at Ews (Tarray tschar (n + 1) noattr) (map Vbyte (Zrepeat (Byte.repr 32) i) ++ Zrepeat Vundef (n + 1 - i)) result_pointer;
         malloc_token Ews (Tarray tschar (n + 1) noattr) result_pointer;
         mem_mgr gv)
   ) break: (
     PROP()
-    LOCAL(temp _result result_pointer)
-    SEP(cstring Ews (string_to_list_byte (sp (Z.to_nat n))) result_pointer;
+    LOCAL(temp _result result_pointer; temp _n (Vptrofs (Ptrofs.repr n)))
+    SEP(data_at Ews (Tarray tschar (n + 1) noattr) (map Vbyte (Zrepeat (Byte.repr 32) n) ++ [Vundef]) result_pointer;
         malloc_token Ews (Tarray tschar (n + 1) noattr) result_pointer;
         mem_mgr gv)
   ).
-  { forward. Exists 0. entailer!. autorewrite with sublist norm. unfold data_at_.
-    unfold data_at. unfold field_at_. entailer!. }
+  { 
+    forward. Exists 0. entailer!. 
+    autorewrite with sublist norm.
+    unfold data_at_, data_at, field_at_. entailer!.
+  }
   { 
     Intros i. 
     forward_if.
-    { forward. } 
+    { forward. forward. Exists (i + 1). entailer!. list_solve. } 
+    forward.
+    entailer!.
+    unfold cstring.
+    entailer!.
+    replace i with n by list_solve.
+    autorewrite with sublist norm.
+    list_solve.
   }
-  
+  forward.
+  forward.
+  Exists result_pointer.
+  unfold cstring.
+  entailer!.
+  { remember (sp_fact2 (Z.to_nat n)) as H5. auto. }
+  repeat rewrite <- sp_fact1.
+  autorewrite with sublist norm.
+  list_solve.
+Qed.
