@@ -1,3 +1,5 @@
+Require Import HahnBase.
+
 Require Import VST.floyd.proofauto.
 Require Import VST.floyd.library.
 Require Import printer.printer_files.compiled_format.
@@ -119,19 +121,31 @@ end.
 Definition to_text_eq (to_text : nat -> string -> string) (sigma : list (Z * list byte)) :=
   string_to_list_byte (to_text (Z.to_nat 0) EmptyString) = text_from sigma.
 
-Definition list_mp (sigma : list (Z * list byte)) : Prop :=
-  0 <= Zlength sigma + 1 <= Int.max_unsigned /\
-  Forall (fun x => 0 <= (fst x) <= Int.max_unsigned /\ 0 <= Zlength (snd x) + 1 <= Int.max_unsigned) sigma.
+Record list_mp (sigma : list (Z * list byte)) : Prop :=
+  mk_list_mp {
+    list_mp_length     : 0 <= Zlength sigma + 1 <= Int.max_unsigned;
+    list_mp_forall_fst :
+      Forall (fun x => 0 <= (fst x) <= Int.max_unsigned) sigma;
+    list_mp_forall_snd :
+      Forall (fun x => 0 <= Zlength (snd x) + 1 <= Int.max_unsigned) sigma;
+  }.
+
+(* Definition list_mp (sigma : list (Z * list byte)) : Prop :=
+  << list_mp_length     : 0 <= Zlength sigma + 1 <= Int.max_unsigned >> /\
+  << list_mp_forall_fst :
+      Forall (fun x => 0 <= (fst x) <= Int.max_unsigned) sigma >> /\
+  << list_mp_forall_snd :
+      Forall (fun x => 0 <= Zlength (snd x) + 1 <= Int.max_unsigned) sigma >>. *)
 
 Definition mformat (G : t) (x : val) : mpred := 
   EX sigma : list (Z * list byte),
   EX p : val,
   !! (to_text_eq G.(to_text) sigma) &&
   !! (list_mp sigma) &&
-  !! (0 <= Z.of_nat (height G) <= Int.max_unsigned) &&
-  !! (0 <= Z.of_nat (first_line_width G) <= Int.max_unsigned) &&
-  !! (0 <= Z.of_nat (middle_width G) <= Int.max_unsigned) &&
-  !! (0 <= Z.of_nat (last_line_width G) <= Int.max_unsigned) &&
+  !! (<< HGMU  : 0 <= Z.of_nat (height G) <= Int.max_unsigned >>) &&
+  !! (<< FLWMU : 0 <= Z.of_nat (first_line_width G) <= Int.max_unsigned >>) &&
+  !! (<< MWMU  : 0 <= Z.of_nat (middle_width G) <= Int.max_unsigned >>) &&
+  !! (<< LLWMU : 0 <= Z.of_nat (last_line_width G) <= Int.max_unsigned >>) &&
   malloc_token Ews t_format x * 
   data_at Ews t_format (Vint (Int.repr (Z.of_nat G.(height))),
                         (Vint (Int.repr (Z.of_nat G.(first_line_width))),
@@ -203,7 +217,7 @@ Fixpoint list_byte_to_string (sigma: list byte) : string :=
   match sigma with 
   | nil => EmptyString
   | (h :: hs) => String (Ascii.ascii_of_N (Z.to_N (Byte.unsigned h))) (list_byte_to_string hs)
-end.
+  end.
 
 
 Definition line_spec : ident * funspec :=
@@ -1432,18 +1446,19 @@ Proof.
   start_function.
   forward_call(t_format, gv).
   Intros result_pointer.
-  destruct(eq_dec result_pointer nullval). {
-    forward_if(result_pointer <> nullval).
+  destruct(eq_dec result_pointer nullval).
+  {  forward_if(result_pointer <> nullval).
     { forward_call. entailer!. }
     { forward. entailer!. }
-    { forward. contradiction. }
-  }
+    forward. contradiction. }
   
   forward_if(result_pointer <> nullval).
   { forward_call. entailer!. }
   { forward. entailer!. }
   Intros.
   forward.
+  (* getnw. *)
+
   unfold mformat.
   Intros sigma0 p0.
   forward_if(
@@ -1874,8 +1889,7 @@ Proof.
         concrete_mformat F pointer_F sigma0 p0)
 
   ).
-  {
-    forward.
+  { forward.
     forward_call(Ews, p0, sigma0, gv).
     Intros to_text_tail_pointer.
     forward.
@@ -1883,14 +1897,11 @@ Proof.
     unfold list_mp in *.
     destruct H16.
     entailer!.
-    2: { 
-      assert(sigma = ([] : list (Z * list byte))).
-      {
-        assert(nullval = nullval) as AA.
-        { reflexivity. }
-        apply H21 in AA.
-        auto.
-      }
+    2: { assert(sigma = ([] : list (Z * list byte))).
+         { assert(nullval = nullval) as AA.
+           { reflexivity. }
+           apply H21 in AA.
+           auto. }
       subst.
       unfold concrete_mformat. unfold list_mp in *. entailer!.
       unfold listrep.
