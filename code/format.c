@@ -29,15 +29,6 @@ char *strcat(char *dest, const char *src) {
   }
 }
 
-void *memcpy(void *dest, const void * src, size_t n) {
-  size_t i;
-  for(i = 0; i < n; i++){
-    char d = ((char*)src)[i];
-    ((char*)dest)[i] = d;
-  }
-  return dest;
-}
-
 unsigned int max(unsigned int a, unsigned int b) {
   if (a <= b)
     return b;
@@ -142,9 +133,17 @@ t *add_above(t *G, t *F) {
   t* result = malloc(sizeof(t));
   if(!result) exit(1);
   if (G->height == 0) {
-    result = memcpy(result, F, sizeof(t));
+    result->height = F->height;
+    result->first_line_width = F->first_line_width;
+    result->middle_width = F->middle_width;
+    result->last_line_width = F->last_line_width;
+    result->to_text = list_copy(F->to_text);
   } else if (F->height == 0) {
-    result = memcpy(result, G, sizeof(t));
+    result->height = G->height;
+    result->first_line_width = G->first_line_width;
+    result->middle_width = G->middle_width;
+    result->last_line_width = G->last_line_width;
+    result->to_text = list_copy(G->to_text);
   } else {
     unsigned int middle_width_new;
     if (G->height == 1 && F->height == 1) {
@@ -162,11 +161,15 @@ t *add_above(t *G, t *F) {
     }
 
     list *to_text_new = list_copy(G->to_text);
-    list *to_text_new_tail = to_text_new;
-    while (to_text_new_tail->tail != NULL) {
-      to_text_new_tail = to_text_new_tail->tail;
+    if(to_text_new == NULL) {
+      to_text_new = list_copy(F->to_text);
+    } else {
+      list *to_text_new_tail = to_text_new;
+      while (to_text_new_tail->tail != NULL) {
+        to_text_new_tail = to_text_new_tail->tail;
+      }
+      to_text_new_tail->tail = list_copy(F->to_text);
     }
-    to_text_new_tail->tail = list_copy(F->to_text);
 
     result->height = G->height + F->height;
     result->first_line_width = G->first_line_width;
@@ -181,9 +184,17 @@ t *add_beside(t *G, t *F) {
   t* result = malloc(sizeof(t));
   if(!result) exit(1);
   if (G->height == 0) {
-    result = memcpy(result, F, sizeof(t));
+    result->height = F->height;
+    result->first_line_width = F->first_line_width;
+    result->middle_width = F->middle_width;
+    result->last_line_width = F->last_line_width;
+    result->to_text = list_copy(F->to_text);
   } else if (F->height == 0) {
-    result = memcpy(result, G, sizeof(t));
+    result->height = G->height;
+    result->first_line_width = G->first_line_width;
+    result->middle_width = G->middle_width;
+    result->last_line_width = G->last_line_width;
+    result->to_text = list_copy(G->to_text);
   } else {
     unsigned int middle_width_new;
     if (G->height == 1 && (F->height == 1 || F->height == 2)) {
@@ -234,9 +245,17 @@ t *add_fill(t *G, t *F, unsigned int shift) {
   t *result = malloc(sizeof(t));
   if(!result) exit(1);
   if (G->height == 0) {
-    memcpy(result, F, sizeof(t));
+    result->height = F->height;
+    result->first_line_width = F->first_line_width;
+    result->middle_width = F->middle_width;
+    result->last_line_width = F->last_line_width;
+    result->to_text = list_copy(F->to_text);
   } else if (F->height == 0) {
-    memcpy(result, G, sizeof(t));
+    result->height = G->height;
+    result->first_line_width = G->first_line_width;
+    result->middle_width = G->middle_width;
+    result->last_line_width = G->last_line_width;
+    result->to_text = list_copy(G->to_text);
   } else {
     unsigned int middle_width_new;
     if (G->height == 1 && (F->height == 1 || F->height == 2)) {
