@@ -36,7 +36,7 @@ unsigned int max(unsigned int a, unsigned int b) {
 }
 
 struct list {
-  unsigned int shift;
+  size_t shift;
   char *line;
   struct list *tail;
 } typedef list;
@@ -80,22 +80,25 @@ char *sp(size_t n) {
   return result;
 }
 
-unsigned int get_applied_length(list *to_text, unsigned int shift, char* line) {
-  unsigned int total_length = strlen(to_text->line);
-  list* to_text_cpy = to_text_cpy->tail;
+size_t get_applied_length(list *to_text, size_t shift, char* line) {
+  if(to_text == NULL)
+    return strlen(line);
+
+  size_t total_length = to_text->shift + strlen(to_text->line);
+  list* to_text_cpy = to_text->tail;
+  total_length += strlen(line);
   while(to_text_cpy != NULL) {
-    total_length += to_text_cpy->shift + shift + strlen(to_text_cpy->line);
+    total_length += 1 + to_text_cpy->shift + shift + strlen(to_text_cpy->line);
     to_text_cpy = to_text_cpy->tail;
   }
-  total_length += strlen(line);
   return total_length;
 }
 
-char* to_text_applied(list *to_text, unsigned int shift, char* line) {
+char* to_text_apply(list *to_text, size_t shift, char* line) {
   if(to_text == NULL)
     return line;
 
-  unsigned int total_length = get_applied_length(to_text, shift, line);
+  size_t total_length = get_applied_length(to_text, shift, line);
   char* result = malloc(total_length + 1);
   strcpy(result, to_text->line);
   while(to_text != NULL) {

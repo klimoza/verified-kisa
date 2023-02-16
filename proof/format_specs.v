@@ -70,7 +70,7 @@ Fixpoint listrep (sigma: list (Z * (list byte))) (p: val) : mpred :=
     (emp || malloc_token Ews (Tarray tschar (Zlength b + 1) noattr) y) *
     cstring Ews b y *
     malloc_token Ews t_list p * 
-    data_at Ews t_list ((Vint (Int.repr a), (y, x)) : @reptype CompSpecs t_list) p *
+    data_at Ews t_list ((Vptrofs (Ptrofs.repr a), (y, x)) : @reptype CompSpecs t_list) p *
     listrep hs x
  | nil =>
     !! (<< LIST_NULL_PTR : p = nullval >> ) && emp
@@ -111,7 +111,7 @@ Fixpoint lseg (sigma: list (Z * (list byte))) (x z: val) : mpred :=
         (emp || malloc_token Ews (Tarray tschar (Zlength b + 1) noattr) y) *
         cstring Ews b y *
         malloc_token Ews t_list x * 
-        data_at Ews t_list ((Vint (Int.repr a)), (y, h)) x * 
+        data_at Ews t_list ((Vptrofs (Ptrofs.repr a)), (y, h)) x * 
         lseg hs h z
   end.
 
@@ -139,14 +139,30 @@ Fixpoint string_to_list_byte (s: string) : list byte :=
                                       :: string_to_list_byte s'
   end.
 
-Fixpoint text_from (sigma : list (Z * list byte)) : list byte :=
-  match sigma with 
+Definition sp_byte (n : nat) : list byte := repeat (Byte.repr 32) n.
+Definition newline_byte : list byte := [Byte.repr 10].
+
+Fixpoint shifted_text_from (sigma : list (Z * list byte)) (shift : nat) : list byte :=
+  match sigma with
   | nil => nil
-  | (s, l)::hs => (repeat (Byte.repr (Z.of_N 32)) (Z.to_nat s) ) ++ l ++ text_from hs
+  | (s, l)::nil => sp_byte (Z.to_nat s + shift) ++ l
+  | (s, l)::hs => sp_byte (Z.to_nat s + shift) ++ l ++ newline_byte ++ (shifted_text_from hs shift)
 end.
 
-Definition to_text_eq (to_text : nat -> string -> string) (sigma : list (Z * list byte)) :=
-  string_to_list_byte (to_text (Z.to_nat 0) EmptyString) = text_from sigma.
+Arguments shifted_text_from sigma shift : simpl never.
+
+Definition text_from (sigma : list (Z * list byte)) (shift : nat) (line : string)  : list byte :=
+  let line_byte := string_to_list_byte line 
+  in
+    match sigma with 
+    | nil => line_byte
+    | (s, l)::nil => sp_byte (Z.to_nat s) ++ l ++ line_byte
+    | (s, l)::hs  => sp_byte (Z.to_nat s) ++ l ++ newline_byte ++ shifted_text_from hs shift ++ line_byte
+end.
+
+Definition to_text_eq (to_text : nat -> string -> string) (sigma : list (Z * list byte)) := 
+  forall (shift : nat) (line : string),
+    string_to_list_byte (to_text shift line) = text_from sigma shift line.
 
 Record list_mp (sigma : list (Z * list byte)) : Prop :=
   mk_list_mp {
@@ -260,6 +276,22 @@ DECLARE _sp
     RETURN(p)
     SEP(cstring Ews (string_to_list_byte (sp (Z.to_nat n))) p;
          malloc_token Ews (Tarray tschar (n + 1) noattr) p; mem_mgr gv).
+        
+Definition get_applied_length_spec : ident * funspec :=
+DECLARE _get_applied_length
+  WITH p : val, sigma : list (Z * list byte), shift : Z, q : val, line : list byte
+  PRE [ tptr t_list, size_t, tptr tschar ]
+    PROP ( << LIST_MP: list_mp sigma >>;
+           0 <= Zlength line + 1 <= Int.max_unsigned; 
+           0 <= shift <= Int.max_unsigned )
+    PARAMS (p; Vptrofs (Ptrofs.repr shift); q)
+    SEP (cstring Ews line q; listrep sigma p)
+  POST [ size_t ]
+    EX n : Z,
+    PROP (n = Zlength (text_from sigma (Z.to_nat shift) (list_byte_to_string line)))
+    RETURN (Vptrofs (Ptrofs.repr n))
+    SEP(cstring Ews line q; listrep sigma p).
+
 
 Definition add_above_spec : ident * funspec :=
 DECLARE _add_above
@@ -280,5 +312,6 @@ Definition Gprog : funspecs :=
         ltac:(with_library prog [
                    max_spec; strlen_spec; strcpy_spec; strcat_spec;
                    list_copy_spec; less_components_spec; is_less_than_spec; 
-                   empty_spec; line_spec; sp_spec
+                   empty_spec; line_spec; sp_spec; 
+                   add_above_spec
  ]).

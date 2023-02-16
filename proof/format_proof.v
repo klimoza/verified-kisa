@@ -399,6 +399,16 @@ Proof.
   - unfold append; fold append. rewrite IHs. reflexivity.
 Qed.
 
+Lemma string_to_list_byte_app (l1 l2 : string) :
+  string_to_list_byte (l1 ++ l2) = string_to_list_byte l1 ++ string_to_list_byte l2.
+Proof.
+  induction l1.
+  { auto. }
+  unfold string_to_list_byte; fold string_to_list_byte.
+  simpl. f_equal.
+  auto.
+Qed.
+
 Lemma body_line: semax_body Vprog Gprog f_line line_spec.
 Proof.
   start_function.
@@ -449,9 +459,10 @@ Proof.
   { 
     unnw. apply mk_format_mp.
     { unfold to_text_eq. unfold to_text. simpl.
-      replace (sigma ++ []) with sigma by list_solve.
-      rewrite empty_string_app.
-      apply list_byte_to_list_byte_eq.
+      intros x line.
+      rewrite string_to_list_byte_app.
+      rewrite list_byte_to_list_byte_eq.
+      auto.
     }
     { apply mk_list_mp; auto.
       { simpl. unfold Int.max_unsigned. simpl. lia. }
@@ -476,35 +487,36 @@ Lemma sp_fact1 (n : Z):
   Zrepeat (Byte.repr 32) n = string_to_list_byte (sp (Z.to_nat n)).
 Proof.
   unfold Zrepeat.
-  remember (Z.to_nat n) as m.
-  clear Heqm. clear n.
+  remember (Z.to_nat n) as m eqn:AA.
+  clear AA. clear n.
   induction m.
-  - auto.
-  - simpl. f_equal. apply IHm.
+  { auto. }
+  simpl. f_equal. apply IHm.
 Qed.
 
 Lemma sp_fact2 (n : nat):
   ~In Byte.zero (string_to_list_byte (sp n)).
 Proof.
   induction n.
-  - list_solve.
-  - unfold not in *. unfold sp; fold sp. simpl.
-    intros. destruct H.
-    + inversion H.
-    + auto.
+  { list_solve. }
+  unfold not in *. unfold sp; fold sp. simpl.
+  intros AA. destruct AA as [AA | AA].
+  { inversion AA. }
+  auto.
 Qed.
+
 
 Lemma body_sp : semax_body Vprog Gprog f_sp sp_spec.
 Proof.
   start_function.
   forward_call((Tarray tschar (n + 1) noattr), gv).
-  { unfold Int.max_unsigned in H. unfold Ptrofs.max_unsigned. simpl in *. lia. }
+  { unfold Int.max_unsigned in *. unfold Ptrofs.max_unsigned. simpl in *. lia. }
   Intros result_pointer.
-  destruct (eq_dec result_pointer nullval). {
-    forward_if(result_pointer <> nullval).
+  destruct (eq_dec result_pointer nullval). 
+  { forward_if(result_pointer <> nullval).
     { forward_call. entailer!. }
     { forward. entailer!. }
-    { forward. contradiction. }
+    forward. contradiction.
   }
   forward_if(result_pointer <> nullval).
   { forward_call. entailer!. }
@@ -526,91 +538,423 @@ Proof.
         malloc_token Ews (Tarray tschar (n + 1) noattr) result_pointer;
         mem_mgr gv)
   ).
-  { 
-    forward. Exists 0. entailer!. 
+  { forward. Exists 0. entailer!. 
     autorewrite with sublist norm.
     unfold data_at_, data_at, field_at_. entailer!.
   }
-  { 
-    Intros i. 
+  { Intros i. 
     forward_if.
     { forward. forward. Exists (i + 1). entailer!. list_solve. } 
     forward.
     entailer!.
-    unfold cstring.
-    entailer!.
-    replace i with n by list_solve.
     autorewrite with sublist norm.
     list_solve.
   }
-  forward.
-  forward.
+  do 2 forward.
   Exists result_pointer.
   unfold cstring.
   entailer!.
-  { remember (sp_fact2 (Z.to_nat n)) as H5. auto. }
+  { remember (sp_fact2 (Z.to_nat n)) as AA. auto. }
   repeat rewrite <- sp_fact1.
   autorewrite with sublist norm.
   list_solve.
 Qed.
 
-Lemma add_above_fact (n : nat):
+Lemma sp_byte_length (n : nat) :
+  Zlength (sp_byte n) = Z.of_nat n.
+Proof.
+  induction n.
+  { unfold sp_byte. auto. }
+  { unfold sp_byte; simpl. autorewrite with sublist. 
+    unfold sp_byte in IHn. simpl in IHn. rewrite IHn. lia. }
+Qed.
+
+Lemma shifted_text_from_length_element_relation (sigma : list (Z * list byte)) (p : (Z * list byte)) (shift : Z) :
+  (<<LIST_MP : list_mp sigma>>) ->
+  0 <= fst p <= Int.max_unsigned ->
+  0 <= Zlength (snd p) + 1 <= Int.max_unsigned ->
+  0 <= shift ->
+  Zlength sigma = 0 \/ Zlength sigma = 1 \/
+  Zlength (shifted_text_from (sigma ++ [p]) (Z.to_nat shift)) =
+  Zlength (shifted_text_from sigma (Z.to_nat shift)) +
+  (1 + (fst p) + shift + Zlength (snd p)).
+Proof.
+  intros.
+  induction sigma.
+  { list_solve. }
+  right.
+  simpl in *.
+  destruct a.
+  assert (list_mp sigma) as AA.
+  { getnw.
+    destruct LIST_MP.
+    apply mk_list_mp; list_solve.
+  }
+  apply IHsigma in AA.
+  destruct AA as [AA | AA].
+  { left. list_solve. }
+  destruct AA as [AA | AA].
+  { destruct sigma. 
+    { list_solve. }
+    right.
+    replace (sigma) with ([] : list (Z * list byte)) by list_solve.
+    simpl.
+    unfold shifted_text_from.
+    destruct p0. destruct p.
+    autorewrite with sublist norm.
+    repeat rewrite sp_byte_length.
+    simpl in *.
+    getnw. destruct LIST_MP.
+    unfold newline_byte.
+    list_solve.
+  }
+  right.
+  unfold shifted_text_from; fold shifted_text_from.
+  simpl in *.
+  destruct sigma.
+  { simpl. unfold shifted_text_from.
+    destruct p.
+    simpl in *.
+    autorewrite with sublist norm.
+    repeat rewrite sp_byte_length.
+    list_solve.
+  }
+  simpl.
+  autorewrite with sublist norm.
+  simpl in *.
+  rewrite AA.
+  list_solve.
+Qed.
+
+Lemma text_from_length_element_relation (sigma : list (Z * list byte)) (p : (Z * list byte)) (shift : Z) (line : list byte) :
+  (<<LIST_MP : list_mp sigma>>) ->
+  0 <= fst p <= Int.max_unsigned ->
+  0 <= Zlength (snd p) + 1 <= Int.max_unsigned ->
+  0 <= shift ->
+  sigma = [] \/
+  Zlength (text_from (sigma ++ [p]) (Z.to_nat shift) (list_byte_to_string line)) =
+  Zlength (text_from sigma (Z.to_nat shift) (list_byte_to_string line)) +
+  (1 + (fst p) + shift + Zlength (snd p)).
+Proof.
+  intros.
+  getnw. destruct LIST_MP.
+  destruct sigma.
+  { left. auto. }
+  right.
+  unfold text_from.
+  simpl.
+  destruct p0.
+  destruct sigma.
+  { simpl.
+    unfold shifted_text_from.
+    destruct p.
+    autorewrite with sublist norm.
+    repeat rewrite list_byte_to_list_byte_eq.
+    repeat rewrite sp_byte_length.
+    simpl in *.
+    list_solve.
+  }
+  simpl.
+  destruct sigma.
+  { simpl. unfold shifted_text_from.
+    destruct p0. destruct p.
+    autorewrite with sublist norm.
+    simpl in *.
+    repeat rewrite sp_byte_length.
+    repeat rewrite list_byte_to_list_byte_eq.
+    unfold newline_byte.
+    list_solve.
+  }
+  autorewrite with sublist norm.
+  simpl in *.
+  assert (
+    Zlength (shifted_text_from (p0 :: p1 :: sigma ++ [p]) (Z.to_nat shift)) =
+    Zlength (shifted_text_from (p0 :: p1 :: sigma) (Z.to_nat shift)) +
+    (1 + fst p + shift + Zlength (snd p))
+  ) as AA.
+  { 
+    remember (shifted_text_from_length_element_relation (p0 :: p1 :: sigma) p shift).
+    assert (list_mp (p0 :: p1 :: sigma)) as AA. 
+    { apply mk_list_mp.
+      { list_solve. }
+      { inversion list_mp_forall_fst. auto. }
+      inversion list_mp_forall_snd. auto.
+    }
+    assert (0 <= fst p <= Int.max_unsigned) by lia.
+    assert (0 <= Zlength (snd p) + 1 <= Int.max_unsigned) by lia.
+    assert (0 <= shift) by lia.
+    apply o in AA; auto.
+    destruct AA as [AA | AA].
+    { list_solve. }
+    destruct AA as [AA | AA].
+    { list_solve. }
+    auto.
+  }
+  rewrite AA.
+  repeat rewrite sp_byte_length.
+  repeat rewrite list_byte_to_list_byte_eq.
+  list_solve.
+Qed.
+  
+
+Lemma text_from_length_relation (sigma : list (Z * list byte)) (i : Z) (shift : Z) (line : list byte) :
+  0 <= i < Zlength sigma ->
+  (<<LIST_MP : list_mp sigma>>) ->
+  0 <= shift ->
+  i = 0 \/
+  Zlength (text_from (sublist 0 (i + 1) sigma) (Z.to_nat shift) (list_byte_to_string line)) = 
+  Zlength (text_from (sublist 0 i sigma) (Z.to_nat shift) (list_byte_to_string line)) + 
+  (1 + (fst (Znth i sigma)) + shift + Zlength (snd (Znth i sigma))).
+Proof.
+  intros.
+  getnw.
+  destruct LIST_MP.
+  remember (Z.to_nat i) as n.
+  replace i with (Z.of_nat n) in * by lia .
+  clear Heqn.
+  destruct n.
+  { left. auto. }
+  right.
+  replace ((sublist 0 (Z.of_nat (S n) + 1) sigma) ) with 
+    ((sublist 0 (Z.of_nat (S n)) sigma) ++ [Znth (Z.of_nat (S n)) sigma]) by list_solve.
+  assert (
+    Zlength (text_from
+     (sublist 0 (Z.of_nat (S n)) sigma ++ [Znth (Z.of_nat (S n)) sigma])
+     (Z.to_nat shift) (list_byte_to_string line)) =
+    Zlength (text_from (sublist 0 (Z.of_nat (S n)) sigma) (Z.to_nat shift) (list_byte_to_string line)) +
+    (1 + (fst (Znth (Z.of_nat (S n)) sigma)) + shift + Zlength (snd (Znth (Z.of_nat (S n)) sigma)))) as AA.
+  { remember (text_from_length_element_relation (sublist 0 (Z.of_nat (S n)) sigma) (Znth (Z.of_nat (S n)) sigma) shift line).
+    assert (list_mp (sublist 0 (Z.of_nat (S n)) sigma)) as AA.
+    { apply mk_list_mp.
+      { list_solve. }
+      { list_solve. }
+      list_solve.
+    }
+    apply o in AA; try list_solve.
+    destruct AA.
+    { list_solve. }
+    auto.
+  }
+  rewrite AA.
+  auto.
+Qed.
+  
+
+Lemma body_get_applied_length: semax_body Vprog Gprog f_get_applied_length get_applied_length_spec.
+Proof.
+  start_function. getnw. destruct LIST_MP.
+  forward_if (p <> nullval).
+  { forward_call(Ews, line, q). forward. 
+    getnw. desf. 
+    assert (sigma = []) as AA. 
+    { list_solve. }
+    subst.
+    Exists (Zlength line). entailer!.
+    unfold text_from.
+    rewrite list_byte_to_list_byte_eq. auto.
+  }
+  { forward. entailer!. }
+
+  destruct sigma. 
+  { unfold listrep. Intros. contradiction. }
+
+  Intros.
+  unfold listrep; fold listrep.
+  destruct p0 as (first_el_shift, first_el_line).
+  inversion list_mp_forall_fst as [tmp | tmp1 tmp2 first_el_shift_cond shift_sigma_cond tmp3 ].
+  simpl in first_el_shift_cond.
+  inversion list_mp_forall_snd as [tmp | tmp10 tmp20 first_el_line_cond line_sigma_cond tmp30].
+  simpl in first_el_line_cond.
+  Intros to_text_tail_ptr first_el_line_ptr.
+  forward.
+  forward_call(Ews, first_el_line, first_el_line_ptr). 
+  do 3 forward. 
+  { entailer!. getnw. desf. }
+  remember ((first_el_shift, first_el_line)::sigma) as big_sigma eqn:eqn_big_sigma.
+  forward_call(Ews, line, q). 
+  forward. 
+
+  forward_loop (
+    EX i : Z, EX cur_to_text_ptr : val,
+    PROP (1 <= i < Zlength big_sigma + 1)
+    LOCAL (temp _total_length (Vptrofs (Ptrofs.repr (Zlength (text_from (sublist 0 i big_sigma) (Z.to_nat shift) (list_byte_to_string line)))));
+          temp _to_text_cpy cur_to_text_ptr;
+          temp _shift (Vptrofs (Ptrofs.repr shift)))
+    SEP( listrep (sublist i (Zlength big_sigma) big_sigma) cur_to_text_ptr;
+        lseg (sublist 0 i big_sigma) p cur_to_text_ptr; cstring Ews line q
+    )).
+  { Exists 1 to_text_tail_ptr.
+    entailer!.
+    { split.
+      { list_solve. }
+      do 3 f_equal.
+      replace (sublist 0 1 ((first_el_shift, first_el_line) :: sigma)) with
+        [(first_el_shift, first_el_line)] by list_solve.
+      unfold text_from. rewrite list_byte_to_list_byte_eq.
+      autorewrite with sublist. rewrite sp_byte_length.
+      list_solve.
+    }
+    replace ((sublist 1 (Zlength ((first_el_shift, first_el_line) :: sigma)) ((first_el_shift, first_el_line) :: sigma))) with
+      sigma by list_solve.
+    replace (sublist 0 1 ((first_el_shift, first_el_line) :: sigma)) with
+      [(first_el_shift, first_el_line)] by list_solve.
+    entailer!.
+    unfold lseg.
+    Exists to_text_tail_ptr first_el_line_ptr.
+    entailer!.
+  }
+  { entailer!. }
+  { assert (i = Zlength big_sigma \/ i < Zlength big_sigma) as AA by lia.
+    destruct AA as [AA | AA].
+    { subst i.
+      replace (sublist (Zlength big_sigma) (Zlength big_sigma) big_sigma) with ([] : list (Z * list byte)) by list_solve.
+      unfold listrep. Intros.
+      contradiction.
+    } 
+    replace (sublist i (Zlength big_sigma) big_sigma) with (Znth i big_sigma :: (sublist (i + 1) (Zlength big_sigma) big_sigma)) by list_solve.
+    unfold listrep; fold listrep.
+    destruct (Znth i big_sigma) as (ith_shift, ith_line) eqn:eqn_ith_element.
+    Intros ith_tail_ptr ith_line_ptr.
+    forward.
+    forward_call(Ews, ith_line, ith_line_ptr).
+    do 3 forward.
+    { entailer!. unnw. desf. }
+    Exists (i + 1, ith_tail_ptr).
+    entailer!.
+    { split.
+      { list_solve. }
+      do 2 f_equal.
+      remember ((first_el_shift, first_el_line) :: sigma) as big_sigma.
+      remember (text_from_length_relation big_sigma i shift line).
+      assert (0 <= i < Zlength big_sigma) as AE1 by list_solve.
+      apply o in AE1.
+      3: now lia.
+      2: { apply mk_list_mp; try list_solve. }
+      destruct AE1 as [AE | AE].
+      { list_solve. }
+      rewrite AE. rewrite eqn_ith_element.
+      simpl.
+      list_solve.
+    }
+    entailer!.
+    assert (
+      cstring Ews ith_line ith_line_ptr
+      * (emp || malloc_token Ews (Tarray tschar (Zlength ith_line + 1) noattr) ith_line_ptr)
+      * malloc_token Ews t_list cur_to_text_ptr
+      * data_at Ews t_list (Vlong (Int64.repr ith_shift), (ith_line_ptr, ith_tail_ptr)) cur_to_text_ptr
+      * lseg (sublist 0 i ((first_el_shift, first_el_line) :: sigma)) p cur_to_text_ptr
+      |--
+      lseg (sublist 0 i ((first_el_shift, first_el_line) :: sigma)) p cur_to_text_ptr
+      * ((emp || malloc_token Ews (Tarray tschar (Zlength ith_line + 1) noattr) ith_line_ptr)
+      * cstring Ews ith_line ith_line_ptr
+      * malloc_token Ews t_list cur_to_text_ptr
+      * data_at Ews t_list (Vlong (Int64.repr ith_shift), (ith_line_ptr, ith_tail_ptr)) cur_to_text_ptr )
+    ).
+    { entailer!. }
+    eapply (derives_trans _ _ _); eauto. 
+    assert  (
+      lseg (sublist 0 i ((first_el_shift, first_el_line) :: sigma)) p cur_to_text_ptr
+      * lseg (sublist i (i + 1) ((first_el_shift, first_el_line) :: sigma)) cur_to_text_ptr ith_tail_ptr
+      |-- lseg (sublist 0 (i + 1) ((first_el_shift, first_el_line) :: sigma)) p ith_tail_ptr
+    ).
+    { remember (lseg_lseg (sublist 0 i ((first_el_shift, first_el_line) :: sigma)) 
+      (sublist i (i + 1) ((first_el_shift, first_el_line) :: sigma)) p cur_to_text_ptr ith_tail_ptr) as BB. 
+      replace ((sublist 0 (i + 1) ((first_el_shift, first_el_line) :: sigma))) with 
+      ((sublist 0 i ((first_el_shift, first_el_line) :: sigma)) ++ (sublist i (i + 1) ((first_el_shift, first_el_line) :: sigma)))
+      by list_solve.
+      apply BB.
+    }
+    eapply (derives_trans _ _ _). 2: eauto.
+    entailer!.
+    replace (sublist i (i + 1) ((first_el_shift, first_el_line) :: sigma)) 
+      with [Znth i ((first_el_shift, first_el_line) :: sigma)] by list_solve.
+      
+    unfold lseg.
+    rewrite eqn_ith_element.
+    Exists ith_tail_ptr ith_line_ptr.
+    entailer!.
+  }
+  forward.
+  remember ((first_el_shift, first_el_line) :: sigma) as big_sigma.
+  assert (i < Zlength big_sigma \/ i = Zlength big_sigma) as BB by lia.
+  destruct BB.
+  { replace ((sublist i (Zlength big_sigma) big_sigma)) with
+      (Znth i big_sigma :: ((sublist (i + 1) (Zlength big_sigma) big_sigma))) 
+        by list_solve.
+    unfold listrep; fold listrep.
+    destruct (Znth i big_sigma).
+    Intros x y.
+    entailer!.
+  }
+  subst i.
+  replace (sublist (Zlength big_sigma) (Zlength big_sigma) big_sigma) 
+    with ([] : list (Z * list byte)) by list_solve.
+  replace (sublist 0 (Zlength big_sigma) big_sigma)
+    with big_sigma by list_solve.
+  unfold listrep; fold listrep.
+  Intros.
+  Exists (Zlength (text_from big_sigma (Z.to_nat shift) (list_byte_to_string line))).
+  entailer!.
+  apply lseg_null_listrep.
+Qed.
+
+Lemma add_above_fact1 (n : nat):
   Z.of_nat n <> 0 ->
   Z.of_nat n <> 1 ->
   (n =? 1)%nat = false.
 Proof.
   intros.
   destruct n.
-  - contradiction.
-  - destruct n.
-    + contradiction.
-    + auto.
+  { contradiction. }
+  destruct n.
+  { contradiction. }
+  auto.
 Qed.
 
 Lemma add_above_fact2 (n a m b : nat):
   ((n =? a)%nat && (m =? b)%nat)%bool = false ->
   n <> a \/ m <> b.
 Proof.
-  intros.
-  apply andb_false_iff in H.
-  destruct H.
-  - left. intuition. rewrite H0 in H. 
-    rewrite Nat.eqb_refl in H. lia.
-  - right. intuition. rewrite H0 in H.
-    rewrite Nat.eqb_refl in H. lia.
+  intros AA.
+  apply andb_false_iff in AA.
+  destruct AA as [AA | AA].
+  { left. intuition. subst.
+    rewrite Nat.eqb_refl in AA. lia. }
+  right. intuition. subst.
+  rewrite Nat.eqb_refl in AA. lia.
 Qed.
   
 Lemma add_above_fact3 (n a m b : nat):
   ((n =? a)%nat && negb (m =? b)%nat)%bool = true ->
   n = a /\ m <> b.
 Proof.
-  intros.
-  apply andb_true_iff in H.
-  destruct H.
+  intros AA.
+  apply andb_true_iff in AA.
+  destruct AA as [BB CC].
   split.
-  - apply Nat.eqb_eq; auto.
-  - intuition. subst. 
-    rewrite Nat.eqb_refl in H0. lia.
+  { apply Nat.eqb_eq; auto. }
+  intuition. subst. 
+  rewrite Nat.eqb_refl in CC. lia.
 Qed.
 
 Lemma add_above_fact4 (n a m b : nat):
   ((n =? a)%nat && negb (m =? b)%nat)%bool = false ->
   n <> a \/ m = b.
 Proof.
-  intros.
-  apply andb_false_iff in H.
-  destruct H.
-  - left. intuition. subst. rewrite Nat.eqb_refl in H. lia.
-  - right. rewrite negb_false_iff in H. apply Nat.eqb_eq; auto.
+  intros AA.
+  apply andb_false_iff in AA.
+  destruct AA as [AA | AA].
+  - left. intuition. subst. rewrite Nat.eqb_refl in AA. lia.
+  - right. rewrite negb_false_iff in AA. apply Nat.eqb_eq; auto.
 Qed.
 
 Lemma add_above_fact5 (n a m b : nat):
   ((n =? a)%nat && (m =? b)%nat)%bool = true ->
   n = a /\ m = b.
 Proof.
-  intros.
-  apply andb_true_iff in H.
-  destruct H.
+  intros AA.
+  apply andb_true_iff in AA.
+  destruct AA.
   split; apply Nat.eqb_eq; auto.
 Qed.
 

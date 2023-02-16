@@ -155,7 +155,7 @@ Qed.
 Lemma singleton_listrep: forall (a : Z) (b : list byte) (h : val) (x: val),
   cstring Ews b h *
   malloc_token Ews t_list x *
-  data_at Ews t_list ((Vint (Int.repr a)), (h, nullval)) x
+  data_at Ews t_list ((Vptrofs (Ptrofs.repr a)), (h, nullval)) x
    |-- listrep [(a, b)] x.
 Proof.
   intros.
@@ -169,7 +169,7 @@ Qed.
 Lemma singleton_lseg: forall (a : Z) (b : list byte) (h : val) (x y: val),
   cstring Ews b h *
   malloc_token Ews t_list x *
-  data_at Ews t_list ((Vint (Int.repr a)), (h, y)) x
+  data_at Ews t_list ((Vptrofs (Ptrofs.repr a)), (h, y)) x
    |-- lseg [(a, b)] x y.
 Proof.
   intros.
@@ -203,19 +203,33 @@ Proof.
     (emp || malloc_token Ews (Tarray tschar (Zlength l + 1) noattr) y0)
       * cstring Ews l y0
       * malloc_token Ews t_list x
-      * data_at Ews t_list (Vint (Int.repr z0), (y0, h)) x
+      * data_at Ews t_list (Vptrofs (Ptrofs.repr z0), (y0, h)) x
       * lseg s1 h y
       * lseg s2 y z
       |-- 
     (emp || malloc_token Ews (Tarray tschar (Zlength l + 1) noattr) y0)
       * cstring Ews l y0
       * malloc_token Ews t_list x
-      * data_at Ews t_list (Vint (Int.repr z0), (y0, h)) x
+      * data_at Ews t_list (Vptrofs (Ptrofs.repr z0), (y0, h)) x
       * (lseg s1 h y
       * lseg s2 y z)
   ) as H by entailer!.
   eapply (derives_trans _ _ _); eauto.
   apply sepcon_derives; entailer.
+Qed.
+
+Lemma lseg_null_listrep (sigma : list (Z * list byte)) (p : val):
+  lseg sigma p nullval |-- listrep sigma p.
+Proof.
+  revert p.
+  induction sigma.
+  { unfold lseg. unfold listrep. entailer!. }
+  unfold lseg; fold lseg. destruct a.
+  intros p.
+  Intros h y.
+  unfold listrep; fold listrep.
+  Exists h y.
+  entailer!.
 Qed.
 
 Definition list_copy_loop_invariant 
@@ -298,6 +312,7 @@ remember (Znth i sigma) as ith_element eqn:eqn_ith_element.
 destruct ith_element as (shift_i, line_i).
 
 Intros l_cur_tail line_i_pointer.
+
 do 3 forward.
 forward_call(Ews, line_i, line_i_pointer).
 forward_call((Tarray tschar (Zlength line_i + 1) noattr), gv). {
@@ -367,26 +382,26 @@ forward_if(l_cur_tail <> nullval).
       * cstring Ews line_i line_i_pointer
       * malloc_token Ews (Tarray tschar (Zlength line_i + 1) noattr) cur_line_i_pointer
       * malloc_token Ews t_list cur
-      * data_at Ews t_list (Vint (Int.repr shift_i), (cur_line_i_pointer, Vlong (Int64.repr 0))) cur
+      * data_at Ews t_list (Vlong (Int64.repr shift_i), (cur_line_i_pointer, Vlong (Int64.repr 0))) cur
       * lseg (sublist 0 i sigma) new_pointer cur
       * lseg (sublist 0 i sigma) l l_cur
       * (emp || malloc_token Ews (Tarray tschar (Zlength line_i + 1) noattr) line_i_pointer)
       * malloc_token Ews t_list l_cur
-      * data_at Ews t_list (Vint (Int.repr shift_i), (line_i_pointer, nullval)) l_cur
+      * data_at Ews t_list (Vlong (Int64.repr shift_i), (line_i_pointer, nullval)) l_cur
     |-- 
     (lseg (sublist 0 i sigma) new_pointer cur *
     (
       malloc_token Ews (Tarray tschar (Zlength line_i + 1) noattr) cur_line_i_pointer
       * cstring Ews line_i cur_line_i_pointer 
       * malloc_token Ews t_list cur
-      * data_at Ews t_list (Vint (Int.repr shift_i), (cur_line_i_pointer, Vlong (Int64.repr 0))) cur
+      * data_at Ews t_list (Vlong (Int64.repr shift_i), (cur_line_i_pointer, Vlong (Int64.repr 0))) cur
     )) * (
       lseg (sublist 0 i sigma) l l_cur *
       (
       (emp || malloc_token Ews (Tarray tschar (Zlength line_i + 1) noattr) line_i_pointer)
       * cstring Ews line_i line_i_pointer
       * malloc_token Ews t_list l_cur
-      * data_at Ews t_list (Vint (Int.repr shift_i), (line_i_pointer, nullval)) l_cur
+      * data_at Ews t_list (Vlong (Int64.repr shift_i), (line_i_pointer, nullval)) l_cur
       )
     )
   ) as Trans_step1. 
@@ -402,7 +417,7 @@ forward_if(l_cur_tail <> nullval).
        * (malloc_token Ews (Tarray tschar (Zlength line_i + 1) noattr) cur_line_i_pointer
        * cstring Ews line_i cur_line_i_pointer
        * malloc_token Ews t_list cur
-       * data_at Ews t_list (Vint (Int.repr shift_i), (cur_line_i_pointer, Vlong (Int64.repr 0))) cur)
+       * data_at Ews t_list (Vlong (Int64.repr shift_i), (cur_line_i_pointer, Vlong (Int64.repr 0))) cur)
        |-- 
       lseg (sublist 0 i (sublist 0 i sigma ++ sublist i (Zlength sigma) sigma)) new_pointer cur *
       listrep [(shift_i, line_i)] cur
@@ -426,7 +441,7 @@ forward_if(l_cur_tail <> nullval).
         * ((emp || malloc_token Ews (Tarray tschar (Zlength line_i + 1) noattr) line_i_pointer)
           * cstring Ews line_i line_i_pointer
           * malloc_token Ews t_list l_cur
-          * data_at Ews t_list (Vint (Int.repr shift_i), (line_i_pointer, nullval)) l_cur)
+          * data_at Ews t_list (Vlong (Int64.repr shift_i), (line_i_pointer, nullval)) l_cur)
       |-- 
       lseg (sublist 0 i (sublist 0 i sigma ++ sublist i (Zlength sigma) sigma)) l l_cur *
       listrep [(shift_i, line_i)] l_cur
@@ -468,23 +483,23 @@ forward_if(l_cur_tail <> nullval).
     cstring Ews line_i cur_line_i_pointer * cstring Ews line_i line_i_pointer
     * malloc_token Ews (Tarray tschar (Zlength line_i + 1) noattr) cur_line_i_pointer
     * malloc_token Ews t_list cur
-    * data_at Ews t_list (Vint (Int.repr shift_i), (cur_line_i_pointer, cur_tail)) cur
+    * data_at Ews t_list (Vlong (Int64.repr shift_i), (cur_line_i_pointer, cur_tail)) cur
     * lseg (sublist 0 i sigma) new_pointer cur
     * lseg (sublist 0 i sigma) l l_cur
     * (emp || malloc_token Ews (Tarray tschar (Zlength line_i + 1) noattr) line_i_pointer)
     * malloc_token Ews t_list l_cur
-    * data_at Ews t_list (Vint (Int.repr shift_i), (line_i_pointer, l_cur_tail)) l_cur
+    * data_at Ews t_list (Vlong (Int64.repr shift_i), (line_i_pointer, l_cur_tail)) l_cur
     |--
     (lseg (sublist 0 i sigma) new_pointer cur
     * (malloc_token Ews (Tarray tschar (Zlength line_i + 1) noattr) cur_line_i_pointer
     * cstring Ews line_i cur_line_i_pointer
     * malloc_token Ews t_list cur
-    * data_at Ews t_list (Vint (Int.repr shift_i), (cur_line_i_pointer, cur_tail)) cur))
+    * data_at Ews t_list (Vlong (Int64.repr shift_i), (cur_line_i_pointer, cur_tail)) cur))
     * (lseg (sublist 0 i sigma) l l_cur
     * ((emp || malloc_token Ews (Tarray tschar (Zlength line_i + 1) noattr) line_i_pointer)
     * cstring Ews line_i line_i_pointer
     * malloc_token Ews t_list l_cur
-    * data_at Ews t_list (Vint (Int.repr shift_i), (line_i_pointer, l_cur_tail)) l_cur))
+    * data_at Ews t_list (Vlong (Int64.repr shift_i), (line_i_pointer, l_cur_tail)) l_cur))
   ) as AA by entailer!.
   
   eapply (derives_trans _ _ _); eauto.
@@ -495,7 +510,7 @@ forward_if(l_cur_tail <> nullval).
        * (malloc_token Ews (Tarray tschar (Zlength line_i + 1) noattr) cur_line_i_pointer
        * cstring Ews line_i cur_line_i_pointer
        * malloc_token Ews t_list cur
-       * data_at Ews t_list (Vint (Int.repr shift_i), (cur_line_i_pointer, cur_tail)) cur)
+       * data_at Ews t_list (Vlong (Int64.repr shift_i), (cur_line_i_pointer, cur_tail)) cur)
       |-- 
       lseg (sublist 0 i sigma) new_pointer cur * 
       lseg (sublist i (i + 1) sigma) cur cur_tail
@@ -518,7 +533,7 @@ forward_if(l_cur_tail <> nullval).
       * ((emp || malloc_token Ews (Tarray tschar (Zlength line_i + 1) noattr) line_i_pointer)
       * cstring Ews line_i line_i_pointer
       * malloc_token Ews t_list l_cur
-      * data_at Ews t_list (Vint (Int.repr shift_i), (line_i_pointer, l_cur_tail)) l_cur)
+      * data_at Ews t_list (Vlong (Int64.repr shift_i), (line_i_pointer, l_cur_tail)) l_cur)
       |-- 
       lseg (sublist 0 i sigma) l l_cur * 
       lseg (sublist i (i + 1) sigma) l_cur l_cur_tail
