@@ -69,6 +69,43 @@ list *list_copy(list *l) {
   return new;
 }
 
+char *sp(size_t n) {
+  char *result = malloc(n + 1);
+  if(!result) exit(1);
+  char space = ' ';
+  for (size_t i = 0; i < n; i++) {
+    result[i] = space;
+  }
+  result[n] = 0;
+  return result;
+}
+
+unsigned int get_applied_length(list *to_text, unsigned int shift, char* line) {
+  unsigned int total_length = strlen(to_text->line);
+  list* to_text_cpy = to_text_cpy->tail;
+  while(to_text_cpy != NULL) {
+    total_length += to_text_cpy->shift + shift + strlen(to_text_cpy->line);
+    to_text_cpy = to_text_cpy->tail;
+  }
+  total_length += strlen(line);
+  return total_length;
+}
+
+char* to_text_applied(list *to_text, unsigned int shift, char* line) {
+  if(to_text == NULL)
+    return line;
+
+  unsigned int total_length = get_applied_length(to_text, shift, line);
+  char* result = malloc(total_length + 1);
+  strcpy(result, to_text->line);
+  while(to_text != NULL) {
+    strcat(result, sp(to_text->shift + shift));
+    strcat(result, to_text->line);
+    to_text = to_text->tail;
+  }
+  return result;
+}
+
 struct t {
   unsigned int height;
   unsigned int first_line_width;
@@ -117,66 +154,58 @@ t *line(char *nt) {
 
 char *newline = "\n";
 
-char *sp(size_t n) {
-  char *result = malloc(n + 1);
-  if(!result) exit(1);
-  char space = ' ';
-  for (size_t i = 0; i < n; i++) {
-    result[i] = space;
-  }
-  result[n] = 0;
+t* format_copy(t *G) {
+  t* result = malloc(sizeof(t));
+  result->height = G->height;
+  result->first_line_width = G->first_line_width;
+  result->middle_width = G->middle_width;
+  result->last_line_width = G->last_line_width;
+  result->to_text = list_copy(G->to_text);
   return result;
 }
 
-
 t *add_above(t *G, t *F) {
+  if (G->height == 0) {
+    return format_copy(F);
+  } 
+  if (F->height == 0) {
+    return format_copy(G);
+  }
+
   t* result = malloc(sizeof(t));
   if(!result) exit(1);
-  if (G->height == 0) {
-    result->height = F->height;
-    result->first_line_width = F->first_line_width;
-    result->middle_width = F->middle_width;
-    result->last_line_width = F->last_line_width;
-    result->to_text = list_copy(F->to_text);
-  } else if (F->height == 0) {
-    result->height = G->height;
-    result->first_line_width = G->first_line_width;
-    result->middle_width = G->middle_width;
-    result->last_line_width = G->last_line_width;
-    result->to_text = list_copy(G->to_text);
+
+  unsigned int middle_width_new;
+  if (G->height == 1 && F->height == 1) {
+    middle_width_new = G->first_line_width;
+  } else if (G->height == 1 && F->height != 1) {
+    middle_width_new = max(F->first_line_width, F->middle_width);
+  } else if (G->height == 2 && F->height == 1) {
+    middle_width_new = G->last_line_width;
+  } else if (G->height != 1 && F->height == 1) {
+    middle_width_new = max(G->last_line_width, G->middle_width);
+  } else if (G->height == 2 && F->height != 1) {
+    middle_width_new = max(G->last_line_width, max(F->first_line_width, F->middle_width));
   } else {
-    unsigned int middle_width_new;
-    if (G->height == 1 && F->height == 1) {
-      middle_width_new = G->first_line_width;
-    } else if (G->height == 1 && F->height != 1) {
-      middle_width_new = max(F->first_line_width, F->middle_width);
-    } else if (G->height == 2 && F->height == 1) {
-      middle_width_new = G->last_line_width;
-    } else if (G->height != 1 && F->height == 1) {
-      middle_width_new = max(G->last_line_width, G->middle_width);
-    } else if (G->height == 2 && F->height != 1) {
-      middle_width_new = max(G->last_line_width, max(F->first_line_width, F->middle_width));
-    } else {
-      middle_width_new = max(G->middle_width, max(G->last_line_width, max(F->first_line_width, F->middle_width)));
-    }
-
-    list *to_text_new = list_copy(G->to_text);
-    if(to_text_new == NULL) {
-      to_text_new = list_copy(F->to_text);
-    } else {
-      list *to_text_new_tail = to_text_new;
-      while (to_text_new_tail->tail != NULL) {
-        to_text_new_tail = to_text_new_tail->tail;
-      }
-      to_text_new_tail->tail = list_copy(F->to_text);
-    }
-
-    result->height = G->height + F->height;
-    result->first_line_width = G->first_line_width;
-    result->middle_width = middle_width_new;
-    result->last_line_width = F->last_line_width;
-    result->to_text = to_text_new;
+    middle_width_new = max(G->middle_width, max(G->last_line_width, max(F->first_line_width, F->middle_width)));
   }
+
+  list *to_text_new = list_copy(G->to_text);
+  if(to_text_new == NULL) {
+    to_text_new = list_copy(F->to_text);
+  } else {
+    list *to_text_new_tail = to_text_new;
+    while (to_text_new_tail->tail != NULL) {
+      to_text_new_tail = to_text_new_tail->tail;
+    }
+    to_text_new_tail->tail = list_copy(F->to_text);
+  }
+
+  result->height = G->height + F->height;
+  result->first_line_width = G->first_line_width;
+  result->middle_width = middle_width_new;
+  result->last_line_width = F->last_line_width;
+  result->to_text = to_text_new;
   return result;
 }
 
