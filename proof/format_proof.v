@@ -162,7 +162,7 @@ Proof.
   intros. destruct r. lia. auto.
 Qed.
 
-Lemma is_less_than_fact2 x y
+Lemma nat_eq_iff_int_eq x y
     (XBOUND : 0 <= (Z.of_nat x) <= Int.max_unsigned)
     (YBOUND : 0 <= (Z.of_nat y) <= Int.max_unsigned) :
     (x =? y)%nat = Int.eq (Int.repr (Z.of_nat x)) (Int.repr (Z.of_nat y)).
@@ -198,7 +198,7 @@ Proof.
       { rewrite e in *. simpl in *. list_solve. }
       apply is_less_than_fact1. auto. 
     }
-    rewrite AA. simpl. apply is_less_than_fact2.
+    rewrite AA. simpl. apply nat_eq_iff_int_eq.
     { getnw. destruct FMT_MP. auto. }
     unfold Int.max_unsigned; simpl. lia.
   } 
@@ -238,7 +238,7 @@ Proof.
       entailer!.
       2: { unfold concrete_mformat. entailer!. unnw. apply mk_format_mp; auto. }
       - f_equal. replace (height G) with 1%nat by list_solve. simpl. f_equal.
-        apply is_less_than_fact2; auto. simpl. unfold Int.max_unsigned. simpl. lia.
+        apply nat_eq_iff_int_eq; auto. simpl. unfold Int.max_unsigned. simpl. lia.
     } 
     { forward.
       Exists false.
@@ -898,7 +898,44 @@ Proof.
   apply lseg_null_listrep.
 Qed.
 
-Lemma add_above_fact1 (n : nat):
+Lemma body_format_copy: semax_body Vprog Gprog f_format_copy format_copy_spec.
+Proof.
+  start_function.
+  forward_call(t_format, gv).
+  Intros new_format_ptr.
+  destruct(eq_dec new_format_ptr nullval). 
+  { forward_if(new_format_ptr <> nullval).
+    { forward_call. entailer!. }
+    { forward. entailer!. }
+    now Intros.
+  }
+  forward_if(new_format_ptr <> nullval).
+  { forward_call. entailer!. }
+  { forward. entailer!. }
+
+  unfold mformat.
+  Intros sigmaG pG.
+  do 9 forward.
+  { entailer!. getnw. destruct LIST_PTR_FACT. auto. }
+
+  getnw. destruct FMT_MP. destruct format_mp_list_mp.
+  forward_call(Ews, pG, sigmaG, gv).
+  { list_solve. }
+
+  Intros new_list_ptr.
+  do 2 forward.
+  Exists new_format_ptr.
+  entailer!.
+  unfold mformat.
+  Exists sigmaG pG sigmaG new_list_ptr.
+  unfold concrete_mformat.
+  entailer!.
+  unnw.
+  split; apply mk_format_mp; auto; apply mk_list_mp; auto.
+Qed.
+  
+
+Lemma not_0_not_1_impl (n : nat):
   Z.of_nat n <> 0 ->
   Z.of_nat n <> 1 ->
   (n =? 1)%nat = false.
@@ -911,7 +948,7 @@ Proof.
   auto.
 Qed.
 
-Lemma add_above_fact2 (n a m b : nat):
+Lemma eq_and_false_impl (n a m b : nat):
   ((n =? a)%nat && (m =? b)%nat)%bool = false ->
   n <> a \/ m <> b.
 Proof.
@@ -924,7 +961,7 @@ Proof.
   rewrite Nat.eqb_refl in AA. lia.
 Qed.
   
-Lemma add_above_fact3 (n a m b : nat):
+Lemma eq_and_negb_true_impl (n a m b : nat):
   ((n =? a)%nat && negb (m =? b)%nat)%bool = true ->
   n = a /\ m <> b.
 Proof.
@@ -937,18 +974,18 @@ Proof.
   rewrite Nat.eqb_refl in CC. lia.
 Qed.
 
-Lemma add_above_fact4 (n a m b : nat):
+Lemma eq_and_negb_false_impl (n a m b : nat):
   ((n =? a)%nat && negb (m =? b)%nat)%bool = false ->
   n <> a \/ m = b.
 Proof.
   intros AA.
   apply andb_false_iff in AA.
   destruct AA as [AA | AA].
-  - left. intuition. subst. rewrite Nat.eqb_refl in AA. lia.
-  - right. rewrite negb_false_iff in AA. apply Nat.eqb_eq; auto.
+  { left. intuition. subst. rewrite Nat.eqb_refl in AA. lia. }
+  right. rewrite negb_false_iff in AA. apply Nat.eqb_eq; auto.
 Qed.
 
-Lemma add_above_fact5 (n a m b : nat):
+Lemma eq_and_true_impl (n a m b : nat):
   ((n =? a)%nat && (m =? b)%nat)%bool = true ->
   n = a /\ m = b.
 Proof.
@@ -958,411 +995,321 @@ Proof.
   split; apply Nat.eqb_eq; auto.
 Qed.
 
+Lemma int_repr_eq (n m : nat):
+  0 <= Z.of_nat n <= Int.max_unsigned ->
+  0 <= Z.of_nat m <= Int.max_unsigned ->
+  Int.repr (Z.of_nat n) = Int.repr (Z.of_nat m) ->
+  m = n.
+Proof.
+  intros.
+  assert(Z.of_nat n = Z.of_nat m).
+  { apply mapsto_memory_block.repr_inj_unsigned; list_solve. }
+  list_solve.
+Qed.
+
 Lemma body_add_above: semax_body Vprog Gprog f_add_above add_above_spec.
 Proof.
   start_function.
-  forward_call(t_format, gv).
-  Intros result_pointer.
-  destruct(eq_dec result_pointer nullval).
-  {  forward_if(result_pointer <> nullval).
-    { forward_call. entailer!. }
-    { forward. entailer!. }
-    forward. contradiction. }
-  
-  forward_if(result_pointer <> nullval).
-  { forward_call. entailer!. }
-  { forward. entailer!. }
-  Intros.
-  forward.
-  (* getnw. *)
-
   unfold mformat.
-  Intros sigma0 p0.
-  forward_if(
+  Intros sigmaG pG sigmaF pF.
+  forward.
+  forward_if(height G <> 0%nat).
+  { forward_call(pointer_F, F, gv).
+    { unfold mformat. Exists sigmaF pF. entailer!. }
+    Intros new_format_ptr.
+    forward.
+    Exists new_format_ptr.
+    entailer!.
+    unfold mformat.
+    Intros sigmaF1 pF1.
+    Exists sigmaG pG sigmaF1 pF1.
+    unfold concrete_mformat. unfold add_above.
+    replace (height G) with 0%nat.
+    { entailer!. }
+    getnw. destruct FMT_MP.
+    apply int_repr_eq; simpl; list_solve.
+  }
+  { forward. entailer!. list_solve. }
+  forward.
+  forward_if(height F <> 0%nat).
+  { forward_call(pointer_G, G, gv).
+    { unfold mformat. Exists sigmaG pG. unfold concrete_mformat. entailer!.  }
+    Intros new_format_ptr.
+    forward.
+    Exists new_format_ptr.
+    entailer!.
+    unfold mformat.
+    Intros sigmaG1 pG1.
+    Exists sigmaF pF sigmaG1 pG1.
+    unfold concrete_mformat. unfold add_above.
+    destruct (height G) eqn:E.
+    { lia. }
+    replace (height F) with 0%nat.
+    { rewrite E. entailer!. }
+    getnw. destruct FMT_MP.
+    apply int_repr_eq; list_solve.
+  }
+  { forward. entailer!. list_solve. }
+  forward_call(t_format, gv).
+
+  Intros result_ptr.
+  dest_ptr result_ptr.
+  
+  forward.
+  remember (fun (tr: ident) (b: bool) =>
     PROP()
-    LOCAL(temp _result result_pointer; gvars gv)
-    SEP(concrete_mformat G pointer_G sigma p; 
-        concrete_mformat F pointer_F sigma0 p0;
-       mformat (add_above G F) result_pointer;
-        mem_mgr gv)
+    LOCAL(temp tr (Val.of_bool b); gvars gv; temp _result result_ptr;
+          temp _G pointer_G; temp _F pointer_F)
+    SEP(malloc_token Ews t_format result_ptr;
+        data_at_ Ews t_format result_ptr; mem_mgr gv;
+        concrete_mformat G pointer_G sigmaG pG; concrete_mformat F pointer_F sigmaF pF))
+  as if_invariant eqn:eqn_if_invariant.
+    
+  forward_if(
+    if_invariant _t'15 ((height G =? 1)%nat && (height F =? 1)%nat)%bool
   ).
   {
-    do 9 forward.
-    simpl.
-    unfold list_mp in *.
-    destruct H10. 
-    destruct H4.
-    forward_call(Ews, p0, sigma0, gv).                                                                              
-    Intros result_to_text_pointer.
-    forward.
+    do 2 forward.
+    rewrite eqn_if_invariant.
     entailer!.
-    unfold add_above.
-    replace (height G) with 0%nat by list_solve.
+    { getnw. destruct FMT_MP.
+      getnw. destruct FMT_MP.
+      replace (height G) with 1%nat.
+      { simpl. f_equal.
+        apply nat_eq_iff_int_eq; list_solve.
+      }
+      apply int_repr_eq; list_solve.
+    }
     unfold concrete_mformat.
-    unfold mformat.
-    unfold list_mp.
-    Exists sigma0 result_to_text_pointer.
     entailer!.
-    replace (height G) with 0%nat by list_solve.
-    entailer.
   }
-  2: {
-    forward.
-    Exists result_pointer.
-    unfold concrete_mformat, mformat.
-    Intros result_sigma result_p.
-    Exists sigma p.
-    Exists sigma0 p0.
-    Exists result_sigma result_p.
+  { forward. rewrite eqn_if_invariant.
     entailer!.
+    { assert (height G <> 1)%nat by list_solve.
+      replace (height G =? 1)%nat with false.
+      { list_solve. }
+      symmetry. apply Nat.eqb_neq. auto.
+     }
+     unfold concrete_mformat.
+     entailer!.
   }
 
-  forward.
-  forward_if(
+  remember (
     PROP()
-    LOCAL(temp _result result_pointer; gvars gv)
-    SEP(concrete_mformat G pointer_G sigma p; 
-        concrete_mformat F pointer_F sigma0 p0;
-       mformat (add_above G F) result_pointer;
-        mem_mgr gv)
-  ).
-  {
-    do 9 forward.
-    simpl.
-    unfold list_mp in *.
-    destruct H10. 
-    destruct H4.
-    forward_call(Ews, p, sigma, gv).                                                                              
-    Intros result_to_text_pointer.
-    forward.
+    LOCAL(temp _middle_width_new (Vint (Int.repr (Z.of_nat (middle_width (add_above G F))))); 
+          temp _result result_ptr; temp _G pointer_G; temp _F pointer_F; gvars gv)
+    SEP(malloc_token Ews t_format result_ptr;
+        data_at_ Ews t_format result_ptr; mem_mgr gv;
+        concrete_mformat G pointer_G sigmaG pG; concrete_mformat F pointer_F sigmaF pF)
+  ) as middle_invariant eqn:eqn_middle_invariant.
+  rewrite eqn_if_invariant.
+  forward_if(middle_invariant).
+  { forward.
+    rewrite eqn_middle_invariant.
+    entailer!.
+    2: now unfold concrete_mformat; entailer!. 
+    do 3 f_equal.
+    assert(AA: (height G = 1)%nat /\ (height F = 1)%nat).
+    { apply eq_and_true_impl. auto. }
+    destruct AA.
     unfold add_above.
-    assert (HG: exists (k : nat), (height G) = S k). 
-    { exists ((height G) - 1)%nat. lia. }
-    destruct HG.
-    replace (height F) with 0%nat by list_solve.
-    rewrite H15.
-    unfold concrete_mformat, mformat.
-    Exists sigma result_to_text_pointer.
-    unfold list_mp in *.
-    entailer!.
-    rewrite H15.
-    replace (height F) with 0%nat by list_solve.
-    entailer!.
-  }
-  forward.
-  forward_if(
-    PROP()
-    LOCAL(temp _t'15 (Val.of_bool (((height G) =? 1)%nat && ((height F) =? 1)%nat)%bool);
-          temp _G pointer_G; temp _F pointer_F; gvars gv)
-    SEP(malloc_token Ews t_format result_pointer;
-        data_at_ Ews t_format result_pointer;
-        mem_mgr gv;
-        concrete_mformat G pointer_G sigma p;
-        concrete_mformat F pointer_F sigma0 p0)
-  ).
-  {
-    forward.
-    forward.
-    unfold concrete_mformat.
-    entailer!.
-    replace (height G) with 1%nat by list_solve.
-    simpl.
-    f_equal.
-    apply is_less_than_fact2; auto; list_solve.
-  }
-  {
-    forward.
-    unfold concrete_mformat.
-    entailer!.
-    assert ((height G =? 1)%nat = false) as AA.
-    { apply is_less_than_fact1. list_solve. }
-    rewrite AA.
-    simpl.
-    list_solve.
-  }
-  forward_if(
-    PROP()
-    LOCAL(temp _middle_width_new (Vint (Int.repr (Z.of_nat (middle_width (add_above G F)))));
-          temp _G pointer_G; temp _F pointer_F; gvars gv)
-    SEP(malloc_token Ews t_format result_pointer;
-        data_at_ Ews t_format result_pointer;
-        mem_mgr gv;
-        concrete_mformat G pointer_G sigma p;
-        concrete_mformat F pointer_F sigma0 p0)
-  ).
-  {
-    unfold concrete_mformat.
-    forward.
-    unfold concrete_mformat.
-    entailer!.
-    unfold add_above.
-    assert(exists (k : nat), (height G) = S k) as A1.
-    { exists (height G - 1)%nat. lia. }
-    assert(exists (k : nat), (height F) = S k) as A2.
-    { exists (height F - 1)%nat. lia. }
-    destruct A1. destruct A2.
-    rewrite H25. rewrite H26.
-    simpl.
-    symmetry in H13.
-    apply andb_true_eq in H13.
-    destruct H13.
-    symmetry in H13, H27.
-    apply Nat.eqb_eq in H13.
-    rewrite H13 in H25.
-    replace x with 0%nat by lia.
-    apply Nat.eqb_eq in H27.
-    rewrite H27 in H26.
-    replace x0 with 0%nat by lia.
+    destruct (height G) as [ | hG].
+    { lia. }
+    destruct (height F) as [ | hF].
+    { lia. }
+    destruct hG.
+    2: now lia.
+    destruct hF.
+    2: now lia.
     auto.
   }
-  {
-    forward.
+  { forward.
+    getnw. destruct FMT_MP.
+    getnw. destruct FMT_MP.
+
     forward_if(
-      PROP()
-      LOCAL(temp _t'14 (Val.of_bool (((height G) =? 1)%nat && negb ((height F) =? 1)%nat)%bool);
-            temp _G pointer_G; temp _F pointer_F; gvars gv)
-      SEP(malloc_token Ews t_format result_pointer;
-          data_at_ Ews t_format result_pointer;
-          mem_mgr gv;
-          concrete_mformat G pointer_G sigma p;
-          concrete_mformat F pointer_F sigma0 p0)
+      if_invariant _t'14 ((height G =? 1)%nat && negb (height F =? 1)%nat)%bool
     ).
-    {
-      forward.
-      forward.
+    { do 2 forward.
+      rewrite eqn_if_invariant.
       entailer!.
-      2: { unfold concrete_mformat; entailer!. }
+      2: now unfold concrete_mformat; entailer!.
       f_equal.
-      replace (height G) with 1%nat by list_solve.
-      simpl.
-      f_equal.
-      apply is_less_than_fact2; list_solve.
+      replace (height G) with 1%nat.
+      { simpl. f_equal.
+        apply nat_eq_iff_int_eq; list_solve.
+      }
+      apply int_repr_eq; list_solve.
     }
-    {
-      forward.
+    { forward.
+      rewrite eqn_if_invariant.
       entailer!.
-      2: { unfold concrete_mformat; entailer!. }
-      rewrite add_above_fact; auto.
+      2: now unfold concrete_mformat; entailer!.
+      assert (height G <> 1)%nat by list_solve.
+      replace (height G =? 1)%nat with false.
+      { list_solve. }
+      symmetry. apply Nat.eqb_neq; auto.
     }
-    apply add_above_fact2 in H13.
-    forward_if(
-      PROP()
-      LOCAL(temp _middle_width_new (Vint (Int.repr (Z.of_nat (middle_width (add_above G F)))));
-            temp _G pointer_G; temp _F pointer_F; gvars gv)
-      SEP(malloc_token Ews t_format result_pointer;
-          data_at_ Ews t_format result_pointer;
-          mem_mgr gv;
-          concrete_mformat G pointer_G sigma p;
-          concrete_mformat F pointer_F sigma0 p0)
-    ).
-    {
-      do 2 forward.
-      forward_call(Z.of_nat (first_line_width F) ,Z.of_nat (middle_width F)).
+    rewrite eqn_if_invariant.
+
+    forward_if(middle_invariant).
+    { do 2 forward.
+      forward_call(Z.of_nat (first_line_width F), Z.of_nat (middle_width F)).
       Intros max.
       forward.
+      rewrite eqn_middle_invariant.
       entailer!.
-      2: { unfold concrete_mformat; entailer!. }
-      do 2 f_equal.
-      apply add_above_fact3 in H14.
-      destruct H14.
-      unfold add_above. 
-      destruct (height G); try contradiction.
-      destruct (height F); try contradiction.
-      replace n0 with 0%nat by lia.
-      destruct n1.
-      { contradiction. }
-      simpl.
-      list_solve.
-    }
-    forward.
-    forward_if(
-      PROP()
-      LOCAL(temp _t'13 (Val.of_bool (((height G) =? 2)%nat && ((height F) =? 1)%nat)%bool);
-            temp _G pointer_G; temp _F pointer_F; gvars gv)
-      SEP(malloc_token Ews t_format result_pointer;
-          data_at_ Ews t_format result_pointer;
-          mem_mgr gv;
-          concrete_mformat G pointer_G sigma p;
-          concrete_mformat F pointer_F sigma0 p0)
-    ).
-    {
-      do 2 forward.
-      entailer!.
-      2: { unfold concrete_mformat; entailer!. }
-      replace (height G) with 2%nat by list_solve.
-      simpl.
-      f_equal.
-      apply is_less_than_fact2; list_solve.
-    }
-    {
-      forward.
-      entailer!.
-      2: { unfold concrete_mformat; entailer!. }
-      replace ((height G) =? 2)%nat with false.
-      2: { symmetry. apply Nat.eqb_neq. list_solve. }
-      list_solve.
-    }
-
-    apply add_above_fact4 in H14.
-    forward_if(
-      PROP()
-      LOCAL(temp _middle_width_new (Vint (Int.repr (Z.of_nat (middle_width (add_above G F)))));
-            temp _G pointer_G; temp _F pointer_F; gvars gv)
-      SEP(malloc_token Ews t_format result_pointer;
-          data_at_ Ews t_format result_pointer;
-          mem_mgr gv;
-          concrete_mformat G pointer_G sigma p;
-          concrete_mformat F pointer_F sigma0 p0)
-    ).
-    {
-      apply add_above_fact5 in H15.
-      destruct H15.
-      forward.
-      entailer!.
-      2: { unfold concrete_mformat; entailer!. }
+      2: now unfold concrete_mformat; entailer!.
       do 3 f_equal.
       unfold add_above.
-      destruct (height G).
-      { contradiction. }
-      destruct (height F).
-      { contradiction. }
-      destruct n0.
+      destruct (height G) as [| hG].
       { lia. }
-      destruct n1.
-      2: now lia.
-      destruct n0.
-      2: now lia.
-      simpl.
-      auto.
+      destruct (height F) as [| hF].
+      { lia. }
+      destruct hG as [| hG].
+      2: { simpl in *. lia. }
+      destruct hF as [| hF].
+      { simpl in *. lia. }
+      simpl. list_solve.
     }
 
     forward.
     forward_if(
-      PROP()
-      LOCAL(temp _t'12 (Val.of_bool (((height F) =? 1)%nat && negb ((height G) =? 1)%nat)%bool);
-            temp _G pointer_G; temp _F pointer_F; gvars gv)
-      SEP(malloc_token Ews t_format result_pointer;
-          data_at_ Ews t_format result_pointer;
-          mem_mgr gv;
-          concrete_mformat G pointer_G sigma p;
-          concrete_mformat F pointer_F sigma0 p0)
+      if_invariant _t'13 ((height G =? 2)%nat && ((height F) =? 1)%nat)%bool
     ).
-    {
-      do 2 forward.
+    { do 2 forward.
+      rewrite eqn_if_invariant.
       entailer!.
-      2: { unfold concrete_mformat; entailer!. }
+      2: now unfold concrete_mformat; entailer!.
       f_equal.
-      replace (height G =? 1)%nat with false.
-      2: { symmetry. apply Nat.eqb_neq. list_solve. }
-      ring_simplify. apply is_less_than_fact2.
-      all: list_solve.
+      replace (height G) with 2%nat by list_solve.
+      simpl.
+      apply nat_eq_iff_int_eq; list_solve.
     }
-    {
-      forward.
-      unfold concrete_mformat; entailer!.
+    { forward.
+      rewrite eqn_if_invariant.
+      entailer!.
+      2: now unfold concrete_mformat; entailer!.
+      replace (height G =? 2)%nat with false.
+      { simpl. list_solve. }
+      symmetry. apply Nat.eqb_neq; list_solve.
     }
 
-    apply add_above_fact2 in H15.
+    rewrite eqn_if_invariant.
+    forward_if(middle_invariant).
+    { forward.
+      rewrite eqn_middle_invariant.
+      entailer!.
+      2: now unfold concrete_mformat; entailer!.
+      do 3 f_equal.
+      unfold add_above.
+      destruct (height G) as [| hG].
+      { lia. }
+      destruct (height F) as [| hF].
+      { lia. }
+      destruct hG as [| hG].
+      { simpl in *. lia. }
+      destruct hG.
+      2: { simpl in *. lia. }
+      destruct hF; simpl in *; lia.
+    }
+
+    forward.
     forward_if(
-      PROP()
-      LOCAL(temp _middle_width_new (Vint (Int.repr (Z.of_nat (middle_width (add_above G F)))));
-            temp _G pointer_G; temp _F pointer_F; gvars gv)
-      SEP(malloc_token Ews t_format result_pointer;
-          data_at_ Ews t_format result_pointer;
-          mem_mgr gv;
-          concrete_mformat G pointer_G sigma p;
-          concrete_mformat F pointer_F sigma0 p0)
+      if_invariant _t'12 ((height F =? 1)%nat && negb ((height G) =? 1)%nat)%bool
     ).
-    {
-      apply add_above_fact3 in H16.
-      destruct H16.
-      do 2 forward.
+    { do 2 forward.
+      rewrite eqn_if_invariant.
+      entailer!.
+      2: now unfold concrete_mformat; entailer!.
+      f_equal.
+      replace (height G =? 1)%nat with false.
+      { simpl. ring_simplify. 
+        apply nat_eq_iff_int_eq; list_solve.
+      }
+      symmetry. apply Nat.eqb_neq; list_solve.
+    }
+    { forward.
+      rewrite eqn_if_invariant.
+      entailer!.
+      2: now unfold concrete_mformat; entailer!.
+      replace (height G) with 1%nat by list_solve.
+      simpl.
+      assert ((height F =? 1)%nat && false = false)%bool as E.
+      { ring_simplify. auto. }
+      rewrite E. list_solve.
+    }
+    rewrite eqn_if_invariant.
+
+    forward_if(middle_invariant).
+    { do 2 forward.
       forward_call(Z.of_nat (last_line_width G), Z.of_nat (middle_width G)).
       Intros max.
       forward.
+      rewrite eqn_middle_invariant.
       entailer!.
-      2: { unfold concrete_mformat; entailer!. }
+      2: now unfold concrete_mformat; entailer!.
       do 2 f_equal.
       unfold add_above.
-      destruct (height G); try contradiction.
-      destruct (height F); try contradiction.
-      destruct n0; try contradiction.
-      destruct n0.
-      { destruct H15; lia. }
-      destruct n1.
-      2: { lia. }
-      simpl. list_solve.
+      destruct (height G) as [| hG].
+      { lia. }
+      destruct (height F) as [| hF].
+      { lia. }
+      destruct hG as [| hG].
+      { simpl in *. lia. }
+      destruct hF as [| hF].
+      2: { simpl in *. lia. }
+      destruct hG; simpl in *; lia.
     }
     
-    apply add_above_fact4 in H16.
     forward.
     forward_if(
-      PROP()
-      LOCAL(temp _t'11 (Val.of_bool (((height G) =? 2)%nat && negb ((height F) =? 1)%nat)%bool);
-            temp _G pointer_G; temp _F pointer_F; gvars gv)
-      SEP(malloc_token Ews t_format result_pointer;
-          data_at_ Ews t_format result_pointer;
-          mem_mgr gv;
-          concrete_mformat G pointer_G sigma p;
-          concrete_mformat F pointer_F sigma0 p0)
+      if_invariant _t'11 ((height G =? 2)%nat && negb ((height F) =? 1)%nat)%bool
     ).
-    {
-      do 2 forward.
+    { do 2 forward.
+      rewrite eqn_if_invariant.
       entailer!.
-      2: { unfold concrete_mformat; entailer!. }
+      2: now unfold concrete_mformat; entailer!.
       f_equal.
       replace (height G) with 2%nat by list_solve.
-      ring_simplify.
-      f_equal.
-      apply is_less_than_fact2; list_solve.
+      simpl. f_equal.
+      apply nat_eq_iff_int_eq; list_solve.
     }
-    {
-      forward.
+    { forward.
+      rewrite eqn_if_invariant.
       entailer!.
-      2: { unfold concrete_mformat; entailer!. }
+      2: now unfold concrete_mformat; entailer!.
       replace (height G =? 2)%nat with false.
-      2: { symmetry. apply Nat.eqb_neq. list_solve. }
-      list_solve.
+      { simpl. list_solve. }
+      symmetry. apply Nat.eqb_neq; list_solve.
     }
-
-
-    forward_if(
-      PROP()
-      LOCAL(temp _middle_width_new (Vint (Int.repr (Z.of_nat (middle_width (add_above G F)))));
-            temp _G pointer_G; temp _F pointer_F; gvars gv)
-      SEP(malloc_token Ews t_format result_pointer;
-          data_at_ Ews t_format result_pointer;
-          mem_mgr gv;
-          concrete_mformat G pointer_G sigma p;
-          concrete_mformat F pointer_F sigma0 p0)
-    ).
-    {
-      apply add_above_fact3 in H17.
-      destruct H17.
-      do 2 forward.
+    rewrite eqn_if_invariant.
+    
+    forward_if(middle_invariant).
+    { do 2 forward.
       forward_call(Z.of_nat (first_line_width F), Z.of_nat (middle_width F)).
       Intros max1.
       forward.
       forward_call(Z.of_nat (last_line_width G), max1).
       Intros max2.
       forward.
+      rewrite eqn_middle_invariant.
       entailer!.
-      2: { unfold concrete_mformat; entailer!. }
+      2: now unfold concrete_mformat; entailer!.
       do 2 f_equal.
       unfold add_above.
-      destruct (height G); try contradiction.
-      destruct (height F); try contradiction.
-      destruct n0.
+      destruct (height G) as [| hG].
       { lia. }
-      destruct n0.
-      2: { lia. }
-      destruct n1.
+      destruct (height F) as [| hF].
       { lia. }
-      simpl.
-      list_solve.
+      destruct hG as [| hG].
+      { simpl in *. lia. }
+      destruct hF as [| hF].
+      { simpl in *. lia. }
+      destruct hG as [| hG].
+      { simpl in *. lia. }
+      simpl in *. lia.
     }
-
-    apply add_above_fact4 in H17.
     do 2 forward.
     forward_call(Z.of_nat (first_line_width F), Z.of_nat (middle_width F)).
     Intros max1.
@@ -1371,67 +1318,69 @@ Proof.
     Intros max2.
     forward.
     forward_call(Z.of_nat (middle_width G), max2).
-    Intros max3.
+    Intros max.
     forward.
+    rewrite eqn_middle_invariant.
     entailer!.
-    2: { unfold concrete_mformat; entailer!. }
+    2: now unfold concrete_mformat; entailer!.
     do 2 f_equal.
     unfold add_above.
-    destruct (height G); try contradiction.
-    destruct (height F); try contradiction.
-    destruct n0.
+    destruct (height G) as [| hG].
     { lia. }
-    destruct n0.
+    destruct (height F) as [| hF].
     { lia. }
-    destruct n1.
-    { lia. }
-    simpl.
-    list_solve.
+    destruct hG as [| hG].
+    { simpl in *. 
+      replace (hF =? 0)%nat with false in *.
+      simpl in *. lia.
+    }
+    destruct hG as [| hG].
+    { simpl in *. 
+      replace (hF =? 0)%nat with false in *.
+      simpl in *. lia.
+    }
+    destruct hF as [| hF].
+    { simpl in *. lia. }
+    simpl in *. lia.
   }
 
+  rewrite eqn_middle_invariant.
+  getnw. destruct FMT_MP.
+  getnw. destruct FMT_MP.
   forward.
-  unfold list_mp in *. destruct H10. destruct H4.
-  forward_call(Ews, p, sigma, gv).
-  Intros result_to_text.
+  { entailer!. unnw. desf. }
+  forward_call(Ews, pG, sigmaG, gv).
+  { destruct format_mp_list_mp0. list_solve. }
+  Intros to_text_new_ptr.
   forward.
   forward_if(
-    EX new_result_pointer : val, EX result_sigma: list (Z * list byte),
-    PROP(to_text_eq (to_text (add_above G F)) result_sigma)
-    LOCAL(temp _to_text_new new_result_pointer; temp _G pointer_G; temp _F pointer_F; gvars gv)
-    SEP(listrep result_sigma new_result_pointer;
-        malloc_token Ews t_format result_pointer;
-        data_at_ Ews t_format result_pointer;
-        mem_mgr gv;
-        concrete_mformat G pointer_G sigma p;
-        concrete_mformat F pointer_F sigma0 p0)
-
+    EX sigma : list (Z * list byte), EX to_text_ptr : val,
+    PROP(to_text_eq (to_text (add_above G F)) sigma)
+    LOCAL(temp _middle_width_new (Vint (Int.repr (Z.of_nat (middle_width (add_above G F))))); 
+          temp _result result_ptr; temp _G pointer_G; temp _F pointer_F; gvars gv;
+          temp _to_text_new to_text_ptr)
+    SEP(listrep sigma to_text_ptr;
+        malloc_token Ews t_format result_ptr;
+        data_at_ Ews t_format result_ptr; mem_mgr gv;
+        concrete_mformat G pointer_G sigmaG pG; concrete_mformat F pointer_F sigmaF pF)
   ).
   { forward.
-    forward_call(Ews, p0, sigma0, gv).
-    Intros to_text_tail_pointer.
+    { entailer!. unnw. desf. }
+    forward_call(Ews, pF, sigmaF, gv).
+    { destruct format_mp_list_mp. list_solve. }
+    Intros new_list_ptr.
     forward.
-    Exists to_text_tail_pointer sigma0.
-    unfold list_mp in *.
-    destruct H16.
+    Exists sigmaF new_list_ptr.
     entailer!.
-    2: { assert(sigma = ([] : list (Z * list byte))).
-         { assert(nullval = nullval) as AA.
-           { reflexivity. }
-           apply H21 in AA.
-           auto. }
-      subst.
-      unfold concrete_mformat. unfold list_mp in *. entailer!.
-      unfold listrep.
-      entailer!.
+    { unfold add_above.
+      destruct (height G).
+      { lia. }
+      destruct (height F).
+      { lia. }
+      simpl.
+      admit.
     }
-    unfold add_above.
-    destruct (height G).
-    { contradiction. }
-    destruct (height F).
-    { contradiction. }
-    simpl.
-    unfold to_text_eq.
-    simpl.
     admit.
   }
+  
 Admitted.

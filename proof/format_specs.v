@@ -292,6 +292,18 @@ DECLARE _get_applied_length
     RETURN (Vptrofs (Ptrofs.repr n))
     SEP(cstring Ews line q; listrep sigma p).
 
+Definition format_copy_spec : ident * funspec := 
+DECLARE _format_copy
+  WITH p : val, G : t, gv : globals
+  PRE [ tptr t_format ]
+    PROP()
+    PARAMS(p) GLOBALS(gv)
+    SEP(mformat G p; mem_mgr gv)
+  POST [ tptr t_format ]
+    EX q : val,
+    PROP()
+    RETURN(q)
+    SEP(mformat G p; mformat G q; mem_mgr gv).
 
 Definition add_above_spec : ident * funspec :=
 DECLARE _add_above
@@ -307,11 +319,19 @@ DECLARE _add_above
     SEP(mformat G pointer_G; mformat F pointer_F; 
         mformat (add_above G F) p; mem_mgr gv).
 
+Ltac dest_ptr ptr := 
+  destruct (eq_dec ptr nullval);
+  [ forward_if(ptr <> nullval);
+    [ forward_call; entailer | forward; entailer! | now Intros] |
+    forward_if(ptr <> nullval);
+    [ forward_call; entailer | forward; entailer! | ]
+  ]; Intros.
 
 Definition Gprog : funspecs :=
         ltac:(with_library prog [
                    max_spec; strlen_spec; strcpy_spec; strcat_spec;
                    list_copy_spec; less_components_spec; is_less_than_spec; 
                    empty_spec; line_spec; sp_spec; 
+                   get_applied_length_spec; format_copy_spec;
                    add_above_spec
  ]).

@@ -159,6 +159,7 @@ char *newline = "\n";
 
 t* format_copy(t *G) {
   t* result = malloc(sizeof(t));
+  if(!result) exit(1);
   result->height = G->height;
   result->first_line_width = G->first_line_width;
   result->middle_width = G->middle_width;
@@ -167,7 +168,17 @@ t* format_copy(t *G) {
   return result;
 }
 
-t *add_above(t *G, t *F) {
+list* get_list_tail(list* l) {
+  if(l == NULL)
+    return NULL;
+  list* cur = l;
+  while(cur->tail != NULL) {
+    cur = cur->tail;
+  }
+  return cur;
+}
+
+t* add_above(t *G, t *F) {
   if (G->height == 0) {
     return format_copy(F);
   } 
@@ -197,10 +208,7 @@ t *add_above(t *G, t *F) {
   if(to_text_new == NULL) {
     to_text_new = list_copy(F->to_text);
   } else {
-    list *to_text_new_tail = to_text_new;
-    while (to_text_new_tail->tail != NULL) {
-      to_text_new_tail = to_text_new_tail->tail;
-    }
+    list *to_text_new_tail = get_list_tail(to_text_new);
     to_text_new_tail->tail = list_copy(F->to_text);
   }
 
