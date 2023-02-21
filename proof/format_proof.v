@@ -62,8 +62,7 @@ Proof.
   intros.
   destruct (Nat.leb_spec0 x y).
   { apply inj_le in l.
-    destruct (Z.leb_spec0 (Z.of_nat x) (Z.of_nat y)); auto.
-  }
+    destruct (Z.leb_spec0 (Z.of_nat x) (Z.of_nat y)); auto. }
   destruct (Z.leb_spec0 (Z.of_nat x) (Z.of_nat y)); auto.
   apply Nat2Z.inj_le in l. lia.
 Qed.
@@ -94,14 +93,12 @@ Proof.
     unfold concrete_mformat. 
     unnw. entailer!. split.
     { apply less_components_fact1; auto. }
-    { split; apply mk_format_mp; auto. }
-  }
+    split; apply mk_format_mp; auto. }
   { forward.
     Exists false.
     unfold concrete_mformat. unnw.
     entailer!.
-    { split; apply mk_format_mp; auto. }
-  }
+    split; apply mk_format_mp; auto. }
 
   Intros first_comp.
   forward_if(
@@ -119,12 +116,10 @@ Proof.
     remember ((Z.of_nat (height G) <=? Z.of_nat (height G')) &&
     (Z.of_nat (first_line_width G) <=? Z.of_nat (first_line_width G')))%bool as comp eqn:AA.
     clear AA. subst.
-    simpl. apply less_components_fact1; auto.
-  } 
+    simpl. apply less_components_fact1; auto. } 
   { forward.
     Exists false.
-    entailer!.
-  }
+    entailer!. }
 
   Intros second_comp.
   forward_if(
@@ -138,19 +133,16 @@ Proof.
   { do 3 forward.
     Exists (second_comp && (((Z.of_nat (last_line_width G))) <=? (Z.of_nat (last_line_width G'))))%bool.
     unfold concrete_mformat. entailer!. simpl.
-    apply less_components_fact1; auto.
-  } 
-  {
-    forward.
+    apply less_components_fact1; auto. } 
+  { forward.
     Exists false.
-    entailer!.
-  }
-
+    entailer!. }
   Intros third_comp.
   forward.
   Exists (less_components G G').
   entailer!.
-  { f_equal. unfold less_components. getnw. subst. repeat rewrite less_components_fact2. auto. }
+  { f_equal. unfold less_components. getnw. subst.
+    repeat rewrite less_components_fact2. auto. }
   unfold mformat. Exists sigmaG pG sigmaG' pG'. entailer!.
 Qed.
 
@@ -158,8 +150,8 @@ Lemma is_less_than_fact1 x y :
     (x <> y)%nat <-> (x =? y)%nat = false.
 Proof.
   remember (Nat.eqb_spec x y) eqn:AA. clear AA. split.
-  { intros. destruct r. contradiction. auto. }
-  intros. destruct r. lia. auto.
+  { intros. destruct r; easy. }
+  intros. destruct r; auto. lia.
 Qed.
 
 Lemma nat_eq_iff_int_eq x y
@@ -172,7 +164,8 @@ Proof.
   remember(Int.eq (Int.repr (Z.of_nat x)) (Int.repr (Z.of_nat y))) as b eqn:AA.
   destruct b.
   2: lia.
-  symmetry in AA. apply Int.same_if_eq in AA. apply repr_inj_unsigned in AA; auto. lia.
+  symmetry in AA. apply Int.same_if_eq in AA.
+  apply repr_inj_unsigned in AA; auto. lia.
 Qed.
     
 Lemma body_is_less_than: semax_body Vprog Gprog f_is_less_than is_less_than_spec.
@@ -206,8 +199,7 @@ Proof.
     Exists false.
     entailer!.
     2: { unfold concrete_mformat. entailer!. unnw. apply mk_format_mp; auto. }
-    replace (height G) with 1%nat by lia. simpl. auto.
-  }
+    replace (height G) with 1%nat by lia; ins. }
 
   unfold concrete_mformat.
   Intros first_comp.
@@ -224,8 +216,7 @@ Proof.
     2: { unfold concrete_mformat. entailer!. unnw. apply mk_format_mp; auto. }
     remember (negb (height G =? 1)%nat && (height G' =? 1)%nat)%bool as comp eqn:AA.
     clear AA. subst. 
-    list_solve.
-  } 
+    list_solve. } 
   { forward.
     forward_if(
       EX t3: bool,
@@ -237,24 +228,21 @@ Proof.
       Exists ((height G =? 1)%nat && negb (height G' =? 1)%nat)%bool.
       entailer!.
       2: { unfold concrete_mformat. entailer!. unnw. apply mk_format_mp; auto. }
-      - f_equal. replace (height G) with 1%nat by list_solve. simpl. f_equal.
-        apply nat_eq_iff_int_eq; auto. simpl. unfold Int.max_unsigned. simpl. lia.
-    } 
+      f_equal. replace (height G) with 1%nat by list_solve.
+      simpl. f_equal.
+      apply nat_eq_iff_int_eq; ins. }
     { forward.
       Exists false.
       entailer!.
-      2: { unfold concrete_mformat. entailer!. unnw. apply mk_format_mp; auto. }
+      2: { unfold concrete_mformat. entailer!. unnw.
+           apply mk_format_mp; auto. }
       assert (height G <> 1%nat). list_solve.
-      destruct (Nat.eqb_spec (height G) 1%nat).
-      { contradiction. }
-      auto.
-    }
+      destruct (Nat.eqb_spec (height G) 1%nat); easy. }
     Intros second_comp.
     Exists (first_comp || second_comp)%bool.
     entailer!.
-    replace (negb (height G =? 1)%nat && (height G' =? 1)%nat)%bool with false.
-    auto.
-  }
+    replace (negb (height G =? 1)%nat && (height G' =? 1)%nat)%bool
+      with false; auto. }
   Intros all_comp.
   forward_if. 
   { forward.
@@ -264,55 +252,20 @@ Proof.
     { destruct (height G') eqn:BB.
       { entailer!. 
         2: { unfold mformat. Exists sigmaG pG sigmaG' pG'. entailer!. }
-        simpl in *. lia.
-      }
+        ins. }
       entailer!.
       2: { unfold mformat. Exists sigmaG pG sigmaG' pG'. entailer!. }
-      destruct n.
-      { auto. }
-      simpl in *. lia.
-    }
+      destruct n; ins. }
     entailer!.
-    2: { unfold mformat. Exists sigmaG pG sigmaG' pG'. entailer!. }
-    destruct n.
-    { destruct (height G').
-      { auto. }
-      destruct n.  
-      2: now auto.
-      simpl in *. lia.
-    }
-    destruct (height G').
-    { simpl in *. lia. }
-    destruct n0.
-    { auto. }
-    simpl in *. lia.
-  }
+    { desf. }
+    unfold mformat. Exists sigmaG pG sigmaG' pG'. entailer!. }
 
   forward_call(p, G, q, G').
   { unfold mformat. Exists sigmaG pG sigmaG' pG'. entailer!. }
   Intros ans. forward.
   Exists (less_components G G').
   entailer!.
-  unfold is_less_than. 
-  destruct (height G).
-  { destruct (height G').
-    { auto. }
-    destruct n.
-    2: now auto.
-    simpl in *. lia.
-  }
-  destruct n.
-  { destruct (height G').
-    { simpl in *. lia. }
-    destruct n.
-    { auto. }
-    simpl in *. lia.
-  }
-  destruct (height G').
-  { auto. }
-  destruct n0.
-  2: now auto.
-  simpl in *. lia.
+  unfold is_less_than. desf.
 Qed.
 
 Lemma body_empty: semax_body Vprog Gprog f_empty empty_spec.
@@ -320,18 +273,7 @@ Proof.
   start_function.
   forward_call(t_format, gv).
   Intros empty_pointer.
-  destruct (eq_dec empty_pointer nullval).
-  { forward_if(empty_pointer <> nullval).
-    { forward_call. entailer!. }
-    { forward. entailer!. }
-    { now Intros. }
-  }
-
-  forward_if(empty_pointer <> nullval). 
-  { forward_call. entailer!. }
-  { forward. entailer!. }
-
-  Intros.
+  dest_ptr empty_pointer.
   do 6 forward.
 
   Exists empty_pointer.
@@ -340,11 +282,7 @@ Proof.
   Exists ([] : (list (Z * list byte))) (Vlong (Int64.repr 0)).
   unfold concrete_mformat.
   entailer!.
-  { apply mk_format_mp. 
-    { unfold to_text_eq. auto. }
-    { apply mk_list_mp; auto. simpl. unfold Int.max_unsigned. simpl. lia. }
-    all: now unfold empty.
-  }
+  { now apply mk_format_mp. }
   unfold listrep. entailer!.
 Qed.
 
@@ -352,11 +290,11 @@ Lemma list_byte_to_string_length:
   forall (s : list byte),
     Z.of_nat (String.length (list_byte_to_string s)) = Zlength s.
 Proof.
-  intros.
+  ins.
   induction s.
-  - list_solve.
-  - unfold list_byte_to_string; fold list_byte_to_string.
-    simpl. list_solve.
+  { list_solve. }
+  unfold list_byte_to_string; fold list_byte_to_string.
+  ins. list_solve.
 Qed.
 
 Lemma list_byte_to_list_byte_eq:
@@ -365,48 +303,38 @@ Lemma list_byte_to_list_byte_eq:
 Proof.
   intros.
   induction s.
-  - list_solve.
-  - unfold list_byte_to_string; fold list_byte_to_string.
-    unfold string_to_list_byte; fold string_to_list_byte.
-    rewrite IHs.
-    assert (Byte.unsigned a < 256). {
-      remember (Byte.unsigned_range a).
-      unfold Byte.modulus in a0.
-      assert(two_power_nat Byte.wordsize = 256 ). list_solve.
-      lia.
-    }
-    assert ((Z.to_N (Byte.unsigned a) < 256)%N). {
-      list_solve.
-    }
-    assert ((N_of_ascii (ascii_of_N (Z.to_N (Byte.unsigned a)))) = Z.to_N (Byte.unsigned a)) as AA. {
-      apply N_ascii_embedding.
-      auto.
-    }
-    rewrite AA.
-    rewrite Z2N.id.
-    rewrite Byte.repr_unsigned.
-    auto.
-    apply Byte.unsigned_range.
+  { list_solve. }
+  unfold list_byte_to_string; fold list_byte_to_string.
+  unfold string_to_list_byte; fold string_to_list_byte.
+  rewrite IHs.
+  assert (Byte.unsigned a < 256).
+  { remember (Byte.unsigned_range a).
+    unfold Byte.modulus in a0.
+    assert(two_power_nat Byte.wordsize = 256 ). list_solve.
+    lia. }
+  assert ((Z.to_N (Byte.unsigned a) < 256)%N) by list_solve.
+  assert ((N_of_ascii (ascii_of_N (Z.to_N (Byte.unsigned a)))) = Z.to_N (Byte.unsigned a)) as AA.
+  { now apply N_ascii_embedding. }
+  rewrite AA.
+  rewrite Z2N.id.
+  rewrite Byte.repr_unsigned; auto.
+  apply Byte.unsigned_range.
 Qed.
 
 Lemma empty_string_app:
   forall (s : string),
     (s ++ "")%string = s.
 Proof.
-  intros.
-  induction s.
-  - simpl. reflexivity.
-  - unfold append; fold append. rewrite IHs. reflexivity.
+  ins. induction s; ins.
+  unfold append; fold append. now rewrite IHs.
 Qed.
 
 Lemma string_to_list_byte_app (l1 l2 : string) :
-  string_to_list_byte (l1 ++ l2) = string_to_list_byte l1 ++ string_to_list_byte l2.
+  string_to_list_byte (l1 ++ l2) =
+    string_to_list_byte l1 ++ string_to_list_byte l2.
 Proof.
-  induction l1.
-  { auto. }
-  unfold string_to_list_byte; fold string_to_list_byte.
-  simpl. f_equal.
-  auto.
+  induction l1; ins.
+  now rewrite IHl1.
 Qed.
 
 Lemma body_line: semax_body Vprog Gprog f_line line_spec.
@@ -414,36 +342,18 @@ Proof.
   start_function.
   forward_call(t_format, gv).
   Intros format_pointer.
-  destruct (eq_dec format_pointer nullval). 
-  { forward_if(format_pointer <> nullval).
-    { forward_call. entailer!. }
-    { forward. entailer!. }
-    { Intros. contradiction. }
-  }
-
-  forward_if(format_pointer <> nullval). 
-  { forward_call. entailer!. } 
-  { forward. entailer!. }
-  Intros.
-
-  forward.
-  forward_call(Ews, sigma, p).
-  forward.
-  forward_call(Ews, sigma, p).
-  forward.
-  forward_call(Ews, sigma, p).
-  forward.
-
-  forward_call(t_list, gv).
+  dest_ptr format_pointer.
+  forward. forward_call(Ews, sigma, p).
+  forward. forward_call(Ews, sigma, p).
+  forward. forward_call(Ews, sigma, p).
+  forward. forward_call(t_list, gv).
   Intros to_text_pointer.
   destruct (eq_dec to_text_pointer nullval). 
   { do 2 forward.
     forward_if(to_text_pointer <> nullval).
     { forward_call. entailer!. }
     { forward. entailer!. }
-    { Intros. contradiction. }
-  }
-
+    now Intros. }
   Intros.
   do 2 forward.
   forward_if(to_text_pointer <> nullval). 
@@ -489,9 +399,8 @@ Proof.
   unfold Zrepeat.
   remember (Z.to_nat n) as m eqn:AA.
   clear AA. clear n.
-  induction m.
-  { auto. }
-  simpl. f_equal. apply IHm.
+  induction m; ins.
+  now rewrite IHm.
 Qed.
 
 Lemma sp_fact2 (n : nat):
@@ -500,28 +409,18 @@ Proof.
   induction n.
   { list_solve. }
   unfold not in *. unfold sp; fold sp. simpl.
-  intros AA. destruct AA as [AA | AA].
-  { inversion AA. }
-  auto.
+  intros AA. destruct AA as [AA | AA]; auto.
+  inv AA.
 Qed.
-
 
 Lemma body_sp : semax_body Vprog Gprog f_sp sp_spec.
 Proof.
   start_function.
   forward_call((Tarray tschar (n + 1) noattr), gv).
-  { unfold Int.max_unsigned in *. unfold Ptrofs.max_unsigned. simpl in *. lia. }
+  { unfold Int.max_unsigned, Ptrofs.max_unsigned in *.
+    ins. lia. }
   Intros result_pointer.
-  destruct (eq_dec result_pointer nullval). 
-  { forward_if(result_pointer <> nullval).
-    { forward_call. entailer!. }
-    { forward. entailer!. }
-    forward. contradiction.
-  }
-  forward_if(result_pointer <> nullval).
-  { forward_call. entailer!. }
-  { forward. entailer. }
-  Intros.
+  dest_ptr result_pointer.
   forward.
   forward_loop (
     EX i : Z,
@@ -563,10 +462,9 @@ Qed.
 Lemma sp_byte_length (n : nat) :
   Zlength (sp_byte n) = Z.of_nat n.
 Proof.
-  induction n.
-  { unfold sp_byte. auto. }
-  { unfold sp_byte; simpl. autorewrite with sublist. 
-    unfold sp_byte in IHn. simpl in IHn. rewrite IHn. lia. }
+  induction n; unfold sp_byte; ins.
+  autorewrite with sublist. 
+  unfold sp_byte in *; ins. lia.
 Qed.
 
 Lemma shifted_text_from_length_element_relation (sigma : list (Z * list byte)) (p : (Z * list byte)) (shift : Z) :
@@ -582,14 +480,12 @@ Proof.
   intros.
   induction sigma.
   { list_solve. }
-  right.
-  simpl in *.
+  right; ins.
   destruct a.
   assert (list_mp sigma) as AA.
   { getnw.
     destruct LIST_MP.
-    apply mk_list_mp; list_solve.
-  }
+    apply mk_list_mp; list_solve. }
   apply IHsigma in AA.
   destruct AA as [AA | AA].
   { left. list_solve. }
@@ -606,22 +502,16 @@ Proof.
     simpl in *.
     getnw. destruct LIST_MP.
     unfold newline_byte.
-    list_solve.
-  }
-  right.
-  unfold shifted_text_from; fold shifted_text_from.
-  simpl in *.
-  destruct sigma.
-  { simpl. unfold shifted_text_from.
-    destruct p.
-    simpl in *.
+    list_solve. }
+  right; ins.
+  unfold shifted_text_from; fold shifted_text_from; ins.
+  destruct sigma; ins.
+  { unfold shifted_text_from.
+    destruct p; ins.
     autorewrite with sublist norm.
     repeat rewrite sp_byte_length.
-    list_solve.
-  }
-  simpl.
+    list_solve. }
   autorewrite with sublist norm.
-  simpl in *.
   rewrite AA.
   list_solve.
 Qed.
@@ -638,24 +528,17 @@ Lemma text_from_length_element_relation (sigma : list (Z * list byte)) (p : (Z *
 Proof.
   intros.
   getnw. destruct LIST_MP.
-  destruct sigma.
-  { left. auto. }
-  right.
-  unfold text_from.
-  simpl.
+  destruct sigma; [left|right]; auto.
+  unfold text_from; ins.
   destruct p0.
-  destruct sigma.
-  { simpl.
-    unfold shifted_text_from.
+  destruct sigma; ins.
+  { unfold shifted_text_from.
     destruct p.
     autorewrite with sublist norm.
     repeat rewrite list_byte_to_list_byte_eq.
     repeat rewrite sp_byte_length.
-    simpl in *.
-    list_solve.
-  }
-  simpl.
-  destruct sigma.
+    ins. list_solve. }
+  destruct sigma; ins.
   { simpl. unfold shifted_text_from.
     destruct p0. destruct p.
     autorewrite with sublist norm.
@@ -684,12 +567,8 @@ Proof.
     assert (0 <= Zlength (snd p) + 1 <= Int.max_unsigned) by lia.
     assert (0 <= shift) by lia.
     apply o in AA; auto.
-    destruct AA as [AA | AA].
-    { list_solve. }
-    destruct AA as [AA | AA].
-    { list_solve. }
-    auto.
-  }
+    destruct AA as [AA | AA]; [list_solve|]; auto.
+    destruct AA as [AA | AA]; [list_solve|]; auto. }
   rewrite AA.
   repeat rewrite sp_byte_length.
   repeat rewrite list_byte_to_list_byte_eq.
@@ -717,26 +596,19 @@ Proof.
   right.
   replace ((sublist 0 (Z.of_nat (S n) + 1) sigma) ) with 
     ((sublist 0 (Z.of_nat (S n)) sigma) ++ [Znth (Z.of_nat (S n)) sigma]) by list_solve.
-  assert (
+  enough (
     Zlength (text_from
      (sublist 0 (Z.of_nat (S n)) sigma ++ [Znth (Z.of_nat (S n)) sigma])
      (Z.to_nat shift) (list_byte_to_string line)) =
     Zlength (text_from (sublist 0 (Z.of_nat (S n)) sigma) (Z.to_nat shift) (list_byte_to_string line)) +
     (1 + (fst (Znth (Z.of_nat (S n)) sigma)) + shift + Zlength (snd (Znth (Z.of_nat (S n)) sigma)))) as AA.
-  { remember (text_from_length_element_relation (sublist 0 (Z.of_nat (S n)) sigma) (Znth (Z.of_nat (S n)) sigma) shift line).
-    assert (list_mp (sublist 0 (Z.of_nat (S n)) sigma)) as AA.
-    { apply mk_list_mp.
-      { list_solve. }
-      { list_solve. }
-      list_solve.
-    }
-    apply o in AA; try list_solve.
-    destruct AA.
-    { list_solve. }
-    auto.
-  }
-  rewrite AA.
-  auto.
+  { now rewrite AA. }
+  remember (text_from_length_element_relation (sublist 0 (Z.of_nat (S n)) sigma) (Znth (Z.of_nat (S n)) sigma) shift line).
+  assert (list_mp (sublist 0 (Z.of_nat (S n)) sigma)) as AA.
+  { apply mk_list_mp; list_solve. }
+  apply o in AA.
+  all: try destruct AA; auto.
+  all: list_solve.
 Qed.
   
 

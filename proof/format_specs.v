@@ -78,23 +78,21 @@ Fixpoint listrep (sigma: list (Z * (list byte))) (p: val) : mpred :=
 
 Arguments listrep sigma p : simpl never.
 
-Lemma listrep_local_facts:
-  forall sigma p,
+Lemma listrep_local_facts sigma p :
    listrep sigma p |--
    !! (<< LIST_PTR_FACT : is_pointer_or_null p /\ (p=nullval <-> sigma=nil) >>).
 Proof.
   intros.
-
   revert p; induction sigma; intros p.
   { unfold listrep. unnw. entailer!. split; auto. }
-  unfold listrep; fold listrep. destruct a. entailer. unnw. entailer!. split; intro.
-  2: now auto.
+  unfold listrep; fold listrep.
+  destruct a. entailer. unnw. entailer!.
+  split; ins.
   subst. eapply field_compatible_nullval; eauto.
 Qed.
 #[export] Hint Resolve listrep_local_facts : saturate_local.
 
-Lemma listrep_valid_pointer:
-  forall sigma p,
+Lemma listrep_valid_pointer sigma p :
    listrep sigma p |-- valid_pointer p.
 Proof.
   intros.
@@ -122,7 +120,10 @@ DECLARE _list_copy
   WITH sh : share, l : val, sigma : list (Z * (list byte)), gv: globals
   PRE [ tptr t_list ]
     PROP(0 <= Zlength sigma <= Int.max_unsigned;
-         Forall (fun x => 0 <= (fst x) <= Int.max_unsigned /\ 0 <= Zlength (snd x) + 1 <= Int.max_unsigned) sigma)
+         Forall
+           (fun x => 0 <= (fst x) <= Int.max_unsigned /\
+                     0 <= Zlength (snd x) + 1 <= Int.max_unsigned)
+           sigma)
     PARAMS(l) GLOBALS(gv)
     SEP(listrep sigma l; mem_mgr gv)
   POST [ tptr t_list ] 
@@ -130,7 +131,6 @@ DECLARE _list_copy
     PROP()
     RETURN(q)
     SEP(listrep sigma l; listrep sigma q; mem_mgr gv).
-
 
 Fixpoint string_to_list_byte (s: string) : list byte :=
   match s with
@@ -146,23 +146,30 @@ Fixpoint shifted_text_from (sigma : list (Z * list byte)) (shift : nat) : list b
   match sigma with
   | nil => nil
   | (s, l)::nil => sp_byte (Z.to_nat s + shift) ++ l
-  | (s, l)::hs => sp_byte (Z.to_nat s + shift) ++ l ++ newline_byte ++ (shifted_text_from hs shift)
+  | (s, l)::hs => sp_byte (Z.to_nat s + shift)
+                    ++ l ++ newline_byte
+                    ++ (shifted_text_from hs shift)
 end.
 
 Arguments shifted_text_from sigma shift : simpl never.
 
-Definition text_from (sigma : list (Z * list byte)) (shift : nat) (line : string)  : list byte :=
+Definition text_from (sigma : list (Z * list byte))
+  (shift : nat) (line : string)  : list byte :=
   let line_byte := string_to_list_byte line 
   in
     match sigma with 
     | nil => line_byte
     | (s, l)::nil => sp_byte (Z.to_nat s) ++ l ++ line_byte
-    | (s, l)::hs  => sp_byte (Z.to_nat s) ++ l ++ newline_byte ++ shifted_text_from hs shift ++ line_byte
+    | (s, l)::hs  => sp_byte (Z.to_nat s)
+                       ++ l ++ newline_byte
+                       ++ shifted_text_from hs shift ++ line_byte
 end.
 
-Definition to_text_eq (to_text : nat -> string -> string) (sigma : list (Z * list byte)) := 
+Definition to_text_eq (to_text : nat -> string -> string)
+  (sigma : list (Z * list byte)) := 
   forall (shift : nat) (line : string),
-    string_to_list_byte (to_text shift line) = text_from sigma shift line.
+    string_to_list_byte (to_text shift line)
+    = text_from sigma shift line.
 
 Record list_mp (sigma : list (Z * list byte)) : Prop :=
   mk_list_mp {
