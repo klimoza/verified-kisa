@@ -67,7 +67,7 @@ Fixpoint listrep (sigma: list (Z * (list byte))) (p: val) : mpred :=
  match sigma with
  | (a, b)::hs =>
     EX x:val, EX y: val,
-    (emp || malloc_token Ews (Tarray tschar (Zlength b + 1) noattr) y) *
+    malloc_token Ews (Tarray tschar (Zlength b + 1) noattr) y *
     cstring Ews b y *
     malloc_token Ews t_list p * 
     data_at Ews t_list ((Vptrofs (Ptrofs.repr a), (y, x)) : @reptype CompSpecs t_list) p *
@@ -106,7 +106,7 @@ Fixpoint lseg (sigma: list (Z * (list byte))) (x z: val) : mpred :=
   match sigma with
   | nil => !! (<< LSEG_PTR_FACT : x = z >>) && emp
   | (a, b)::hs => EX h: val, EX y:val, 
-        (emp || malloc_token Ews (Tarray tschar (Zlength b + 1) noattr) y) *
+        malloc_token Ews (Tarray tschar (Zlength b + 1) noattr) y *
         cstring Ews b y *
         malloc_token Ews t_list x * 
         data_at Ews t_list ((Vptrofs (Ptrofs.repr a)), (y, h)) x * 
@@ -271,7 +271,7 @@ DECLARE _line
   PRE [ tptr tschar ]
     PROP(0 <= Zlength sigma + 1 <= Int.max_unsigned)
     PARAMS(p) GLOBALS(gv)
-    SEP(mem_mgr gv; cstring Ews sigma p)
+    SEP(mem_mgr gv; malloc_token Ews (Tarray tschar (Zlength sigma + 1) noattr) p * cstring Ews sigma p)
   POST [ tptr t_format ]
     EX q : val,
     PROP()

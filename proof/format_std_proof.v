@@ -154,6 +154,7 @@ Qed.
 
 Lemma singleton_listrep (a : Z) (b : list byte) (h : val) (x: val) :
   cstring Ews b h *
+  malloc_token Ews (Tarray tschar (Zlength b + 1) noattr) h *
   malloc_token Ews t_list x *
   data_at Ews t_list ((Vptrofs (Ptrofs.repr a)), (h, nullval)) x
    |-- listrep [(a, b)] x.
@@ -162,12 +163,11 @@ Proof.
   unfold listrep.
   Exists nullval h.
   entailer!.
-  apply orp_right1.
-  entailer.
 Qed.
 
 Lemma singleton_lseg (a : Z) (b : list byte) (h : val) (x y: val) :
   cstring Ews b h *
+  malloc_token Ews (Tarray tschar (Zlength b + 1) noattr) h *
   malloc_token Ews t_list x *
   data_at Ews t_list ((Vptrofs (Ptrofs.repr a)), (h, y)) x
    |-- lseg [(a, b)] x y.
@@ -176,8 +176,6 @@ Proof.
   unfold lseg. 
   Exists y h.
   entailer!.
-  apply orp_right1.
-  entailer.
 Qed.
 
 Lemma lseg_list (s1 s2: list (Z * list byte)) (x y: val) :
@@ -201,14 +199,14 @@ Proof.
   unfold lseg; fold lseg.
   Exists h y0.
   assert (
-    (emp || malloc_token Ews (Tarray tschar (Zlength l + 1) noattr) y0)
+    malloc_token Ews (Tarray tschar (Zlength l + 1) noattr) y0
       * cstring Ews l y0
       * malloc_token Ews t_list x
       * data_at Ews t_list (Vptrofs (Ptrofs.repr z0), (y0, h)) x
       * lseg s1 h y
       * lseg s2 y z
       |-- 
-    (emp || malloc_token Ews (Tarray tschar (Zlength l + 1) noattr) y0)
+    malloc_token Ews (Tarray tschar (Zlength l + 1) noattr) y0
       * cstring Ews l y0
       * malloc_token Ews t_list x
       * data_at Ews t_list (Vptrofs (Ptrofs.repr z0), (y0, h)) x
@@ -252,6 +250,7 @@ Definition list_copy_loop_invariant
                 lseg (sublist 0 i sigma) l l_cur;
                 listrep (sublist i (Zlength sigma) sigma) l_cur;
                 mem_mgr gv).
+
 
 Lemma body_list_copy: semax_body Vprog Gprog f_list_copy list_copy_spec.
 Proof.
@@ -378,7 +377,7 @@ forward_if(l_cur_tail <> nullval).
       * data_at Ews t_list (Vlong (Int64.repr shift_i), (cur_line_i_pointer, Vlong (Int64.repr 0))) cur
       * lseg (sublist 0 i sigma) new_pointer cur
       * lseg (sublist 0 i sigma) l l_cur
-      * (emp || malloc_token Ews (Tarray tschar (Zlength line_i + 1) noattr) line_i_pointer)
+      * malloc_token Ews (Tarray tschar (Zlength line_i + 1) noattr) line_i_pointer
       * malloc_token Ews t_list l_cur
       * data_at Ews t_list (Vlong (Int64.repr shift_i), (line_i_pointer, nullval)) l_cur
     |-- 
@@ -391,7 +390,7 @@ forward_if(l_cur_tail <> nullval).
     )) * (
       lseg (sublist 0 i sigma) l l_cur *
       (
-      (emp || malloc_token Ews (Tarray tschar (Zlength line_i + 1) noattr) line_i_pointer)
+      malloc_token Ews (Tarray tschar (Zlength line_i + 1) noattr) line_i_pointer
       * cstring Ews line_i line_i_pointer
       * malloc_token Ews t_list l_cur
       * data_at Ews t_list (Vlong (Int64.repr shift_i), (line_i_pointer, nullval)) l_cur
@@ -416,7 +415,7 @@ forward_if(l_cur_tail <> nullval).
     ) as Trans_step2. {
       unfold listrep; fold listrep.
       Exists nullval cur_line_i_pointer.
-      entailer!. apply orp_right2. entailer. }
+      entailer!. }
 
     eapply derives_trans; eauto.
     rewrite eqn_ith_element.
@@ -427,7 +426,7 @@ forward_if(l_cur_tail <> nullval).
   rewrite FF.
   assert (
       lseg (sublist 0 i (sublist 0 i sigma ++ sublist i (Zlength sigma) sigma)) l l_cur
-      * ((emp || malloc_token Ews (Tarray tschar (Zlength line_i + 1) noattr) line_i_pointer)
+      * (malloc_token Ews (Tarray tschar (Zlength line_i + 1) noattr) line_i_pointer
          * cstring Ews line_i line_i_pointer
          * malloc_token Ews t_list l_cur
          * data_at Ews t_list (Vlong (Int64.repr shift_i), (line_i_pointer, nullval)) l_cur)
@@ -471,7 +470,7 @@ forward_if(l_cur_tail <> nullval).
     * data_at Ews t_list (Vlong (Int64.repr shift_i), (cur_line_i_pointer, cur_tail)) cur
     * lseg (sublist 0 i sigma) new_pointer cur
     * lseg (sublist 0 i sigma) l l_cur
-    * (emp || malloc_token Ews (Tarray tschar (Zlength line_i + 1) noattr) line_i_pointer)
+    * malloc_token Ews (Tarray tschar (Zlength line_i + 1) noattr) line_i_pointer
     * malloc_token Ews t_list l_cur
     * data_at Ews t_list (Vlong (Int64.repr shift_i), (line_i_pointer, l_cur_tail)) l_cur
     |--
@@ -481,7 +480,7 @@ forward_if(l_cur_tail <> nullval).
     * malloc_token Ews t_list cur
     * data_at Ews t_list (Vlong (Int64.repr shift_i), (cur_line_i_pointer, cur_tail)) cur))
     * (lseg (sublist 0 i sigma) l l_cur
-    * ((emp || malloc_token Ews (Tarray tschar (Zlength line_i + 1) noattr) line_i_pointer)
+    * (malloc_token Ews (Tarray tschar (Zlength line_i + 1) noattr) line_i_pointer
     * cstring Ews line_i line_i_pointer
     * malloc_token Ews t_list l_cur
     * data_at Ews t_list (Vlong (Int64.repr shift_i), (line_i_pointer, l_cur_tail)) l_cur))
@@ -505,15 +504,14 @@ forward_if(l_cur_tail <> nullval).
       unfold lseg.
       rewrite <- eqn_ith_element.
       Exists cur_tail cur_line_i_pointer.
-      entailer!.
-      apply orp_right2. entailer. }
+      entailer!. }
     eapply derives_trans; eauto.
     replace (sublist 0 (i + 1) sigma) with (sublist 0 i sigma ++ sublist i (i + 1) sigma) by list_solve.
     apply lseg_lseg. }
   clear AA.
   assert (
       lseg (sublist 0 i sigma) l l_cur
-      * ((emp || malloc_token Ews (Tarray tschar (Zlength line_i + 1) noattr) line_i_pointer)
+      * (malloc_token Ews (Tarray tschar (Zlength line_i + 1) noattr) line_i_pointer
          * cstring Ews line_i line_i_pointer
          * malloc_token Ews t_list l_cur
          * data_at Ews t_list (Vlong (Int64.repr shift_i), (line_i_pointer, l_cur_tail)) l_cur)
@@ -530,4 +528,130 @@ forward_if(l_cur_tail <> nullval).
   eapply derives_trans; eauto.
   replace (sublist 0 (i + 1) sigma) with (sublist 0 i sigma ++ sublist i (i + 1) sigma) by list_solve.
   apply lseg_lseg.
+Qed.
+
+Lemma body_list_concat: semax_body Vprog Gprog f_list_concat list_concat_spec.
+Proof.
+  start_function.
+  forward_call(p1, l1).
+  Intros l1_tail.
+  replace (sublist (Zlength l1 - 1) (Zlength l1) l1) with 
+    ([Znth (Zlength l1 - 1) l1]).
+  2: {
+    rewrite sublist_next.
+    3: lia.
+    2: { destruct l1; list_solve. }
+    list_solve. }
+  unff listrep.
+  remember (Znth (Zlength l1 - 1) l1) as l1_last.
+  destruct l1_last as (l1_shift_last, l1_line_last).
+  Intros l1_tail_ptr l1_line_ptr.
+  do 2 forward.
+  remember (lseg_list l1 l2 p1 p2).
+  eapply derives_trans.
+  2: eauto.
+  entailer!.
+  remember (lseg_lseg (sublist 0 (Zlength l1 - 1) l1) [Znth (Zlength l1 - 1) l1] p1 l1_tail p2).
+  assert (Zlength l1 > 0).
+  { destruct l1; list_solve. }
+  assert (l1 = (sublist 0 (Zlength l1 - 1) l1 ++ [Znth (Zlength l1 - 1) l1])) as I by list_solve.
+  rewrite I at 3.
+  eapply derives_trans.
+  2: eauto.
+  entailer!.
+  unff lseg.
+  rewrite <- Heql1_last.
+  Exists p2 l1_line_ptr.
+  entailer!.
+Qed.
+
+Lemma body_get_list_tail: semax_body Vprog Gprog f_get_list_tail get_list_tail_spec.
+Proof.
+  start_function.
+  forward.
+  forward_loop(
+    EX i : Z, EX q : val,
+    PROP (0 <= i < Zlength sigma)
+    LOCAL (temp _cur q; temp _l p)
+    SEP(
+      lseg (sublist 0 i sigma) p q;
+      listrep (sublist i (Zlength sigma) sigma) q
+    )
+  ) break: (
+    EX q : val,
+    PROP()
+    LOCAL(temp _cur q; temp _l p)
+    SEP(lseg (sublist 0 (Zlength sigma - 1) sigma) p q;
+        listrep (sublist (Zlength sigma - 1) (Zlength sigma) sigma) q)
+  ).
+  { Exists 0 p. 
+    destruct sigma.
+    { vauto. }
+    entailer!.
+    { list_solve. }
+    replace ((sublist 0 0 (p0 :: sigma))) with ([] : list (Z * list byte)) by list_solve.
+    unff lseg.
+    replace (sublist 0 (Zlength (p0 :: sigma)) (p0 :: sigma)) with
+        (p0 :: sigma) by list_solve.
+    entailer!. }
+  2: {
+    Intros q.
+    forward.
+    Exists q.
+    entailer!. }
+  Intros i q.
+  replace (sublist i (Zlength sigma) sigma) with (Znth i sigma :: sublist (i + 1) (Zlength sigma) sigma)
+    by list_solve.
+  unff listrep.
+  remember (Znth i sigma) as ith_element.
+  destruct ith_element as (ith_shift, ith_line).
+  Intros ith_tail ith_line_ptr.
+  forward.
+  prove_ptr.
+  forward_if.
+  { forward.
+    Exists (i + 1) ith_tail.
+    assert(i + 1 = Zlength sigma \/ i + 1 < Zlength sigma) as F by lia.
+    destruct F.
+    { replace (sublist (i + 1) (Zlength sigma) sigma) with ([] : list (Z * list byte))
+          by list_solve.
+      unff listrep.
+      entailer!. }
+    entailer!.
+    assert(
+      lseg (sublist 0 i sigma) p q *
+      lseg (sublist i (i + 1) sigma) q ith_tail
+      |--
+      lseg (sublist 0 (i + 1) sigma) p ith_tail
+    ) as K.
+    { replace (sublist 0 (i + 1) sigma) with (sublist 0 i sigma ++ sublist i (i + 1) sigma)
+        by list_solve.
+      apply lseg_lseg. }
+    eapply derives_trans.
+    2: eauto.
+    replace (sublist i (i + 1) sigma) with [Znth i sigma] by list_solve.
+    unff lseg.
+    rewrite <- Heqith_element.
+    Exists ith_tail ith_line_ptr.
+    entailer!. }
+  forward.
+  Exists q.
+  entailer!.
+  assert(i + 1 < Zlength sigma \/ i + 1 = Zlength sigma) as F by lia.
+  destruct F.
+  { unnw; desf.
+    assert (sublist (i + 1) (Zlength sigma) sigma = []) as K by auto.
+    replace (sublist (i + 1) (Zlength sigma) sigma) with 
+      (Znth (i + 1) sigma :: sublist (i + 2) (Zlength sigma) sigma) in K by list_solve.
+    vauto. }
+  replace i with (Zlength sigma - 1) in * by lia.
+  entailer!.
+  replace (sublist (Zlength sigma - 1) (Zlength sigma) sigma) with [Znth (Zlength sigma - 1) sigma]
+    by list_solve.
+  replace (sublist (Zlength sigma - 1 + 1) (Zlength sigma) sigma) with ([] : list (Z * list byte))
+    by list_solve.
+  unff listrep.
+  rewrite <- Heqith_element.
+  Exists nullval ith_line_ptr.
+  entailer!.
 Qed.
