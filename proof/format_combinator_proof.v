@@ -43,8 +43,9 @@ Proof.
     unfold add_above.
     replace (height G) with 0%nat by list_solve.
     split.
-    2: { apply mk_format_mp; auto. }
-    auto. }
+    2: { split; auto; apply mk_format_mp; auto. }
+    getnw; destruct FMT_MP.
+    lia. }
   { forward; entailer!. }
   forward.
   getnw; destruct FMT_MP.
@@ -53,12 +54,13 @@ Proof.
     unfold concrete_mformat.
     entailer!.
     unfold add_above.
-    split.
-    2: { split; apply mk_format_mp; auto. }
-    destruct (height G).
+    destruct (height G) eqn:E.
     { lia. }
     replace (height F) with 0%nat by list_solve.
-    auto. }
+    split.
+    { lia. }
+    split; auto.
+    split; apply mk_format_mp; try rewrite E; auto. }
   { forward; entailer!. }
 
   forward.
@@ -96,7 +98,7 @@ Proof.
   }
 
   remember (
-    PROP()
+    PROP(0 <= Z.of_nat (middle_width (add_above G F)) <= Int.max_unsigned)
     LOCAL(temp _middle_width_new (Vint (Int.repr (Z.of_nat (middle_width (add_above G F))))); 
           temp _G pointer_G; temp _F pointer_F)
     SEP(concrete_mformat G pointer_G sigmaG pG; concrete_mformat F pointer_F sigmaF pF)
@@ -209,8 +211,7 @@ Proof.
       { simpl in *. lia. }
       destruct hG.
       2: { simpl in *. lia. }
-      destruct hF; simpl in *; lia.
-    }
+      destruct hF; ins. }
 
     forward.
     forward_if(
@@ -257,8 +258,7 @@ Proof.
       { simpl in *. lia. }
       destruct hF as [| hF].
       2: { simpl in *. lia. }
-      destruct hG; simpl in *; lia.
-    }
+      destruct hG; ins; split; try lia; list_solve. }
     
     forward.
     forward_if(
@@ -296,18 +296,11 @@ Proof.
       2: now unfold concrete_mformat; entailer!.
       do 2 f_equal.
       unfold add_above.
-      destruct (height G) as [| hG].
-      { lia. }
-      destruct (height F) as [| hF].
-      { lia. }
-      destruct hG as [| hG].
-      { simpl in *. lia. }
-      destruct hF as [| hF].
-      { simpl in *. lia. }
-      destruct hG as [| hG].
-      { simpl in *. lia. }
-      simpl in *. lia.
-    }
+      destruct (height G) as [| hG]; vauto.
+      destruct (height F) as [| hF]; vauto.
+      destruct hG as [| hG]; vauto.
+      destruct hF as [| hF]; vauto.
+      destruct hG as [| hG]; vauto; ins; list_solve. }
     do 2 forward.
     forward_call(Z.of_nat (first_line_width F), Z.of_nat (middle_width F)).
     Intros max1.
@@ -323,24 +316,14 @@ Proof.
     2: now unfold concrete_mformat; entailer!.
     do 2 f_equal.
     unfold add_above.
-    destruct (height G) as [| hG].
-    { lia. }
-    destruct (height F) as [| hF].
-    { lia. }
+    destruct (height G) as [| hG]; vauto.
+    destruct (height F) as [| hF]; vauto.
     destruct hG as [| hG].
-    { simpl in *. 
-      replace (hF =? 0)%nat with false in *.
-      simpl in *. lia.
-    }
+    { ins; replace (hF =? 0)%nat with false in *; lia. }
     destruct hG as [| hG].
-    { simpl in *. 
-      replace (hF =? 0)%nat with false in *.
-      simpl in *. lia.
-    }
-    destruct hF as [| hF].
-    { simpl in *. lia. }
-    simpl in *. lia.
-  }
+    { ins; replace (hF =? 0)%nat with false in *; lia. }
+    destruct hF as [| hF]; vauto.
+    ins; list_solve. }
   
   rewrite eqn_middle_invariant.
   forward.
@@ -440,8 +423,7 @@ Proof.
     2: vauto.
     desf.
     assert (0 = Z.of_nat (height F)) by auto; lia. }
-  forward.
-  forward.
+  do 2 forward.
 
   Exists new_G_ptr (sigmaG ++ sigmaF).
   entailer!.
@@ -471,6 +453,7 @@ Proof.
   start_function.
   unfold mformat.
   forward.
+  getnw; destruct COMB.
   forward_if(height G <> 0%nat).
   { forward_call(F, pointer_F, sigmaF, pF, gv).
     Intros new_format_ptr.
@@ -513,6 +496,7 @@ Proof.
   
   forward_call(G, F, pointer_G, pointer_F, sigmaG, sigmaF, pG, pF, gv).
   { unfold concrete_mformat; entailer!. }
+  { apply mk_format_comb; auto. }
 
   forward_call(G, F, pointer_G, pointer_F, sigmaG, sigmaF, pG, pF, gv).
   Intros p.
@@ -548,9 +532,9 @@ Proof.
   getnw; destruct FMT_MP.
   getnw; destruct FMT_MP.
   apply mk_format_mp; auto.
-  { rewrite <- K1; auto. }
-  { rewrite <- K2; auto. }
-  { rewrite <- K3; auto. }
+  { rewrite <- K1; lia. }
+  { rewrite <- K2; lia. }
+  { rewrite <- K3; lia. }
   rewrite <- K1.
   split; ins.
   { assert (height G = 0%nat) by lia; lia. }
@@ -561,3 +545,160 @@ Proof.
   assert (0 = Z.of_nat (height G)) by auto.
   lia.
 Qed.
+
+Lemma body_mdw_add_beside: semax_body Vprog Gprog f_mdw_add_beside mdw_add_beside_spec.
+Proof.
+  start_function.
+  forward.
+  getnw; destruct FMT_MP.
+  forward_if(height G <> 0%nat).
+  { do 2 forward.
+    unfold concrete_mformat.
+    entailer!.
+    unfold add_beside.
+    replace (height G) with 0%nat by lia.
+    getnw; destruct FMT_MP.
+    split; try split; ins.
+    lia. }
+  { forward; entailer!. }
+  forward.
+  getnw; destruct FMT_MP.
+  forward_if(height F <> 0%nat).
+  { do 2 forward.
+    unfold concrete_mformat.
+    entailer!.
+    unfold add_beside.
+    destruct (height G) eqn:E.
+    { lia. }
+    replace (height F) with 0%nat by lia.
+    split; try split; try split; ins.
+    { lia. }
+    apply mk_format_mp; try rewrite E; auto. }
+  { forward; entailer!. }
+  forward.
+
+  remember (fun (tr: ident) (b: bool) =>
+    PROP()
+    LOCAL(temp tr (Val.of_bool b); temp _G pointer_G; temp _F pointer_F)
+    SEP(concrete_mformat G pointer_G sigmaG pG; concrete_mformat F pointer_F sigmaF pF))
+  as if_invariant eqn:eqn_if_invariant.
+    
+  forward_if(
+    if_invariant _t'5 ((height G =? 1)%nat && (height F =? 1)%nat)%bool
+  ).
+  { do 2 forward.
+    rewrite eqn_if_invariant.
+    unfold concrete_mformat.
+    entailer!.
+    split; try split; try apply mk_format_mp; auto.
+    replace (height G) with 1%nat by lia.
+    ins; f_equal; apply nat_eq_iff_int_eq; lia. }
+  { forward.
+    rewrite eqn_if_invariant.
+    unfold concrete_mformat.
+    entailer!.
+    split; try split; try apply mk_format_mp; auto.
+    assert (height G <> 1%nat) by list_solve.
+    replace (height G =? 1)%nat with false; ins.
+    symmetry; rewrite Nat.eqb_neq; auto. }
+  rewrite eqn_if_invariant.
+  
+  getnw; destruct COMB.
+  remember (
+    PROP(0 <= Z.of_nat (middle_width (add_beside G F)) <= Int.max_unsigned)
+    LOCAL(temp _middle_width_new (Vint (Int.repr (Z.of_nat (middle_width (add_beside G F))))); 
+          temp _G pointer_G; temp _F pointer_F)
+    SEP(concrete_mformat G pointer_G sigmaG pG; concrete_mformat F pointer_F sigmaF pF)
+  ) as middle_invariant eqn:eqn_middle_invariant.
+  forward_if(middle_invariant).
+  { do 3 forward.
+    rewrite eqn_middle_invariant.
+    unfold concrete_mformat.
+    entailer!.
+    do 2 f_equal.
+    unfold add_beside.
+    desf; ins. 
+    split; try lia; list_solve. }
+  2: {
+    rewrite eqn_middle_invariant.
+    forward. }
+  forward.
+  forward_if(
+    if_invariant _t'4 ((height G =? 1)%nat && (height F =? 2)%nat)%bool
+  ).
+  { do 2 forward.
+    rewrite eqn_if_invariant.
+    unfold concrete_mformat.
+    entailer!.
+    replace (height G) with 1%nat by lia.
+    ins; f_equal; apply nat_eq_iff_int_eq; ins. }
+  { forward.
+    rewrite eqn_if_invariant.
+    unfold concrete_mformat; entailer!.
+    assert (height G <> 1)%nat by lia.
+    replace (height G =? 1)%nat with false; ins.
+    symmetry; rewrite Nat.eqb_neq; auto. }
+  rewrite eqn_if_invariant.
+  forward_if(middle_invariant).
+  { do 3 forward.
+    rewrite eqn_middle_invariant.
+    unfold concrete_mformat; entailer!.
+    do 2 f_equal.
+    unfold add_beside.
+    desf; ins; list_solve. }
+  forward.
+  forward_if(middle_invariant).
+  { forward.
+    rewrite eqn_middle_invariant.
+    unfold concrete_mformat; entailer!.
+    unfold add_beside.
+    destruct (height G); vauto.
+    destruct (height F); vauto.
+    desf; ins; try lia. }
+  forward.
+  forward_if(middle_invariant).
+  { do 3 forward.
+    rewrite eqn_middle_invariant.
+    unfold concrete_mformat; entailer!.
+    unfold add_beside.
+    destruct (height G); vauto.
+    destruct (height F); vauto.
+    destruct n; try lia.
+    destruct n0; vauto.
+    destruct n0; vauto.
+    ins; list_solve. }
+  forward.
+  forward_if(middle_invariant).
+  { do 4 forward.
+    forward_call(Z.of_nat (last_line_width G) + Z.of_nat (first_line_width F),
+      Z.of_nat (last_line_width G) + Z.of_nat (middle_width F)).
+    Intros max1.
+    forward.
+    rewrite eqn_middle_invariant.
+    unfold concrete_mformat; entailer!.
+    unfold add_beside.
+    destruct (height G); vauto.
+    destruct (height F); vauto.
+    destruct n; vauto.
+    destruct n; try lia.
+    destruct n0; vauto.
+    ins; list_solve. }
+  do 4 forward.
+  forward_call(Z.of_nat (last_line_width G) + Z.of_nat (first_line_width F),
+    Z.of_nat (last_line_width G) + Z.of_nat (middle_width F)).
+  Intros max1.
+  forward.
+  forward_call(Z.of_nat (middle_width G), max1).
+  Intros max2.
+  forward.
+  rewrite eqn_middle_invariant.
+  unfold concrete_mformat; entailer!.
+  unfold add_beside.
+  destruct (height G); vauto.
+  destruct (height F); vauto.
+  destruct n; vauto.
+  destruct n; try lia.
+  destruct n0; vauto.
+  ins; list_solve.
+Qed.
+  

@@ -253,7 +253,9 @@ unsigned int mdw_add_beside(t *G, t *F) {
     return G->middle_width;
 
   unsigned int middle_width_new;
-  if (G->height == 1 && (F->height == 1 || F->height == 2)) {
+  if (G->height == 1 && F->height == 1) {
+    middle_width_new = G->first_line_width + F->first_line_width;
+  } else if(G->height == 1 && F->height == 2) {
     middle_width_new = G->first_line_width + F->first_line_width;
   } else if (F->height == 1) {
     middle_width_new = G->middle_width;

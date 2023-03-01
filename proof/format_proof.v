@@ -90,11 +90,11 @@ Proof.
     Exists ((Z.of_nat (first_line_width G)) <=? (Z.of_nat (first_line_width F))).
     unfold concrete_mformat. 
     unnw. entailer!. split.
-    { apply less_components_fact1; auto. }
+    { apply less_components_fact1; lia. }
     split; apply mk_format_mp; auto. }
   { forward.
     Exists false.
-    unfold concrete_mformat. unnw.
+    unfold concrete_mformat; unnw.
     entailer!.
     split; apply mk_format_mp; auto. }
 
@@ -114,7 +114,7 @@ Proof.
     remember ((Z.of_nat (height G) <=? Z.of_nat (height F)) &&
     (Z.of_nat (first_line_width G) <=? Z.of_nat (first_line_width F)))%bool as comp eqn:AA.
     clear AA. subst.
-    simpl. apply less_components_fact1; auto. } 
+    simpl. apply less_components_fact1; lia. } 
   { forward.
     Exists false.
     entailer!. }
@@ -131,7 +131,7 @@ Proof.
   { do 3 forward.
     Exists (second_comp && (((Z.of_nat (last_line_width G))) <=? (Z.of_nat (last_line_width F))))%bool.
     unfold concrete_mformat. entailer!. simpl.
-    apply less_components_fact1; auto. } 
+    apply less_components_fact1; lia. } 
   { forward.
     Exists false.
     entailer!. }
@@ -187,7 +187,7 @@ Proof.
       apply is_less_than_fact1. auto. 
     }
     rewrite AA. simpl. apply nat_eq_iff_int_eq.
-    { getnw. destruct FMT_MP. auto. }
+    { getnw; destruct FMT_MP; lia. }
     unfold Int.max_unsigned; ins; lia. } 
   { forward.
     Exists false.
@@ -224,7 +224,7 @@ Proof.
       2: { unfold concrete_mformat. entailer!. unnw. apply mk_format_mp; auto. }
       f_equal. replace (height G) with 1%nat by list_solve.
       simpl. f_equal.
-      apply nat_eq_iff_int_eq; ins. }
+      apply nat_eq_iff_int_eq; lia. }
     { forward.
       Exists false.
       entailer!.
@@ -365,7 +365,7 @@ Proof.
     }
     { apply mk_list_mp; auto.
       { simpl. unfold Int.max_unsigned. simpl. lia. }
-      list_simplify. simpl. lia.
+      list_simplify; simpl; lia. 
     }
     all: unfold line; simpl.
     { unfold Int.max_unsigned. simpl. lia. }
