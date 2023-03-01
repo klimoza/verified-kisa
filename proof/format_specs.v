@@ -188,6 +188,7 @@ Record format_mp (G : t) (sigma : list (Z * list byte)) : Prop :=
     format_mp_flw : 0 <= Z.of_nat (first_line_width G) <= Int.max_unsigned;
     format_mp_mw : 0 <= Z.of_nat (middle_width G) <= Int.max_unsigned;
     format_mp_llw : 0 <= Z.of_nat (last_line_width G) <= Int.max_unsigned;
+    format_mp_zero_hg: 0 = Z.of_nat (height G) <-> sigma = nil;
   }.
 
  Definition concrete_mformat (G : t) (x : val) (sigma : list (Z * list byte)) (p : val) : mpred :=
@@ -209,30 +210,38 @@ Definition mformat (G : t) (x : val) : mpred :=
 
  Definition less_components_spec : ident * funspec :=
  DECLARE _less_components
-  WITH p : val, G : t, q : val, G' : t
+  WITH G : t, F : t, pointer_G : val, pointer_F : val,
+    sigmaG : list (Z * list byte), sigmaF : (list (Z * list byte)),
+    pG : val, pF : val
   PRE [ tptr t_format, tptr t_format]
     PROP()
-    PARAMS(p; q)
-    SEP(mformat G p; mformat G' q)
+    PARAMS(pointer_G; pointer_F)
+    SEP(concrete_mformat G pointer_G sigmaG pG;
+        concrete_mformat F pointer_F sigmaF pF)
   POST [ tbool ]
     EX a : bool,
-    PROP(a = less_components G G')
+    PROP(a = less_components G F)
     RETURN(Val.of_bool a)
-    SEP(mformat G p; mformat G' q).
+    SEP(concrete_mformat G pointer_G sigmaG pG;
+        concrete_mformat F pointer_F sigmaF pF).
 
 
 Definition is_less_than_spec : ident * funspec :=
 DECLARE _is_less_than
-  WITH p : val, G : t, q : val, G' : t
+  WITH G : t, F : t, pointer_G : val, pointer_F : val,
+    sigmaG : list (Z * list byte), sigmaF : (list (Z * list byte)),
+    pG : val, pF : val
   PRE [ tptr t_format, tptr t_format]
     PROP()
-    PARAMS(p; q)
-    SEP(mformat G p; mformat G' q)
+    PARAMS(pointer_G; pointer_F)
+    SEP(concrete_mformat G pointer_G sigmaG pG;
+        concrete_mformat F pointer_F sigmaF pF)
   POST [ tbool ]
     EX a : bool,
-    PROP(a = is_less_than G G')
+    PROP(a = is_less_than G F)
     RETURN(Val.of_bool a)
-    SEP(mformat G p; mformat G' q).
+    SEP(concrete_mformat G pointer_G sigmaG pG;
+        concrete_mformat F pointer_F sigmaF pF).
 
 
 Definition empty_spec : ident * funspec :=
@@ -301,30 +310,109 @@ DECLARE _get_applied_length
 
 Definition format_copy_spec : ident * funspec := 
 DECLARE _format_copy
-  WITH p : val, G : t, gv : globals
+  WITH G : t, p : val, sigmaG : list(Z * list byte), pG : val, gv : globals
   PRE [ tptr t_format ]
     PROP()
     PARAMS(p) GLOBALS(gv)
-    SEP(mformat G p; mem_mgr gv)
+    SEP(concrete_mformat G p sigmaG pG; mem_mgr gv)
   POST [ tptr t_format ]
     EX q : val,
     PROP()
     RETURN(q)
-    SEP(mformat G p; mformat G q; mem_mgr gv).
+    SEP(concrete_mformat G p sigmaG pG; mformat G q; mem_mgr gv).
+
+Definition get_list_tail_spec : ident * funspec :=
+DECLARE _get_list_tail
+  WITH p : val, sigma : list (Z * list byte)
+  PRE [ tptr t_list ]
+    PROP(sigma <> nil)
+    PARAMS(p)
+    SEP(listrep sigma p)
+  POST [ tptr t_list ]
+    EX q : val,
+    PROP()
+    RETURN(q)
+    SEP(listrep (sublist (Zlength sigma - 1) (Zlength sigma) sigma) q; 
+        lseg (sublist 0 (Zlength sigma - 1) sigma) p q).
 
 Definition add_above_spec : ident * funspec :=
 DECLARE _add_above
-  WITH G : t, F : t, pointer_G : val, pointer_F : val, gv : globals
+  WITH G : t, F : t, pointer_G : val, pointer_F : val,
+    sigmaG : list (Z * list byte), sigmaF : (list (Z * list byte)),
+    pG : val, pF : val, gv : globals
   PRE [ tptr t_format, tptr t_format ]
-    PROP ()
+    PROP (0 <= Zlength sigmaG + Zlength sigmaF + 1 <= Int.max_unsigned;
+          0 <= Z.of_nat (height G) + Z.of_nat (height F) <= Int.max_unsigned;
+          0 <= Z.of_nat (middle_width (add_above G F)) <= Int.max_unsigned)
     PARAMS(pointer_G; pointer_F) GLOBALS(gv)
-    SEP(mformat G pointer_G; mformat F pointer_F; mem_mgr gv)
+    SEP(concrete_mformat G pointer_G sigmaG pG; 
+      concrete_mformat F pointer_F sigmaF pF; mem_mgr gv)
   POST [ tptr t_format ]
     EX p : val,
     PROP()
     RETURN(p)
-    SEP(mformat G pointer_G; mformat F pointer_F; 
+    SEP(concrete_mformat G pointer_G sigmaG pG; concrete_mformat F pointer_F sigmaF pF; 
         mformat (add_above G F) p; mem_mgr gv).
+  
+Definition list_concat_spec : ident * funspec :=
+DECLARE _list_concat
+  WITH l1 : list (Z * list byte), p1 : val, l2 : list (Z * list byte), p2 : val
+  PRE [ tptr t_list, tptr t_list ]
+    PROP(l1 <> []; l2 <> [])
+    PARAMS(p1; p2)
+    SEP(listrep l1 p1; listrep l2 p2)
+  POST [ tptr t_list ]
+    PROP()
+    RETURN(p1)
+    SEP(listrep (l1 ++ l2) p1).
+
+Definition new_list_spec : ident * funspec :=
+DECLARE _new_list
+  WITH gv : globals
+  PRE []
+    PROP()
+    PARAMS() GLOBALS(gv)
+    SEP()
+  POST [ tptr t_list ]
+    EX p : val,
+    PROP()
+    RETURN(p)
+    SEP(listrep [(0, [])] p).
+  
+Definition mdw_add_above_spec : ident * funspec :=
+DECLARE _mdw_add_above
+  WITH G : t, F : t, pointer_G : val, pointer_F : val,
+      sigmaG : list (Z * list byte), sigmaF : (list (Z * list byte)),
+      pG : val, pF : val, gv : globals
+  PRE [ tptr t_format, tptr t_format ]
+    PROP ()
+    PARAMS(pointer_G; pointer_F)
+    SEP(concrete_mformat G pointer_G sigmaG pG; concrete_mformat F pointer_F sigmaF pF)
+  POST [ tuint ]
+    PROP()
+    RETURN(Vint (Int.repr (Z.of_nat (middle_width (add_above G F)))))
+    SEP(concrete_mformat G pointer_G sigmaG pG; concrete_mformat F pointer_F sigmaF pF).
+
+Definition to_text_add_above_spec : ident * funspec :=
+DECLARE _to_text_add_above
+  WITH G : t, F : t, pointer_G : val, pointer_F : val,
+    sigmaG : list (Z * list byte), sigmaF : (list (Z * list byte)),
+    pG : val, pF : val, gv : globals
+  PRE [ tptr t_format, tptr t_format ]
+    PROP (0 <= Zlength sigmaG + Zlength sigmaF + 1 <= Int.max_unsigned)
+    PARAMS(pointer_G; pointer_F) GLOBALS(gv)
+    SEP(concrete_mformat G pointer_G sigmaG pG; 
+      concrete_mformat F pointer_F sigmaF pF; mem_mgr gv)
+  POST [ tptr t_list ]
+    EX q : val, EX sigma : list (Z * list byte),
+    PROP(to_text_eq (to_text (add_above G F)) sigma; list_mp sigma;
+          sigma = sigmaG ++ sigmaF)
+    RETURN(q)
+    SEP(concrete_mformat G pointer_G sigmaG pG; 
+        concrete_mformat F pointer_F sigmaF pF;
+        mem_mgr gv;
+        listrep sigma q).
+
 
 Ltac dest_ptr ptr := 
   destruct (eq_dec ptr nullval);
@@ -334,11 +422,16 @@ Ltac dest_ptr ptr :=
     [ forward_call; entailer | forward; entailer! | ]
   ]; Intros.
 
+Ltac unff def := unfold def; fold def.
+
+Ltac prove_ptr := entailer!; unnw; desf.
+
 Definition Gprog : funspecs :=
         ltac:(with_library prog [
                    max_spec; strlen_spec; strcpy_spec; strcat_spec;
                    list_copy_spec; less_components_spec; is_less_than_spec; 
                    empty_spec; line_spec; sp_spec; 
-                   get_applied_length_spec; format_copy_spec;
-                   add_above_spec
+                   get_applied_length_spec; format_copy_spec; get_list_tail_spec;
+                   mdw_add_above_spec; list_concat_spec; to_text_add_above_spec;
+                   new_list_spec; add_above_spec
  ]).

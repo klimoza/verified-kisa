@@ -70,26 +70,24 @@ Qed.
 Lemma body_less_components: semax_body Vprog Gprog f_less_components less_components_spec.
 Proof.
   start_function.
-  unfold mformat.
-  Intros sigmaG pG sigmaG' pG'.
   do 2 forward. 
   getnw. rename FMT_MP into FMT_MP'. getnw.
   destruct FMT_MP, FMT_MP'.
   forward_if(
     EX t1: bool,
     PROP(<< first_comp_eq : t1 = andb 
-      ((Z.of_nat (height G)) <=? Z.of_nat (height G'))
-      ((Z.of_nat (first_line_width G)) <=? Z.of_nat (first_line_width G')) >> 
+      ((Z.of_nat (height G)) <=? Z.of_nat (height F))
+      ((Z.of_nat (first_line_width G)) <=? Z.of_nat (first_line_width F)) >> 
     )
-    LOCAL(temp _t'1 (Val.of_bool t1); temp _G p; temp _F q)
+    LOCAL(temp _t'1 (Val.of_bool t1); temp _G pointer_G; temp _F pointer_F)
     SEP(
-      concrete_mformat G p sigmaG pG;
-      concrete_mformat G' q sigmaG' pG'
+      concrete_mformat G pointer_G sigmaG pG;
+      concrete_mformat F pointer_F sigmaF pF
     )
   ). 
 
   { do 3 forward.
-    Exists ((Z.of_nat (first_line_width G)) <=? (Z.of_nat (first_line_width G'))).
+    Exists ((Z.of_nat (first_line_width G)) <=? (Z.of_nat (first_line_width F))).
     unfold concrete_mformat. 
     unnw. entailer!. split.
     { apply less_components_fact1; auto. }
@@ -105,16 +103,16 @@ Proof.
     EX t2: bool,
     PROP(<< second_comp_eq : t2 = andb first_comp 
       (((Z.of_nat (middle_width G))) <=?
-      (Z.of_nat (middle_width G'))) >>)
-    LOCAL(temp _t'2 (Val.of_bool t2); temp _G p; temp _F q)
-    SEP(concrete_mformat G p sigmaG pG; concrete_mformat G' q sigmaG' pG')
+      (Z.of_nat (middle_width F))) >>)
+    LOCAL(temp _t'2 (Val.of_bool t2); temp _G pointer_G; temp _F pointer_F)
+    SEP(concrete_mformat G pointer_G sigmaG pG; concrete_mformat F pointer_F sigmaF pF)
   ).
   { do 3 forward.
-    Exists (first_comp && ((Z.of_nat (middle_width G)) <=? (Z.of_nat (middle_width G'))))%bool.
+    Exists (first_comp && ((Z.of_nat (middle_width G)) <=? (Z.of_nat (middle_width F))))%bool.
     getnw. 
     unfold concrete_mformat. unnw. subst. entailer!.
-    remember ((Z.of_nat (height G) <=? Z.of_nat (height G')) &&
-    (Z.of_nat (first_line_width G) <=? Z.of_nat (first_line_width G')))%bool as comp eqn:AA.
+    remember ((Z.of_nat (height G) <=? Z.of_nat (height F)) &&
+    (Z.of_nat (first_line_width G) <=? Z.of_nat (first_line_width F)))%bool as comp eqn:AA.
     clear AA. subst.
     simpl. apply less_components_fact1; auto. } 
   { forward.
@@ -126,12 +124,12 @@ Proof.
     EX t3: bool,
     PROP(<< third_comp_eq : t3 = andb second_comp
       (((Z.of_nat (last_line_width G))) <=?
-       (Z.of_nat (last_line_width G'))) >>)
-    LOCAL(temp _t'3 (Val.of_bool t3); temp _G p; temp _F q)
-    SEP(concrete_mformat G p sigmaG pG; concrete_mformat G' q sigmaG' pG')
+       (Z.of_nat (last_line_width F))) >>)
+    LOCAL(temp _t'3 (Val.of_bool t3); temp _G pointer_G; temp _F pointer_F)
+    SEP(concrete_mformat G pointer_G sigmaG pG; concrete_mformat F pointer_F sigmaF pF)
   ). 
   { do 3 forward.
-    Exists (second_comp && (((Z.of_nat (last_line_width G))) <=? (Z.of_nat (last_line_width G'))))%bool.
+    Exists (second_comp && (((Z.of_nat (last_line_width G))) <=? (Z.of_nat (last_line_width F))))%bool.
     unfold concrete_mformat. entailer!. simpl.
     apply less_components_fact1; auto. } 
   { forward.
@@ -139,11 +137,10 @@ Proof.
     entailer!. }
   Intros third_comp.
   forward.
-  Exists (less_components G G').
+  Exists (less_components G F).
   entailer!.
-  { f_equal. unfold less_components. getnw. subst.
-    repeat rewrite less_components_fact2. auto. }
-  unfold mformat. Exists sigmaG pG sigmaG' pG'. entailer!.
+  f_equal; unfold less_components; getnw; subst.
+  repeat rewrite less_components_fact2; auto.
 Qed.
 
 Lemma is_less_than_fact1 x y :
@@ -171,18 +168,16 @@ Qed.
 Lemma body_is_less_than: semax_body Vprog Gprog f_is_less_than is_less_than_spec.
 Proof.
   start_function.
-  unfold mformat.
-  Intros sigmaG pG sigmaG' pG'.
   forward.
   getnw. destruct FMT_MP.
   forward_if(
     EX t1: bool,
-    PROP(t1 = andb (negb (Nat.eqb (height G) 1%nat)) (Nat.eqb (height G') 1))
-    LOCAL(temp _t'2 (Val.of_bool t1); temp _G p; temp _F q)
-    SEP(concrete_mformat G p sigmaG pG; concrete_mformat G' q sigmaG' pG')
+    PROP(t1 = andb (negb (Nat.eqb (height G) 1%nat)) (Nat.eqb (height F) 1))
+    LOCAL(temp _t'2 (Val.of_bool t1); temp _G pointer_G; temp _F pointer_F)
+    SEP(concrete_mformat G pointer_G sigmaG pG; concrete_mformat F pointer_F sigmaF pF)
   ). 
   { do 2 forward.
-    Exists (negb (height G =? 1)%nat && (height G' =? 1)%nat)%bool.
+    Exists (negb (height G =? 1)%nat && (height F =? 1)%nat)%bool.
     entailer!.
     2: { unfold concrete_mformat. entailer!. unnw. apply mk_format_mp; auto. }
     f_equal. 
@@ -206,26 +201,26 @@ Proof.
   getnw. destruct FMT_MP.
   forward_if(
     EX t2: bool,
-    PROP(t2 = orb first_comp (andb (Nat.eqb (height G) 1%nat) (negb (Nat.eqb (height G') 1%nat))))
-    LOCAL(temp _t'3 (Val.of_bool t2); temp _G p; temp _F q)
-    SEP(concrete_mformat G p sigmaG pG; concrete_mformat G' q sigmaG' pG')
+    PROP(t2 = orb first_comp (andb (Nat.eqb (height G) 1%nat) (negb (Nat.eqb (height F) 1%nat))))
+    LOCAL(temp _t'3 (Val.of_bool t2); temp _G pointer_G; temp _F pointer_F)
+    SEP(concrete_mformat G pointer_G sigmaG pG; concrete_mformat F pointer_F sigmaF pF)
   ). 
   { forward.
-    Exists (first_comp || (height G =? 1)%nat && negb (height G' =? 1)%nat)%bool.
+    Exists (first_comp || (height G =? 1)%nat && negb (height F =? 1)%nat)%bool.
     entailer!.
     2: { unfold concrete_mformat. entailer!. unnw. apply mk_format_mp; auto. }
-    remember (negb (height G =? 1)%nat && (height G' =? 1)%nat)%bool as comp eqn:AA.
+    remember (negb (height G =? 1)%nat && (height F =? 1)%nat)%bool as comp eqn:AA.
     clear AA. subst. 
     list_solve. } 
   { forward.
     forward_if(
       EX t3: bool,
-      PROP(t3 = andb (Nat.eqb (height G) 1%nat) (negb (Nat.eqb (height G') 1%nat)))
-      LOCAL(temp _t'3 (Val.of_bool t3); temp _G p; temp _F q)
-      SEP(concrete_mformat G p sigmaG pG; concrete_mformat G' q sigmaG' pG')
+      PROP(t3 = andb (Nat.eqb (height G) 1%nat) (negb (Nat.eqb (height F) 1%nat)))
+      LOCAL(temp _t'3 (Val.of_bool t3); temp _G pointer_G; temp _F pointer_F)
+      SEP(concrete_mformat G pointer_G sigmaG pG; concrete_mformat F pointer_F sigmaF pF)
     ). 
     { do 3 forward.
-      Exists ((height G =? 1)%nat && negb (height G' =? 1)%nat)%bool.
+      Exists ((height G =? 1)%nat && negb (height F =? 1)%nat)%bool.
       entailer!.
       2: { unfold concrete_mformat. entailer!. unnw. apply mk_format_mp; auto. }
       f_equal. replace (height G) with 1%nat by list_solve.
@@ -241,7 +236,7 @@ Proof.
     Intros second_comp.
     Exists (first_comp || second_comp)%bool.
     entailer!.
-    replace (negb (height G =? 1)%nat && (height G' =? 1)%nat)%bool
+    replace (negb (height G =? 1)%nat && (height F =? 1)%nat)%bool
       with false; auto. }
   Intros all_comp.
   forward_if. 
@@ -249,23 +244,18 @@ Proof.
     Exists false.
     unfold is_less_than.
     destruct (height G) eqn:AA.
-    { destruct (height G') eqn:BB.
-      { entailer!. 
-        2: { unfold mformat. Exists sigmaG pG sigmaG' pG'. entailer!. }
-        ins. }
+    { destruct (height F) eqn:BB.
+      { entailer!; ins. }
       entailer!.
-      2: { unfold mformat. Exists sigmaG pG sigmaG' pG'. entailer!. }
       destruct n; ins. }
     entailer!.
-    { desf. }
-    unfold mformat. Exists sigmaG pG sigmaG' pG'. entailer!. }
+    desf. }
 
-  forward_call(p, G, q, G').
-  { unfold mformat. Exists sigmaG pG sigmaG' pG'. entailer!. }
-  Intros ans. forward.
-  Exists (less_components G G').
+  forward_call(G, F, pointer_G, pointer_F, sigmaG, sigmaF, pG, pF).
+  Intros ans; forward.
+  Exists (less_components G F).
   entailer!.
-  unfold is_less_than. desf.
+  unfold is_less_than; desf.
 Qed.
 
 Lemma body_empty: semax_body Vprog Gprog f_empty empty_spec.
@@ -380,6 +370,7 @@ Proof.
     }
     all: unfold line; simpl.
     { unfold Int.max_unsigned. simpl. lia. }
+    4: ins.
     all: rewrite list_byte_to_string_length; list_solve.
   }
   unfold listrep.
@@ -770,6 +761,7 @@ Proof.
   apply lseg_null_listrep.
 Qed.
 
+
 Lemma body_format_copy: semax_body Vprog Gprog f_format_copy format_copy_spec.
 Proof.
   start_function.
@@ -785,10 +777,9 @@ Proof.
   { forward_call. entailer!. }
   { forward. entailer!. }
 
-  unfold mformat.
-  Intros sigmaG pG.
+  Intros.
   do 9 forward.
-  { entailer!. getnw. destruct LIST_PTR_FACT. auto. }
+  prove_ptr.
 
   getnw. destruct FMT_MP. destruct format_mp_list_mp.
   forward_call(Ews, pG, sigmaG, gv).
@@ -799,13 +790,10 @@ Proof.
   Exists new_format_ptr.
   entailer!.
   unfold mformat.
-  Exists sigmaG pG sigmaG new_list_ptr.
   unfold concrete_mformat.
-  entailer!.
-  unnw.
+  Exists sigmaG new_list_ptr; entailer!.
   split; apply mk_format_mp; auto; apply mk_list_mp; auto.
 Qed.
-  
 
 Lemma not_0_not_1_impl (n : nat):
   Z.of_nat n <> 0 ->
@@ -879,81 +867,58 @@ Proof.
   list_solve.
 Qed.
 
-Lemma body_add_above: semax_body Vprog Gprog f_add_above add_above_spec.
+Lemma body_mdw_add_above: semax_body Vprog Gprog f_mdw_add_above mdw_add_above_spec.
 Proof.
   start_function.
-  unfold mformat.
-  Intros sigmaG pG sigmaF pF.
   forward.
+  getnw; destruct FMT_MP.
   forward_if(height G <> 0%nat).
-  { forward_call(pointer_F, F, gv).
-    { unfold mformat. Exists sigmaF pF. entailer!. }
-    Intros new_format_ptr.
-    forward.
-    Exists new_format_ptr.
+  { do 2 forward.
+    unfold concrete_mformat.
     entailer!.
-    unfold mformat.
-    Intros sigmaF1 pF1.
-    Exists sigmaG pG sigmaF1 pF1.
-    unfold concrete_mformat. unfold add_above.
-    replace (height G) with 0%nat.
-    { entailer!. }
-    getnw. destruct FMT_MP.
-    apply int_repr_eq; simpl; list_solve.
-  }
-  { forward. entailer!. list_solve. }
+    unfold add_above.
+    replace (height G) with 0%nat by list_solve.
+    split.
+    2: { apply mk_format_mp; auto. }
+    auto. }
+  { forward; entailer!. }
   forward.
+  getnw; destruct FMT_MP.
   forward_if(height F <> 0%nat).
-  { forward_call(pointer_G, G, gv).
-    { unfold mformat. Exists sigmaG pG. unfold concrete_mformat. entailer!.  }
-    Intros new_format_ptr.
-    forward.
-    Exists new_format_ptr.
+  { do 2 forward.
+    unfold concrete_mformat.
     entailer!.
-    unfold mformat.
-    Intros sigmaG1 pG1.
-    Exists sigmaF pF sigmaG1 pG1.
-    unfold concrete_mformat. unfold add_above.
-    destruct (height G) eqn:E.
+    unfold add_above.
+    split.
+    2: { split; apply mk_format_mp; auto. }
+    destruct (height G).
     { lia. }
-    replace (height F) with 0%nat.
-    { rewrite E. entailer!. }
-    getnw. destruct FMT_MP.
-    apply int_repr_eq; list_solve.
-  }
-  { forward. entailer!. list_solve. }
-  forward_call(t_format, gv).
+    replace (height F) with 0%nat by list_solve.
+    auto. }
+  { forward; entailer!. }
 
-  Intros result_ptr.
-  dest_ptr result_ptr.
-  
   forward.
   remember (fun (tr: ident) (b: bool) =>
     PROP()
-    LOCAL(temp tr (Val.of_bool b); gvars gv; temp _result result_ptr;
-          temp _G pointer_G; temp _F pointer_F)
-    SEP(malloc_token Ews t_format result_ptr;
-        data_at_ Ews t_format result_ptr; mem_mgr gv;
-        concrete_mformat G pointer_G sigmaG pG; concrete_mformat F pointer_F sigmaF pF))
+    LOCAL(temp tr (Val.of_bool b); temp _G pointer_G; temp _F pointer_F)
+    SEP(concrete_mformat G pointer_G sigmaG pG; concrete_mformat F pointer_F sigmaF pF))
   as if_invariant eqn:eqn_if_invariant.
     
   forward_if(
-    if_invariant _t'15 ((height G =? 1)%nat && (height F =? 1)%nat)%bool
+    if_invariant _t'12 ((height G =? 1)%nat && (height F =? 1)%nat)%bool
   ).
-  {
-    do 2 forward.
+  { do 2 forward.
     rewrite eqn_if_invariant.
     entailer!.
-    { getnw. destruct FMT_MP.
-      getnw. destruct FMT_MP.
-      replace (height G) with 1%nat.
+    { replace (height G) with 1%nat.
       { simpl. f_equal.
         apply nat_eq_iff_int_eq; list_solve.
       }
-      apply int_repr_eq; list_solve.
+      list_solve.
     }
     unfold concrete_mformat.
     entailer!.
+    split; apply mk_format_mp; auto.
   }
   { forward. rewrite eqn_if_invariant.
     entailer!.
@@ -964,15 +929,14 @@ Proof.
      }
      unfold concrete_mformat.
      entailer!.
+    split; apply mk_format_mp; auto.
   }
 
   remember (
     PROP()
     LOCAL(temp _middle_width_new (Vint (Int.repr (Z.of_nat (middle_width (add_above G F))))); 
-          temp _result result_ptr; temp _G pointer_G; temp _F pointer_F; gvars gv)
-    SEP(malloc_token Ews t_format result_ptr;
-        data_at_ Ews t_format result_ptr; mem_mgr gv;
-        concrete_mformat G pointer_G sigmaG pG; concrete_mformat F pointer_F sigmaF pF)
+          temp _G pointer_G; temp _F pointer_F)
+    SEP(concrete_mformat G pointer_G sigmaG pG; concrete_mformat F pointer_F sigmaF pF)
   ) as middle_invariant eqn:eqn_middle_invariant.
   rewrite eqn_if_invariant.
   forward_if(middle_invariant).
@@ -997,10 +961,9 @@ Proof.
   }
   { forward.
     getnw. destruct FMT_MP.
-    getnw. destruct FMT_MP.
 
     forward_if(
-      if_invariant _t'14 ((height G =? 1)%nat && negb (height F =? 1)%nat)%bool
+      if_invariant _t'11 ((height G =? 1)%nat && negb (height F =? 1)%nat)%bool
     ).
     { do 2 forward.
       rewrite eqn_if_invariant.
@@ -1047,7 +1010,7 @@ Proof.
 
     forward.
     forward_if(
-      if_invariant _t'13 ((height G =? 2)%nat && ((height F) =? 1)%nat)%bool
+      if_invariant _t'10 ((height G =? 2)%nat && ((height F) =? 1)%nat)%bool
     ).
     { do 2 forward.
       rewrite eqn_if_invariant.
@@ -1088,7 +1051,7 @@ Proof.
 
     forward.
     forward_if(
-      if_invariant _t'12 ((height F =? 1)%nat && negb ((height G) =? 1)%nat)%bool
+      if_invariant _t'9 ((height F =? 1)%nat && negb ((height G) =? 1)%nat)%bool
     ).
     { do 2 forward.
       rewrite eqn_if_invariant.
@@ -1136,7 +1099,7 @@ Proof.
     
     forward.
     forward_if(
-      if_invariant _t'11 ((height G =? 2)%nat && negb ((height F) =? 1)%nat)%bool
+      if_invariant _t'8 ((height G =? 2)%nat && negb ((height F) =? 1)%nat)%bool
     ).
     { do 2 forward.
       rewrite eqn_if_invariant.
@@ -1215,44 +1178,396 @@ Proof.
     { simpl in *. lia. }
     simpl in *. lia.
   }
-
-  rewrite eqn_middle_invariant.
-  getnw. destruct FMT_MP.
-  getnw. destruct FMT_MP.
-  forward.
-  { entailer!. unnw. desf. }
-  forward_call(Ews, pG, sigmaG, gv).
-  { destruct format_mp_list_mp0. list_solve. }
-  Intros to_text_new_ptr.
-  forward.
-  forward_if(
-    EX sigma : list (Z * list byte), EX to_text_ptr : val,
-    PROP(to_text_eq (to_text (add_above G F)) sigma)
-    LOCAL(temp _middle_width_new (Vint (Int.repr (Z.of_nat (middle_width (add_above G F))))); 
-          temp _result result_ptr; temp _G pointer_G; temp _F pointer_F; gvars gv;
-          temp _to_text_new to_text_ptr)
-    SEP(listrep sigma to_text_ptr;
-        malloc_token Ews t_format result_ptr;
-        data_at_ Ews t_format result_ptr; mem_mgr gv;
-        concrete_mformat G pointer_G sigmaG pG; concrete_mformat F pointer_F sigmaF pF)
-  ).
-  { forward.
-    { entailer!. unnw. desf. }
-    forward_call(Ews, pF, sigmaF, gv).
-    { destruct format_mp_list_mp. list_solve. }
-    Intros new_list_ptr.
-    forward.
-    Exists sigmaF new_list_ptr.
-    entailer!.
-    { unfold add_above.
-      destruct (height G).
-      { lia. }
-      destruct (height F).
-      { lia. }
-      simpl.
-      admit.
-    }
-    admit.
-  }
   
-Admitted.
+  rewrite eqn_middle_invariant.
+  forward.
+Qed.
+
+Lemma body_list_concat: semax_body Vprog Gprog f_list_concat list_concat_spec.
+Proof.
+  start_function.
+  forward_call(p1, l1).
+  Intros l1_tail.
+  replace (sublist (Zlength l1 - 1) (Zlength l1) l1) with 
+    ([Znth (Zlength l1 - 1) l1]).
+  2: {
+    rewrite sublist_next.
+    3: lia.
+    2: { destruct l1; list_solve. }
+    list_solve. }
+  unff listrep.
+  remember (Znth (Zlength l1 - 1) l1) as l1_last.
+  destruct l1_last as (l1_shift_last, l1_line_last).
+  Intros l1_tail_ptr l1_line_ptr.
+  do 2 forward.
+  remember (lseg_list l1 l2 p1 p2).
+  eapply derives_trans.
+  2: eauto.
+  entailer!.
+  remember (lseg_lseg (sublist 0 (Zlength l1 - 1) l1) [Znth (Zlength l1 - 1) l1] p1 l1_tail p2).
+  assert (Zlength l1 > 0).
+  { destruct l1; list_solve. }
+  assert (l1 = (sublist 0 (Zlength l1 - 1) l1 ++ [Znth (Zlength l1 - 1) l1])) as I by list_solve.
+  rewrite I at 3.
+  eapply derives_trans.
+  2: eauto.
+  entailer!.
+  unff lseg.
+  rewrite <- Heql1_last.
+  Exists p2 l1_line_ptr.
+  entailer!.
+Qed.
+
+Lemma text_from_concat (s1 s2 : list (Z * list byte)) (shift : nat) (line : string):
+  s1 <> [] -> s2 <> [] ->
+  text_from (s1 ++ s2) shift line = 
+  text_from s1 shift EmptyString ++ [Byte.repr 10] ++ shifted_text_from s2 shift ++ string_to_list_byte line.
+Proof.
+  ins.
+  induction s1.
+  { ins. }
+  ins.
+  desf.
+  { autorewrite with sublist.
+    replace s2 with (p :: l0) by list_solve.
+    list_solve. }
+  autorewrite with sublist.
+  assert (p0 :: l1 <> []) as I by vauto.
+  apply IHs1 in I.
+  unfold text_from in I.
+  desf.
+  { inversion Heq. subst.
+    replace (shifted_text_from [] shift ) with ([] : list  byte).
+    2: { unfold shifted_text_from; auto. }
+    autorewrite with sublist.
+    list_solve. }
+  { autorewrite with sublist in *.
+    inversion Heq.
+    subst.
+    assert (shifted_text_from [(z0, l2)] shift = 
+      sp_byte (Z.to_nat z0 + shift) ++ l2) as F.
+    { unfold shifted_text_from; auto. }
+    rewrite F.
+    assert (shifted_text_from ((z0, l2) :: p :: l3) shift =
+      sp_byte (Z.to_nat z0 + shift) ++ l2 ++ [Byte.repr 10] ++ (shifted_text_from (p :: l3) shift)) as G.
+    { reflexivity. }
+    rewrite G.
+    list_solve. }
+  inversion Heq.
+  subst.
+  autorewrite with sublist norm in *.
+  rewrite <- app_assoc in I; apply app_inv_head in I.
+  rewrite <- app_assoc in I; apply app_inv_head in I.
+  rewrite <- app_assoc in I; apply app_inv_head in I.
+  assert (
+    shifted_text_from (p :: l4) shift ++ Byte.repr 10 :: shifted_text_from s2 shift ++ string_to_list_byte line =
+    (shifted_text_from (p :: l4) shift ++ Byte.repr 10 :: shifted_text_from s2 shift) ++ string_to_list_byte line
+  ) as K.
+  { apply (app_assoc 
+  (shifted_text_from (p :: l4) shift)
+  (Byte.repr 10 :: shifted_text_from s2 shift )
+  (string_to_list_byte line)
+  ). }
+  rewrite K in I.
+  apply app_inv_tail in I.
+  clear K IHs1 Heq H.
+  rewrite <- app_assoc; apply app_inv_head_iff.
+  rewrite <- app_assoc; apply app_inv_head_iff.
+  assert (
+    (Byte.repr 10 :: shifted_text_from ((z0, l2) :: p :: l4) shift) ++ 
+    Byte.repr 10 :: shifted_text_from s2 shift ++ string_to_list_byte line = 
+    ((Byte.repr 10 :: shifted_text_from ((z0, l2) :: p :: l4) shift) ++ 
+    Byte.repr 10 :: shifted_text_from s2 shift) ++ string_to_list_byte line
+  ) as K.
+  { apply (app_assoc
+      (Byte.repr 10 :: shifted_text_from ((z0, l2) :: p :: l4) shift)
+      (Byte.repr 10 :: shifted_text_from s2 shift)
+      (string_to_list_byte line)
+    ). }
+  rewrite K.
+  clear K.
+  assert (Byte.repr 10 :: shifted_text_from ((z0, l2) :: p :: l4 ++ s2) shift ++
+     string_to_list_byte line = 
+     (Byte.repr 10 :: shifted_text_from ((z0, l2) :: p :: l4 ++ s2) shift ) ++
+     string_to_list_byte line) as K.
+  { list_solve. }
+  rewrite K.
+  apply app_inv_tail_iff.
+  clear K.
+  replace (shifted_text_from ((z0, l2) :: p :: l4 ++ s2) shift)
+    with (sp_byte (Z.to_nat z0 + shift) ++ l2 ++ [Byte.repr 10] ++ shifted_text_from (p :: l4 ++ s2) shift)
+   by reflexivity.
+  replace (shifted_text_from ((z0, l2) :: p :: l4) shift)
+    with (sp_byte (Z.to_nat z0 + shift) ++ l2 ++ [Byte.repr 10] ++ shifted_text_from (p :: l4) shift)
+    by reflexivity.
+  rewrite I.
+  list_solve.
+Qed.
+  
+Lemma text_from_line (s : list (Z * list byte)) (shift : nat) (line : string):
+  s <> [] ->
+  text_from s shift line = text_from s shift EmptyString ++ string_to_list_byte line.
+Proof.
+  destruct s.
+  { ins. }
+  ins.
+  desf.
+  { autorewrite with sublist; list_solve. }
+  list_solve.
+Qed.
+
+Lemma sp_eq_sp_byte (n : nat):
+  string_to_list_byte (sp n) = sp_byte n.
+Proof.
+  induction n.
+  { reflexivity. }
+  unfold sp_byte; ins.
+  rewrite IHn.
+  unfold sp_byte; auto.
+Qed.
+
+Lemma sp_byte_app (n m : nat):
+  sp_byte (n + m) = sp_byte n ++ sp_byte m.
+Proof.
+  unfold sp_byte.
+  apply repeat_app.
+Qed.
+
+Lemma text_from_shifted_text_from_iff (s : list (Z * list byte)) (shift : nat):
+  s <> [] ->
+  sp_byte shift ++ text_from s shift EmptyString = shifted_text_from s shift.
+Proof.
+  destruct s.
+  { ins. }
+  ins; desf.
+  { unfold shifted_text_from.
+    autorewrite with sublist.
+    rewrite app_assoc.
+    apply app_inv_tail_iff.
+    rewrite <- sp_byte_app.
+    f_equal; lia. }
+  autorewrite with sublist.
+  replace (shifted_text_from ((z, l) :: p :: l0) shift) with 
+    (sp_byte (Z.to_nat z + shift) ++ l ++ [Byte.repr 10] ++ shifted_text_from (p :: l0) shift) by auto.
+  rewrite Nat.add_comm.
+  rewrite sp_byte_app.
+  list_solve.
+Qed.
+  
+
+Lemma text_from_concat_add_above (sigmaG sigmaF : list (Z * list byte)) (G F : t) (shift : nat) (line : string):
+  sigmaG <> [] -> sigmaF <> [] ->
+  to_text_eq (to_text G) sigmaG -> to_text_eq (to_text F) sigmaF ->
+  string_to_list_byte
+  (to_text G shift
+     (String (ascii_of_pos 10) (sp shift ++ to_text F shift line))) = 
+  text_from (sigmaG ++ sigmaF) shift line.
+Proof.
+  intros G_not_nil F_not_nil EQG EQF.
+  unfold to_text_eq in *.
+  rewrite EQG. 
+  clear EQG G.
+  rewrite text_from_line; auto.
+  rewrite text_from_concat; auto.
+  assert (string_to_list_byte (String (ascii_of_pos 10) (sp shift ++ to_text F shift line)) =
+    [Byte.repr 10] ++ string_to_list_byte (sp shift) ++ string_to_list_byte (to_text F shift line)
+  ) as K.
+  { simpl.
+    rewrite string_to_list_byte_app.
+    auto. }
+  rewrite K.
+  rewrite EQF.
+  do 2 apply app_inv_head_iff.
+  rewrite text_from_line; auto.
+  rewrite sp_eq_sp_byte.
+  rewrite <- text_from_shifted_text_from_iff; auto; list_solve.
+Qed.
+
+
+Lemma body_to_text_add_above: semax_body Vprog Gprog f_to_text_add_above to_text_add_above_spec.
+Proof.
+  start_function.
+  forward.
+  getnw; destruct FMT_MP.
+  forward_if(height G <> 0%nat).
+  { forward.
+    prove_ptr.
+    getnw; destruct FMT_MP.
+    forward_call(Ews, pF, sigmaF, gv).
+    { destruct format_mp_list_mp0; list_solve. }
+    Intros new_format_ptr.
+    forward.
+    Exists new_format_ptr sigmaF.
+    entailer!.
+    2: { unfold concrete_mformat; entailer!.
+      split; apply mk_format_mp; auto. }
+    unfold add_above.
+    replace (height G) with 0%nat in * by lia.
+    split; auto.
+    ins; desf; assert (sigmaG = []) by auto; subst; list_solve. }
+  { forward; entailer!. }
+
+  forward.
+  getnw; destruct FMT_MP.
+  forward_if(height F <> 0%nat).
+  { forward.
+    prove_ptr.
+    forward_call(Ews, pG, sigmaG, gv).
+    { destruct format_mp_list_mp; list_solve. }
+    Intros new_format_ptr.
+    forward.
+    Exists new_format_ptr sigmaG.
+    entailer!.
+    2: { unfold concrete_mformat; entailer!.
+      split; apply mk_format_mp; auto. }
+    unfold add_above.
+    replace (height F) with 0%nat by lia.
+    destruct (height G).
+    { lia. }
+    split; auto.
+    ins; desf; assert (sigmaF = []) by auto; subst; list_solve. }
+  { forward; entailer!. }
+
+  forward.
+  prove_ptr.
+  forward_call(Ews, pG, sigmaG, gv).
+  { destruct format_mp_list_mp; list_solve. }
+  Intros new_G_ptr.
+  forward.
+  prove_ptr.
+  forward_call(Ews, pF, sigmaF, gv).
+  { destruct format_mp_list_mp0; list_solve. }
+  Intros new_F_ptr.
+  forward_call(sigmaG, new_G_ptr, sigmaF, new_F_ptr).
+  { split.
+    { destruct sigmaG.
+      2: vauto.
+      desf.
+      assert (0 = Z.of_nat (height G)) by auto; lia.
+    }
+    destruct sigmaF.
+    2: vauto.
+    desf.
+    assert (0 = Z.of_nat (height F)) by auto; lia. }
+  forward.
+  forward.
+
+  Exists new_G_ptr (sigmaG ++ sigmaF).
+  entailer!.
+  2: { unfold concrete_mformat; entailer!.
+    split; apply mk_format_mp; auto. }
+  split.
+  { unfold add_above.
+    destruct (height G).
+    { lia. }
+    destruct (height F).
+    { lia. }
+    simpl.
+    unfold to_text_eq.
+    intros shift line.
+    apply text_from_concat_add_above; auto.
+    { destruct sigmaG; desf.
+      assert (0 = Z.of_nat (S n)) by auto; lia. }
+    destruct sigmaF; desf.
+    assert (0 = Z.of_nat (S n0)) by auto; lia. }
+  destruct format_mp_list_mp.
+  destruct format_mp_list_mp0.
+  apply mk_list_mp; list_solve.
+Qed.
+  
+
+Lemma body_add_above: semax_body Vprog Gprog f_add_above add_above_spec.
+Proof.
+  start_function.
+  unfold mformat.
+  forward.
+  forward_if(height G <> 0%nat).
+  { forward_call(F, pointer_F, sigmaF, pF, gv).
+    Intros new_format_ptr.
+    forward.
+    Exists new_format_ptr.
+    entailer!.
+    unfold mformat.
+    Intros sigmaF1 pF1.
+    Exists sigmaF1 pF1.
+    unfold concrete_mformat. unfold add_above.
+    replace (height G) with 0%nat.
+    { entailer!. }
+    getnw. destruct FMT_MP.
+    apply int_repr_eq; simpl; list_solve. }
+  { forward; entailer!. }
+  forward.
+  forward_if(height F <> 0%nat).
+  { forward_call(G, pointer_G, sigmaG, pG, gv).
+    { unfold concrete_mformat; entailer!. }
+    Intros new_format_ptr.
+    forward.
+    Exists new_format_ptr.
+    entailer!.
+    unfold mformat.
+    Intros sigmaG1 pG1.
+    Exists sigmaG1 pG1.
+    unfold concrete_mformat. unfold add_above.
+    destruct (height G) eqn:E.
+    { lia. }
+    replace (height F) with 0%nat.
+    { rewrite E. entailer!. }
+    getnw. destruct FMT_MP.
+    apply int_repr_eq; list_solve.
+  }
+  { forward; entailer!. }
+  forward_call(t_format, gv).
+
+  Intros result_ptr.
+  dest_ptr result_ptr.
+  
+  forward_call(G, F, pointer_G, pointer_F, sigmaG, sigmaF, pG, pF, gv).
+  { unfold concrete_mformat; entailer!. }
+
+  forward_call(G, F, pointer_G, pointer_F, sigmaG, sigmaF, pG, pF, gv).
+  Intros p.
+  destruct p as (to_text_ptr, to_text).
+  unfold concrete_mformat.
+  Intros.
+  do 10 forward.
+  Exists result_ptr.
+  entailer!.
+  unfold mformat.
+  Exists to_text to_text_ptr.
+  unfold concrete_mformat.
+  assert ((Z.of_nat (height G) + Z.of_nat (height F)) = Z.of_nat (height (add_above G F))) as K1.
+  { unfold add_above.
+    destruct (height G); try lia.
+    destruct (height F); try lia.
+    simpl; lia. }
+  assert (first_line_width G = first_line_width (add_above G F)) as K2.
+  { unfold add_above.
+    destruct (height G); try lia.
+    destruct (height F); try lia.
+    simpl; lia. }
+  assert (last_line_width F = last_line_width (add_above G F)) as K3.
+  { unfold add_above.
+    destruct (height G); try lia.
+    destruct (height F); try lia.
+    simpl; lia. }
+  entailer!.
+  2: {
+    rewrite K1; rewrite K2; rewrite K3.
+    entailer!. }
+  simpl in *.
+  getnw; destruct FMT_MP.
+  getnw; destruct FMT_MP.
+  apply mk_format_mp; auto.
+  { rewrite <- K1; auto. }
+  { rewrite <- K2; auto. }
+  { rewrite <- K3; auto. }
+  rewrite <- K1.
+  split; ins.
+  { assert (height G = 0%nat) by lia; lia. }
+  subst.
+  destruct sigmaG.
+  2: vauto.
+  desf.
+  assert (0 = Z.of_nat (height G)) by auto.
+  lia.
+Qed.
