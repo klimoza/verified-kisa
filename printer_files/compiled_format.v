@@ -2174,7 +2174,7 @@ Definition f_flw_add_beside := {|
 Definition f_line_concats := {|
   fn_return := (tptr tschar);
   fn_callconv := cc_default;
-  fn_params := ((_l1, (tptr tschar)) :: (_shift, tulong) ::
+  fn_params := ((_l1, (tptr tschar)) :: (_n, tulong) ::
                 (_l2, (tptr tschar)) :: nil);
   fn_vars := nil;
   fn_temps := ((_new_line, (tptr tschar)) :: (_shifted, (tptr tschar)) ::
@@ -2196,66 +2196,81 @@ Definition f_line_concats := {|
       (Scall (Some _t'3)
         (Evar _malloc (Tfunction (Tcons tulong Tnil) (tptr tvoid) cc_default))
         ((Ebinop Oadd
-           (Ebinop Oadd (Etempvar _t'1 tulong) (Etempvar _shift tulong)
-             tulong) (Etempvar _t'2 tulong) tulong) :: nil)))
+           (Ebinop Oadd
+             (Ebinop Oadd (Etempvar _t'1 tulong) (Etempvar _n tulong) tulong)
+             (Etempvar _t'2 tulong) tulong) (Econst_int (Int.repr 1) tint)
+           tulong) :: nil)))
     (Sset _new_line (Etempvar _t'3 (tptr tvoid))))
   (Ssequence
+    (Sifthenelse (Eunop Onotbool (Etempvar _new_line (tptr tschar)) tint)
+      (Scall None (Evar _exit (Tfunction (Tcons tint Tnil) tvoid cc_default))
+        ((Econst_int (Int.repr 1) tint) :: nil))
+      Sskip)
     (Ssequence
-      (Scall (Some _t'4)
-        (Evar _sp (Tfunction (Tcons tulong Tnil) (tptr tschar) cc_default))
-        ((Etempvar _shift tulong) :: nil))
-      (Sset _shifted (Etempvar _t'4 (tptr tschar))))
-    (Ssequence
-      (Ssequence
-        (Scall (Some _t'5)
-          (Evar _strcat (Tfunction
-                          (Tcons (tptr tschar) (Tcons (tptr tschar) Tnil))
-                          (tptr tschar) cc_default))
-          ((Etempvar _new_line (tptr tschar)) ::
-           (Etempvar _l1 (tptr tschar)) :: nil))
-        (Sset _new_line (Etempvar _t'5 (tptr tschar))))
+      (Sassign
+        (Ederef
+          (Ebinop Oadd (Etempvar _new_line (tptr tschar))
+            (Econst_int (Int.repr 0) tint) (tptr tschar)) tschar)
+        (Econst_int (Int.repr 0) tint))
       (Ssequence
         (Ssequence
-          (Scall (Some _t'6)
-            (Evar _strcat (Tfunction
-                            (Tcons (tptr tschar) (Tcons (tptr tschar) Tnil))
-                            (tptr tschar) cc_default))
-            ((Etempvar _new_line (tptr tschar)) ::
-             (Etempvar _shifted (tptr tschar)) :: nil))
-          (Sset _new_line (Etempvar _t'6 (tptr tschar))))
+          (Scall (Some _t'4)
+            (Evar _sp (Tfunction (Tcons tulong Tnil) (tptr tschar)
+                        cc_default)) ((Etempvar _n tulong) :: nil))
+          (Sset _shifted (Etempvar _t'4 (tptr tschar))))
         (Ssequence
           (Ssequence
-            (Scall (Some _t'7)
+            (Scall (Some _t'5)
               (Evar _strcat (Tfunction
                               (Tcons (tptr tschar)
                                 (Tcons (tptr tschar) Tnil)) (tptr tschar)
                               cc_default))
               ((Etempvar _new_line (tptr tschar)) ::
-               (Etempvar _l2 (tptr tschar)) :: nil))
-            (Sset _new_line (Etempvar _t'7 (tptr tschar))))
+               (Etempvar _l1 (tptr tschar)) :: nil))
+            (Sset _new_line (Etempvar _t'5 (tptr tschar))))
           (Ssequence
-            (Scall None
-              (Evar _free (Tfunction (Tcons (tptr tvoid) Tnil) tvoid
-                            cc_default))
-              ((Etempvar _l1 (tptr tschar)) :: nil))
             (Ssequence
-              (Scall None
-                (Evar _free (Tfunction (Tcons (tptr tvoid) Tnil) tvoid
-                              cc_default))
-                ((Etempvar _shifted (tptr tschar)) :: nil))
+              (Scall (Some _t'6)
+                (Evar _strcat (Tfunction
+                                (Tcons (tptr tschar)
+                                  (Tcons (tptr tschar) Tnil)) (tptr tschar)
+                                cc_default))
+                ((Etempvar _new_line (tptr tschar)) ::
+                 (Etempvar _shifted (tptr tschar)) :: nil))
+              (Sset _new_line (Etempvar _t'6 (tptr tschar))))
+            (Ssequence
+              (Ssequence
+                (Scall (Some _t'7)
+                  (Evar _strcat (Tfunction
+                                  (Tcons (tptr tschar)
+                                    (Tcons (tptr tschar) Tnil)) (tptr tschar)
+                                  cc_default))
+                  ((Etempvar _new_line (tptr tschar)) ::
+                   (Etempvar _l2 (tptr tschar)) :: nil))
+                (Sset _new_line (Etempvar _t'7 (tptr tschar))))
               (Ssequence
                 (Scall None
                   (Evar _free (Tfunction (Tcons (tptr tvoid) Tnil) tvoid
                                 cc_default))
-                  ((Etempvar _l2 (tptr tschar)) :: nil))
-                (Sreturn (Some (Etempvar _new_line (tptr tschar))))))))))))
+                  ((Etempvar _l1 (tptr tschar)) :: nil))
+                (Ssequence
+                  (Scall None
+                    (Evar _free (Tfunction (Tcons (tptr tvoid) Tnil) tvoid
+                                  cc_default))
+                    ((Etempvar _shifted (tptr tschar)) :: nil))
+                  (Ssequence
+                    (Scall None
+                      (Evar _free (Tfunction (Tcons (tptr tvoid) Tnil) tvoid
+                                    cc_default))
+                      ((Etempvar _l2 (tptr tschar)) :: nil))
+                    (Sreturn (Some (Etempvar _new_line (tptr tschar))))))))))))))
 |}.
 
 Definition f_shift_list := {|
   fn_return := (tptr (Tstruct _list noattr));
   fn_callconv := cc_default;
-  fn_params := ((_sigma, (tptr (Tstruct _list noattr))) ::
-                (_shift, tulong) :: nil);
+  fn_params := ((_sigma, (tptr (Tstruct _list noattr))) :: (_n, tulong) ::
+                nil);
   fn_vars := nil;
   fn_temps := ((_cur_sigma, (tptr (Tstruct _list noattr))) ::
                (_t'1, tulong) :: nil);
@@ -2276,8 +2291,7 @@ Definition f_shift_list := {|
             (Efield
               (Ederef (Etempvar _cur_sigma (tptr (Tstruct _list noattr)))
                 (Tstruct _list noattr)) _shift tulong)
-            (Ebinop Oadd (Etempvar _t'1 tulong) (Etempvar _shift tulong)
-              tulong)))
+            (Ebinop Oadd (Etempvar _t'1 tulong) (Etempvar _n tulong) tulong)))
         (Sset _cur_sigma
           (Efield
             (Ederef (Etempvar _cur_sigma (tptr (Tstruct _list noattr)))

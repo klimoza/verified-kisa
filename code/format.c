@@ -284,9 +284,12 @@ unsigned int flw_add_beside(t *G, t *F) {
   return first_line_width_new;
 }
 
-char *line_concats(char *l1, size_t shift, char *l2) {
-  char *new_line = malloc(strlen(l1) + shift + strlen(l2));
-  char *shifted = sp(shift);
+char *line_concats(char *l1, size_t n, char *l2) {
+  char *new_line = malloc(strlen(l1) + n + strlen(l2) + 1);
+  if(!new_line) exit(1);
+  new_line[0] = '\0';
+
+  char *shifted = sp(n);
   new_line = strcat(new_line, l1);
   new_line = strcat(new_line, shifted);
   new_line = strcat(new_line, l2);
@@ -296,10 +299,10 @@ char *line_concats(char *l1, size_t shift, char *l2) {
   return new_line;
 }
 
-list *shift_list(list *sigma, size_t shift) {
+list *shift_list(list *sigma, size_t n) {
   list *cur_sigma = sigma;
   while(cur_sigma != NULL) {
-    cur_sigma->shift += shift;
+    cur_sigma->shift += n;
     cur_sigma = cur_sigma->tail;
   }
   return sigma;

@@ -382,17 +382,16 @@ Proof.
 Qed.
 
 Lemma sp_fact1 (n : Z):
-  Zrepeat (Byte.repr 32) n = string_to_list_byte (sp (Z.to_nat n)).
+  Zrepeat (Byte.repr 32) n = sp_byte (Z.to_nat n).
 Proof.
   unfold Zrepeat.
   remember (Z.to_nat n) as m eqn:AA.
   clear AA. clear n.
   induction m; ins.
-  now rewrite IHm.
 Qed.
 
 Lemma sp_fact2 (n : nat):
-  ~In Byte.zero (string_to_list_byte (sp n)).
+  ~In Byte.zero (sp_byte n).
 Proof.
   induction n.
   { list_solve. }
@@ -427,8 +426,7 @@ Proof.
   ).
   { forward. Exists 0. entailer!. 
     autorewrite with sublist norm.
-    unfold data_at_, data_at, field_at_. entailer!.
-  }
+    unfold data_at_, data_at, field_at_. entailer!. }
   { Intros i. 
     forward_if.
     { forward. forward. Exists (i + 1). entailer!. list_solve. } 

@@ -83,8 +83,7 @@ Proof.
     }
     unfold concrete_mformat.
     entailer!.
-    split; apply mk_format_mp; auto.
-  }
+    split; apply mk_format_mp; auto. }
   { forward. rewrite eqn_if_invariant.
     entailer!.
     { assert (height G <> 1)%nat by list_solve.
@@ -94,8 +93,7 @@ Proof.
      }
      unfold concrete_mformat.
      entailer!.
-    split; apply mk_format_mp; auto.
-  }
+    split; apply mk_format_mp; auto. }
 
   remember (
     PROP(0 <= Z.of_nat (middle_width (add_above G F)) <= Int.max_unsigned)
@@ -120,10 +118,7 @@ Proof.
     { lia. }
     destruct hG.
     2: now lia.
-    destruct hF.
-    2: now lia.
-    auto.
-  }
+    destruct hF; vauto. }
   { forward.
     getnw. destruct FMT_MP.
 
@@ -139,8 +134,7 @@ Proof.
       { simpl. f_equal.
         apply nat_eq_iff_int_eq; list_solve.
       }
-      apply int_repr_eq; list_solve.
-    }
+      apply int_repr_eq; list_solve. }
     { forward.
       rewrite eqn_if_invariant.
       entailer!.
@@ -148,8 +142,7 @@ Proof.
       assert (height G <> 1)%nat by list_solve.
       replace (height G =? 1)%nat with false.
       { list_solve. }
-      symmetry. apply Nat.eqb_neq; auto.
-    }
+      symmetry. apply Nat.eqb_neq; auto. }
     rewrite eqn_if_invariant.
 
     forward_if(middle_invariant).
@@ -271,8 +264,7 @@ Proof.
       f_equal.
       replace (height G) with 2%nat by list_solve.
       simpl. f_equal.
-      apply nat_eq_iff_int_eq; list_solve.
-    }
+      apply nat_eq_iff_int_eq; list_solve. }
     { forward.
       rewrite eqn_if_invariant.
       entailer!.
@@ -486,8 +478,7 @@ Proof.
     replace (height F) with 0%nat.
     { rewrite E. entailer!. }
     getnw. destruct FMT_MP.
-    apply int_repr_eq; list_solve.
-  }
+    apply int_repr_eq; list_solve. }
   { forward; entailer!. }
   forward_call(t_format, gv).
 
@@ -702,3 +693,194 @@ Proof.
   ins; list_solve.
 Qed.
   
+Lemma body_flw_add_beside: semax_body Vprog Gprog f_flw_add_beside flw_add_beside_spec.
+Proof.
+  start_function.
+  forward.
+  getnw; destruct COMB.
+  forward_if(height G <> 0%nat).
+  { do 2 forward.
+    unfold concrete_mformat; entailer!.
+    unfold add_beside.
+    replace (height G) with 0%nat by lia.
+    list_solve. }
+  { forward. entailer!.  }
+  forward.
+  forward_if(height F <> 0%nat).
+  { do 2 forward.
+    unfold concrete_mformat; entailer!.
+    unfold add_beside.
+    destruct (height G); vauto.
+    replace (height F) with 0%nat by lia.
+    list_solve. }
+  { forward. entailer!.  }
+  forward.
+  forward_if(
+    PROP(0 <= Z.of_nat (first_line_width (add_beside G F)) <= Int.max_unsigned)
+    LOCAL(temp _first_line_width_new (Vint (Int.repr (Z.of_nat (first_line_width (add_beside G F))))); 
+          temp _G pointer_G; temp _F pointer_F)
+    SEP(concrete_mformat G pointer_G sigmaG pG; concrete_mformat F pointer_F sigmaF pF)).
+  3: { forward. }
+  { do 3 forward.
+    unfold concrete_mformat; entailer!.
+    unfold add_beside.
+    desf; ins; list_solve. }
+  forward.
+  unfold concrete_mformat; entailer!.
+  unfold add_beside.
+  desf; ins; list_solve.
+Qed.
+
+Lemma Zrepeat_cons: forall {A: Type} (a: A) (n: Z),
+  0 <= n ->
+  a :: Zrepeat a n = Zrepeat a (n + 1).
+Proof.
+  ins.
+  repeat rewrite <- repeat_Zrepeat.
+  remember (Z.to_nat n) as k.
+  replace (Z.to_nat (n + 1)) with (k + 1)%nat by lia.
+  clear dependent n.
+  replace (k + 1)%nat with (S k) by lia.
+  ins.
+Qed.
+  
+
+Lemma body_line_concats: semax_body Vprog Gprog f_line_concats line_concats_spec.
+Proof.
+  start_function.
+  forward_call(Ews, l1, p1).
+  forward_call(Ews, l2, p2).
+  forward_call((tarray tschar (Zlength l1 + shift + Zlength l2 + 1)), gv).
+  { unfold Ptrofs.max_unsigned.
+    unfold Int.max_unsigned in *; ins; lia. }
+  Intros result_ptr.
+  destruct (eq_dec result_ptr nullval).
+  { forward.
+    forward_if(result_ptr <> nullval).
+    { forward_call; entailer!. }
+    { forward; entailer!. }
+    now Intros. }
+  Intros.
+  forward.
+  forward_if(result_ptr <> nullval).
+  { forward_call; entailer!. }
+  { forward; entailer!. }
+  Intros.
+  rewrite data_at__tarray.
+  replace (Zrepeat (default_val tschar) (Zlength l1 + shift + Zlength l2 + 1)) 
+    with (default_val tschar :: Zrepeat (default_val tschar) (Zlength l1 + shift + Zlength l2)).
+  2: { apply Zrepeat_cons; list_solve. }
+  forward.
+  { entailer!. }
+  rewrite upd_Znth0.
+  forward_call(shift, gv).
+  Intros shifted_ptr.
+  forward_call(Ews, Ews, result_ptr, Zlength l1 + shift + Zlength l2 + 1, p1, [] : list byte, l1).
+  2: list_solve.
+  { unfold cstringn.
+    autorewrite with sublist norm.
+    entailer!. }
+  forward_call(Ews, Ews, result_ptr, Zlength l1 + shift + Zlength l2 + 1, shifted_ptr, l1, sp_byte (Z.to_nat shift)).
+  { autorewrite with sublist norm.
+    entailer!. }
+  { rewrite sp_byte_length; list_solve. }
+  forward_call(Ews, Ews, result_ptr, Zlength l1 + shift + Zlength l2 + 1, p2, l1 ++ sp_byte (Z.to_nat shift), l2).
+  { autorewrite with sublist norm.
+    rewrite sp_byte_length; list_solve. }
+  forward_call(tarray tschar (Zlength l1 + 1), p1, gv).
+  { destruct (eq_dec p1 nullval).
+    { entailer!. }
+    unfold cstring; entailer!. }
+  forward_call(tarray tschar (shift + 1), shifted_ptr, gv).
+  { destruct (eq_dec shifted_ptr nullval); entailer!.
+    rewrite sp_byte_length. 
+    replace (Z.of_nat (Z.to_nat shift)) with shift by list_solve.
+    entailer!. }
+  forward_call(tarray tschar (Zlength l2 + 1), p2, gv).
+  { destruct (eq_dec p2 nullval).
+    { entailer!. }
+    unfold cstring; entailer!. }
+  forward.
+  Exists (l1 ++ sp_byte (Z.to_nat shift) ++ l2) result_ptr.
+  entailer!.
+  rewrite cstringn_equiv.
+  autorewrite with sublist norm.
+  rewrite sp_byte_length.
+  replace (Z.of_nat (Z.to_nat shift)) with shift by list_solve.
+  replace (((l1 ++ sp_byte (Z.to_nat shift)) ++ l2)) with
+    (l1 ++ sp_byte (Z.to_nat shift) ++ l2) by list_solve.
+  replace (Zlength l1 + (shift + Zlength l2) + 1) with
+    (Zlength l1 + shift + Zlength l2 + 1) by list_solve.
+  entailer!.
+Qed.
+
+Lemma body_shift_list: semax_body Vprog Gprog f_shift_list shift_list_spec.
+Proof.
+  start_function.
+  forward.
+  forward_loop(
+    EX i : Z, 
+    EX q : val,
+    PROP(0 <= i <= Zlength sigma)
+    LOCAL(temp _cur_sigma q; temp _sigma p; temp _n (Vptrofs (Ptrofs.repr shift)))
+    SEP(lseg (map (fun x => (fst x + shift, snd x)) (sublist 0 i sigma)) p q; 
+        listrep (sublist i (Zlength sigma) sigma) q)
+  ).
+  2: {entailer!. }
+  { Exists 0 p.
+    entailer!.
+    replace (sublist 0 0 sigma) with ([] : list (Z * list byte)) by list_solve.
+    unff lseg.
+    replace (sublist 0 (Zlength sigma) sigma) with sigma by list_solve.
+    entailer!. }
+  { assert ((i = Zlength sigma) \/ (i < Zlength sigma)) as K by lia.
+    destruct K.
+    { subst.
+      replace (sublist (Zlength sigma) (Zlength sigma) sigma) with ([] : list (Z * list byte)) by list_solve.
+      unff listrep.
+      Intros; vauto. }
+    replace (sublist i (Zlength sigma) sigma) 
+      with (Znth i sigma :: sublist (i + 1) (Zlength sigma) sigma) by list_solve.
+    unff listrep.
+    remember (Znth i sigma) as ith_element.
+    destruct ith_element as (ith_shift, ith_line).
+    Intros ith_tail ith_line_ptr.
+    do 3 forward.
+    prove_ptr.
+    Exists ((i + 1), ith_tail).
+    entailer!.
+    { list_solve. }
+    entailer!.
+    replace (sublist 0 (i + 1) sigma) with (sublist 0 i sigma ++ [Znth i sigma]) by list_solve.
+    rewrite map_app.
+    remember (fun x : Z * list byte => (fst x + shift, snd x)) as f.
+    assert (
+      lseg (map f (sublist 0 i sigma)) p q *
+      lseg (map f [Znth i sigma]) q ith_tail
+      |--
+      lseg (map f (sublist 0 i sigma) ++ map f [Znth i sigma]) p ith_tail
+    ) as K.
+    { apply lseg_lseg. }
+    eapply derives_trans.
+    2: eauto.
+    entailer!.
+    rewrite <- Heqith_element.
+    simpl.
+    unfold lseg.
+    Exists ith_tail ith_line_ptr.
+    entailer!. }
+  forward.
+  unnw; desf.
+  assert (sublist i (Zlength sigma) sigma = []) as K by auto.
+  assert (i < Zlength sigma \/ i = Zlength sigma) as K2 by lia.
+  destruct K2.
+  { replace (sublist i (Zlength sigma) sigma) with
+      (Znth i sigma :: sublist (i + 1) (Zlength sigma) sigma) in K by list_solve.
+    vauto. }
+  subst.
+  replace (sublist 0 (Zlength sigma) sigma) with sigma by list_solve.
+  replace (sublist (Zlength sigma) (Zlength sigma) sigma) with ([] : list (Z * list byte)) by list_solve.
+  unff listrep.
+  entailer!.
+  apply lseg_null_listrep.
+Qed.

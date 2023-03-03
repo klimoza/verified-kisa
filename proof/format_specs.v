@@ -296,14 +296,14 @@ Definition sp_spec : ident * funspec :=
 DECLARE _sp
   WITH n : Z, gv : globals
   PRE [ size_t ]
-    PROP (0 <= n <= Int.max_unsigned)
+    PROP (0 <= n <= Int.max_unsigned - 1)
     PARAMS(Vptrofs (Ptrofs.repr n)) GLOBALS(gv)
     SEP(mem_mgr gv)
   POST [ tptr tschar ]
     EX p : val,
     PROP()
     RETURN(p)
-    SEP(cstring Ews (string_to_list_byte (sp (Z.to_nat n))) p;
+    SEP(cstring Ews (sp_byte (Z.to_nat n)) p;
          malloc_token Ews (Tarray tschar (n + 1) noattr) p; mem_mgr gv).
         
 Definition get_applied_length_spec : ident * funspec :=
@@ -425,7 +425,7 @@ DECLARE _add_above
         mformat (add_above G F) p; mem_mgr gv).
 
 Definition mdw_add_beside_spec : ident * funspec :=
-DECLARE _mdw_add_above
+DECLARE _mdw_add_beside
   WITH G : t, F : t, pointer_G : val, pointer_F : val,
       sigmaG : list (Z * list byte), sigmaF : (list (Z * list byte)),
       pG : val, pF : val, gv : globals
@@ -437,6 +437,74 @@ DECLARE _mdw_add_above
     PROP(0 <= Z.of_nat (middle_width (add_beside G F)) <= Int.max_unsigned)
     RETURN(Vint (Int.repr (Z.of_nat (middle_width (add_beside G F)))))
     SEP(concrete_mformat G pointer_G sigmaG pG; concrete_mformat F pointer_F sigmaF pF).
+
+Definition flw_add_beside_spec : ident * funspec :=
+DECLARE _flw_add_beside
+  WITH G : t, F : t, pointer_G : val, pointer_F : val,
+      sigmaG : list (Z * list byte), sigmaF : (list (Z * list byte)),
+      pG : val, pF : val, gv : globals
+  PRE [ tptr t_format, tptr t_format ]
+    PROP (<< COMB: format_comb_pred G F sigmaG sigmaF >>)
+    PARAMS(pointer_G; pointer_F)
+    SEP(concrete_mformat G pointer_G sigmaG pG; concrete_mformat F pointer_F sigmaF pF)
+  POST [ tuint ]
+    PROP(0 <= Z.of_nat (first_line_width (add_beside G F)) <= Int.max_unsigned)
+    RETURN(Vint (Int.repr (Z.of_nat (first_line_width (add_beside G F)))))
+    SEP(concrete_mformat G pointer_G sigmaG pG; concrete_mformat F pointer_F sigmaF pF).
+
+Definition line_concats_spec : ident * funspec :=
+DECLARE _line_concats
+  WITH l1 : list byte, p1 : val, l2 : list byte, p2 : val, shift : Z, gv : globals
+  PRE [ tptr tschar, size_t, tptr tschar ]
+    PROP(0 <= Zlength l1 + shift + Zlength l2 + 1 <= Int.max_unsigned;
+          0 <= shift <= Int.max_unsigned - 1)
+    PARAMS(p1; Vptrofs (Ptrofs.repr shift); p2) GLOBALS(gv)
+    SEP(mem_mgr gv; cstring Ews l1 p1; cstring Ews l2 p2;
+        malloc_token Ews (Tarray tschar (Zlength l1 + 1) noattr) p1;
+        malloc_token Ews (Tarray tschar (Zlength l2 + 1) noattr) p2)
+  POST [ tptr tschar ]
+    EX sigma : list byte, EX p : val,
+    PROP(sigma = l1 ++ sp_byte (Z.to_nat shift) ++ l2)
+    RETURN(p)
+    SEP(mem_mgr gv; cstring Ews sigma p;
+        malloc_token Ews (Tarray tschar (Zlength l1 + shift + Zlength l2 + 1) noattr) p).
+
+Definition shift_list_spec : ident * funspec :=
+DECLARE _shift_list
+  WITH sigma : list (Z * list byte), p : val, shift : Z
+  PRE [ tptr t_list, size_t ]
+    PROP(0 <= Zlength sigma + 1 <= Int.max_unsigned;
+          Forall (fun x => 0 <= fst x + shift <= Int.max_unsigned) sigma)
+    PARAMS(p; Vptrofs (Ptrofs.repr shift))
+    SEP(listrep sigma p)
+  POST [ tptr t_list ]
+    PROP(0 <= Zlength sigma + 1 <= Int.max_unsigned;
+          Forall (fun x => 0 <= fst x + shift <= Int.max_unsigned) sigma)
+    RETURN(p)
+    SEP(listrep (map (fun x => (fst x + shift, snd x)) sigma) p).
+
+  
+
+Definition to_text_add_beside_spec : ident * funspec :=
+DECLARE _to_text_add_beside
+  WITH G : t, F : t, pointer_G : val, pointer_F : val,
+    sigmaG : list (Z * list byte), sigmaF : (list (Z * list byte)),
+    pG : val, pF : val, gv : globals
+  PRE [ tptr t_format, tptr t_format ]
+    PROP (0 <= Zlength sigmaG + Zlength sigmaF + 1 <= Int.max_unsigned;
+          Forall (fun x => 0 <= fst x + (Z.of_nat (last_line_width G)) <= Int.max_unsigned) sigmaF)
+    PARAMS(pointer_G; pointer_F) GLOBALS(gv)
+    SEP(concrete_mformat G pointer_G sigmaG pG; 
+      concrete_mformat F pointer_F sigmaF pF; mem_mgr gv)
+  POST [ tptr t_list ]
+    EX q : val, EX sigma : list (Z * list byte),
+    PROP(to_text_eq (to_text (add_beside G F)) sigma; list_mp sigma;
+          0 <= Zlength sigma + 1 <= Int.max_unsigned)
+    RETURN(q)
+    SEP(concrete_mformat G pointer_G sigmaG pG; 
+        concrete_mformat F pointer_F sigmaF pF;
+        mem_mgr gv;
+        listrep sigma q).
 
 Ltac dest_ptr ptr := 
   destruct (eq_dec ptr nullval);
@@ -457,5 +525,7 @@ Definition Gprog : funspecs :=
                    empty_spec; line_spec; sp_spec; 
                    get_applied_length_spec; format_copy_spec; get_list_tail_spec;
                    mdw_add_above_spec; list_concat_spec; to_text_add_above_spec;
-                   new_list_spec; add_above_spec
+                   new_list_spec; add_above_spec;
+                   flw_add_beside_spec;
+                   mdw_add_beside_spec; to_text_add_beside_spec; line_concats_spec
  ]).
