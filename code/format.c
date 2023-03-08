@@ -334,8 +334,8 @@ t *add_beside(t *G, t *F) {
   t* result = malloc(sizeof(t));
   if(!result) exit(1);
 
-  unsigned middle_width_new = mdw_add_beside(G, F);
-  unsigned first_line_width_new = flw_add_beside(G, F);
+  unsigned int middle_width_new = mdw_add_beside(G, F);
+  unsigned int first_line_width_new = flw_add_beside(G, F);
   list *to_text_new = to_text_add_beside(G, F);
 
   result->height = G->height + F->height - 1;

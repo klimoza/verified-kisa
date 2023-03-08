@@ -955,8 +955,12 @@ Proof.
     forward.
     Exists result_ptr sigmaF.
     unfold concrete_mformat; entailer!.
+    desf; assert (sigmaG = []).
+    { list_solve. }
     split.
     { unfold add_beside; desf. }
+    split.
+    { subst; list_solve. }
     split; apply mk_format_mp; vauto. }
   { forward; entailer!. }
   forward.
@@ -1237,3 +1241,93 @@ Proof.
   entailer!.
 Qed.
   
+Lemma add_beside_spec: semax_body Vprog Gprog f_add_beside add_beside_spec.
+Proof.
+  start_function.
+  forward.
+  getnw; destruct FMT_MP.
+  forward_if(height G <> 0%nat).
+  { forward_call(F, pointer_F, sigmaF, pF, gv).
+    Intros result_ptr.
+    forward.
+    Exists result_ptr.
+    unfold concrete_mformat; entailer!.
+    { apply mk_format_mp; vauto. }
+    unfold mformat.
+    Intros sigma p.
+    Exists sigma p.
+    unfold add_beside.
+    replace (height G) with 0%nat by lia.
+    entailer!. }
+  { forward; entailer!. }
+  forward.
+  getnw; destruct FMT_MP.
+  forward_if(height F <> 0%nat).
+  { forward_call(G, pointer_G, sigmaG, pG, gv).
+    { unfold concrete_mformat; entailer!.
+      apply mk_format_mp; vauto. }
+    Intros result_ptr.
+    forward.
+    Exists result_ptr.
+    unfold concrete_mformat; entailer!.
+    { apply mk_format_mp; vauto. }
+    unfold mformat.
+    Intros sigma p.
+    Exists sigma p.
+    unfold add_beside.
+    destruct (height G).
+    { lia. }
+    replace (height F) with 0%nat by lia.
+    entailer!. }
+  { forward; entailer!. }
+
+  forward_call(t_format, gv).
+  Intros result_ptr.
+  dest_ptr result_ptr.
+  forward_call(G, F, pointer_G, pointer_F, sigmaG, sigmaF, pG, pF).
+  { unfold concrete_mformat; entailer!.
+    split; apply mk_format_mp; vauto. }
+  forward_call(G, F, pointer_G, pointer_F, sigmaG, sigmaF, pG, pF).
+  Intros flw_ptr.
+  destruct COMB.
+  forward_call(G, F, pointer_G, pointer_F, sigmaG, sigmaF, pG, pF, gv).
+  Intros to_text.
+  destruct to_text as (to_text_ptr, to_text_list).
+  do 10 forward.
+  Exists result_ptr.
+  unfold concrete_mformat; entailer!.
+  unfold mformat.
+  Exists to_text_list to_text_ptr.
+  unfold concrete_mformat.
+  assert (height (add_beside G F) = height G + height F - 1)%nat as K1. 
+  { unfold add_beside.
+    destruct (height G).
+    { lia. }
+    destruct (height F).
+    { lia. }
+    simpl; lia. }
+  assert (last_line_width (add_beside G F) = last_line_width G + last_line_width F)%nat as K2.
+  { unfold add_beside.
+    destruct (height G).
+    { lia. }
+    destruct (height F).
+    { lia. }
+    simpl; lia. }
+
+  entailer!.
+  { apply mk_format_mp; vauto.
+    { rewrite K1; lia. }
+    { rewrite K2; lia. }
+    split.
+    { lia. }
+    ins; desf.
+    destruct (sigmaG).
+    { assert(0 = Z.of_nat (height G)) by auto; lia. }
+    list_solve. }
+  rewrite K1.
+  rewrite K2.
+  repeat rewrite Nat2Z.inj_add.
+  replace (Z.of_nat (height G + height F - 1)) with 
+    (Z.of_nat (height G) + Z.of_nat (height F) - 1) by list_solve.
+  entailer!.
+Qed.

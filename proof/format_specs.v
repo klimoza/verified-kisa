@@ -428,7 +428,7 @@ Definition mdw_add_beside_spec : ident * funspec :=
 DECLARE _mdw_add_beside
   WITH G : t, F : t, pointer_G : val, pointer_F : val,
       sigmaG : list (Z * list byte), sigmaF : (list (Z * list byte)),
-      pG : val, pF : val, gv : globals
+      pG : val, pF : val
   PRE [ tptr t_format, tptr t_format ]
     PROP (<< COMB: format_comb_pred G F sigmaG sigmaF >>)
     PARAMS(pointer_G; pointer_F)
@@ -442,7 +442,7 @@ Definition flw_add_beside_spec : ident * funspec :=
 DECLARE _flw_add_beside
   WITH G : t, F : t, pointer_G : val, pointer_F : val,
       sigmaG : list (Z * list byte), sigmaF : (list (Z * list byte)),
-      pG : val, pF : val, gv : globals
+      pG : val, pF : val
   PRE [ tptr t_format, tptr t_format ]
     PROP (<< COMB: format_comb_pred G F sigmaG sigmaF >>)
     PARAMS(pointer_G; pointer_F)
@@ -506,12 +506,32 @@ DECLARE _to_text_add_beside
   POST [ tptr t_list ]
     EX q : val, EX sigma : list (Z * list byte),
     PROP(to_text_eq (to_text (add_beside G F)) sigma; list_mp sigma;
-          0 <= Zlength sigma + 1 <= Int.max_unsigned)
+          0 <= Zlength sigma + 1 <= Int.max_unsigned;
+          Zlength sigma >= Zlength sigmaG)
     RETURN(q)
     SEP(concrete_mformat G pointer_G sigmaG pG; 
         concrete_mformat F pointer_F sigmaF pF;
         mem_mgr gv;
         listrep sigma q).
+
+Definition add_beside_spec : ident * funspec :=
+DECLARE _add_beside
+  WITH G : t, F : t, pointer_G : val, pointer_F : val,
+    sigmaG : list (Z * list byte), sigmaF : (list (Z * list byte)),
+    pG : val, pF : val, gv : globals
+  PRE [ tptr t_format, tptr t_format ]
+    PROP (<< COMB: format_comb_pred G F sigmaG sigmaF>>;
+          << STMT: Forall (fun x => 0 <= fst x + (Z.of_nat (last_line_width G)) <= Int.max_unsigned - 1) sigmaF>>;
+          << AB_PRED: to_text_add_beside_pred G F sigmaG sigmaF >>)
+    PARAMS(pointer_G; pointer_F) GLOBALS(gv)
+    SEP(concrete_mformat G pointer_G sigmaG pG; 
+      concrete_mformat F pointer_F sigmaF pF; mem_mgr gv)
+  POST [ tptr t_format ]
+    EX p : val,
+    PROP()
+    RETURN(p)
+    SEP(concrete_mformat G pointer_G sigmaG pG; concrete_mformat F pointer_F sigmaF pF; 
+        mformat (add_beside G F) p; mem_mgr gv).
 
 Ltac dest_ptr ptr := 
   destruct (eq_dec ptr nullval);
