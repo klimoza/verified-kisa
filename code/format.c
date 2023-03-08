@@ -315,9 +315,11 @@ list *to_text_add_beside(t *G, t *F) {
     return list_copy(G->to_text);
   list *head = list_copy(G->to_text);
   list *tail = get_list_tail(head);
-  tail->line = line_concats(tail->line, F->to_text->shift, F->to_text->line);
-  shift_list(F->to_text->tail, G->last_line_width);
-  tail->tail = F->to_text->tail;
+  list *copy_F = list_copy(F->to_text);
+  tail->line = line_concats(tail->line, copy_F->shift, copy_F->line);
+  shift_list(copy_F->tail, G->last_line_width);
+  tail->tail = copy_F->tail;
+  free(copy_F);
   return head;
 }
 

@@ -175,7 +175,7 @@ Record list_mp (sigma : list (Z * list byte)) : Prop :=
   mk_list_mp {
     list_mp_length     : 0 <= Zlength sigma + 1 <= Int.max_unsigned;
     list_mp_forall_fst :
-      Forall (fun x => 0 <= (fst x) <= Int.max_unsigned) sigma;
+      Forall (fun x => 0 <= (fst x) <= Int.max_unsigned - 1) sigma;
     list_mp_forall_snd :
       Forall (fun x => 0 <= Zlength (snd x) + 1 <= Int.max_unsigned) sigma;
   }.
@@ -464,7 +464,8 @@ DECLARE _line_concats
         malloc_token Ews (Tarray tschar (Zlength l2 + 1) noattr) p2)
   POST [ tptr tschar ]
     EX sigma : list byte, EX p : val,
-    PROP(sigma = l1 ++ sp_byte (Z.to_nat shift) ++ l2)
+    PROP(<< LINE_CON_EQ: sigma = l1 ++ sp_byte (Z.to_nat shift) ++ l2 >>;
+          0 <= Zlength sigma + 1 <= Int.max_unsigned)
     RETURN(p)
     SEP(mem_mgr gv; cstring Ews sigma p;
         malloc_token Ews (Tarray tschar (Zlength l1 + shift + Zlength l2 + 1) noattr) p).
@@ -484,6 +485,11 @@ DECLARE _shift_list
     SEP(listrep (map (fun x => (fst x + shift, snd x)) sigma) p).
 
   
+Definition to_text_add_beside_pred (G F : t) (sigmaG sigmaF : list (Z * list byte)) : Prop :=
+  match sigmaF with
+  | nil => True
+  | h::hs => Forall (fun x => 0 <= Zlength (snd x) + (fst h) + Zlength (snd h) + 1 <= Int.max_unsigned) sigmaG
+end.
 
 Definition to_text_add_beside_spec : ident * funspec :=
 DECLARE _to_text_add_beside
@@ -492,7 +498,8 @@ DECLARE _to_text_add_beside
     pG : val, pF : val, gv : globals
   PRE [ tptr t_format, tptr t_format ]
     PROP (0 <= Zlength sigmaG + Zlength sigmaF + 1 <= Int.max_unsigned;
-          Forall (fun x => 0 <= fst x + (Z.of_nat (last_line_width G)) <= Int.max_unsigned) sigmaF)
+          << STMT: Forall (fun x => 0 <= fst x + (Z.of_nat (last_line_width G)) <= Int.max_unsigned - 1) sigmaF>>;
+          << AB_PRED: to_text_add_beside_pred G F sigmaG sigmaF >>)
     PARAMS(pointer_G; pointer_F) GLOBALS(gv)
     SEP(concrete_mformat G pointer_G sigmaG pG; 
       concrete_mformat F pointer_F sigmaF pF; mem_mgr gv)
@@ -526,6 +533,6 @@ Definition Gprog : funspecs :=
                    get_applied_length_spec; format_copy_spec; get_list_tail_spec;
                    mdw_add_above_spec; list_concat_spec; to_text_add_above_spec;
                    new_list_spec; add_above_spec;
-                   flw_add_beside_spec;
+                   flw_add_beside_spec; shift_list_spec;
                    mdw_add_beside_spec; to_text_add_beside_spec; line_concats_spec
  ]).

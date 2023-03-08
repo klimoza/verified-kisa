@@ -82,6 +82,7 @@ Definition _add_above : ident := $"add_above".
 Definition _add_beside : ident := $"add_beside".
 Definition _add_fill : ident := $"add_fill".
 Definition _b : ident := $"b".
+Definition _copy_F : ident := $"copy_F".
 Definition _cur : ident := $"cur".
 Definition _cur_sigma : ident := $"cur_sigma".
 Definition _d : ident := $"d".
@@ -2307,34 +2308,33 @@ Definition f_to_text_add_beside := {|
   fn_vars := nil;
   fn_temps := ((_head, (tptr (Tstruct _list noattr))) ::
                (_tail, (tptr (Tstruct _list noattr))) ::
-               (_t'5, (tptr tschar)) ::
+               (_copy_F, (tptr (Tstruct _list noattr))) ::
+               (_t'6, (tptr tschar)) ::
+               (_t'5, (tptr (Tstruct _list noattr))) ::
                (_t'4, (tptr (Tstruct _list noattr))) ::
                (_t'3, (tptr (Tstruct _list noattr))) ::
                (_t'2, (tptr (Tstruct _list noattr))) ::
                (_t'1, (tptr (Tstruct _list noattr))) ::
-               (_t'20, (tptr (Tstruct _list noattr))) :: (_t'19, tuint) ::
                (_t'18, (tptr (Tstruct _list noattr))) :: (_t'17, tuint) ::
-               (_t'16, (tptr (Tstruct _list noattr))) ::
-               (_t'15, (tptr tschar)) ::
-               (_t'14, (tptr (Tstruct _list noattr))) :: (_t'13, tulong) ::
-               (_t'12, (tptr (Tstruct _list noattr))) ::
-               (_t'11, (tptr tschar)) :: (_t'10, tuint) ::
-               (_t'9, (tptr (Tstruct _list noattr))) ::
+               (_t'16, (tptr (Tstruct _list noattr))) :: (_t'15, tuint) ::
+               (_t'14, (tptr (Tstruct _list noattr))) ::
+               (_t'13, (tptr (Tstruct _list noattr))) ::
+               (_t'12, (tptr tschar)) :: (_t'11, tulong) ::
+               (_t'10, (tptr tschar)) :: (_t'9, tuint) ::
                (_t'8, (tptr (Tstruct _list noattr))) ::
-               (_t'7, (tptr (Tstruct _list noattr))) ::
-               (_t'6, (tptr (Tstruct _list noattr))) :: nil);
+               (_t'7, (tptr (Tstruct _list noattr))) :: nil);
   fn_body :=
 (Ssequence
   (Ssequence
-    (Sset _t'19
+    (Sset _t'17
       (Efield
         (Ederef (Etempvar _G (tptr (Tstruct _t noattr))) (Tstruct _t noattr))
         _height tuint))
-    (Sifthenelse (Ebinop Oeq (Etempvar _t'19 tuint)
+    (Sifthenelse (Ebinop Oeq (Etempvar _t'17 tuint)
                    (Econst_int (Int.repr 0) tint) tint)
       (Ssequence
         (Ssequence
-          (Sset _t'20
+          (Sset _t'18
             (Efield
               (Ederef (Etempvar _F (tptr (Tstruct _t noattr)))
                 (Tstruct _t noattr)) _to_text (tptr (Tstruct _list noattr))))
@@ -2342,20 +2342,20 @@ Definition f_to_text_add_beside := {|
             (Evar _list_copy (Tfunction
                                (Tcons (tptr (Tstruct _list noattr)) Tnil)
                                (tptr (Tstruct _list noattr)) cc_default))
-            ((Etempvar _t'20 (tptr (Tstruct _list noattr))) :: nil)))
+            ((Etempvar _t'18 (tptr (Tstruct _list noattr))) :: nil)))
         (Sreturn (Some (Etempvar _t'1 (tptr (Tstruct _list noattr))))))
       Sskip))
   (Ssequence
     (Ssequence
-      (Sset _t'17
+      (Sset _t'15
         (Efield
           (Ederef (Etempvar _F (tptr (Tstruct _t noattr)))
             (Tstruct _t noattr)) _height tuint))
-      (Sifthenelse (Ebinop Oeq (Etempvar _t'17 tuint)
+      (Sifthenelse (Ebinop Oeq (Etempvar _t'15 tuint)
                      (Econst_int (Int.repr 0) tint) tint)
         (Ssequence
           (Ssequence
-            (Sset _t'18
+            (Sset _t'16
               (Efield
                 (Ederef (Etempvar _G (tptr (Tstruct _t noattr)))
                   (Tstruct _t noattr)) _to_text
@@ -2364,13 +2364,13 @@ Definition f_to_text_add_beside := {|
               (Evar _list_copy (Tfunction
                                  (Tcons (tptr (Tstruct _list noattr)) Tnil)
                                  (tptr (Tstruct _list noattr)) cc_default))
-              ((Etempvar _t'18 (tptr (Tstruct _list noattr))) :: nil)))
+              ((Etempvar _t'16 (tptr (Tstruct _list noattr))) :: nil)))
           (Sreturn (Some (Etempvar _t'2 (tptr (Tstruct _list noattr))))))
         Sskip))
     (Ssequence
       (Ssequence
         (Ssequence
-          (Sset _t'16
+          (Sset _t'14
             (Efield
               (Ederef (Etempvar _G (tptr (Tstruct _t noattr)))
                 (Tstruct _t noattr)) _to_text (tptr (Tstruct _list noattr))))
@@ -2378,7 +2378,7 @@ Definition f_to_text_add_beside := {|
             (Evar _list_copy (Tfunction
                                (Tcons (tptr (Tstruct _list noattr)) Tnil)
                                (tptr (Tstruct _list noattr)) cc_default))
-            ((Etempvar _t'16 (tptr (Tstruct _list noattr))) :: nil)))
+            ((Etempvar _t'14 (tptr (Tstruct _list noattr))) :: nil)))
         (Sset _head (Etempvar _t'3 (tptr (Tstruct _list noattr)))))
       (Ssequence
         (Ssequence
@@ -2391,62 +2391,59 @@ Definition f_to_text_add_beside := {|
         (Ssequence
           (Ssequence
             (Ssequence
-              (Sset _t'11
-                (Efield
-                  (Ederef (Etempvar _tail (tptr (Tstruct _list noattr)))
-                    (Tstruct _list noattr)) _line (tptr tschar)))
-              (Ssequence
-                (Sset _t'12
-                  (Efield
-                    (Ederef (Etempvar _F (tptr (Tstruct _t noattr)))
-                      (Tstruct _t noattr)) _to_text
-                    (tptr (Tstruct _list noattr))))
-                (Ssequence
-                  (Sset _t'13
-                    (Efield
-                      (Ederef (Etempvar _t'12 (tptr (Tstruct _list noattr)))
-                        (Tstruct _list noattr)) _shift tulong))
-                  (Ssequence
-                    (Sset _t'14
-                      (Efield
-                        (Ederef (Etempvar _F (tptr (Tstruct _t noattr)))
-                          (Tstruct _t noattr)) _to_text
-                        (tptr (Tstruct _list noattr))))
-                    (Ssequence
-                      (Sset _t'15
-                        (Efield
-                          (Ederef
-                            (Etempvar _t'14 (tptr (Tstruct _list noattr)))
-                            (Tstruct _list noattr)) _line (tptr tschar)))
-                      (Scall (Some _t'5)
-                        (Evar _line_concats (Tfunction
-                                              (Tcons (tptr tschar)
-                                                (Tcons tulong
-                                                  (Tcons (tptr tschar) Tnil)))
-                                              (tptr tschar) cc_default))
-                        ((Etempvar _t'11 (tptr tschar)) ::
-                         (Etempvar _t'13 tulong) ::
-                         (Etempvar _t'15 (tptr tschar)) :: nil)))))))
-            (Sassign
-              (Efield
-                (Ederef (Etempvar _tail (tptr (Tstruct _list noattr)))
-                  (Tstruct _list noattr)) _line (tptr tschar))
-              (Etempvar _t'5 (tptr tschar))))
-          (Ssequence
-            (Ssequence
-              (Sset _t'8
+              (Sset _t'13
                 (Efield
                   (Ederef (Etempvar _F (tptr (Tstruct _t noattr)))
                     (Tstruct _t noattr)) _to_text
                   (tptr (Tstruct _list noattr))))
+              (Scall (Some _t'5)
+                (Evar _list_copy (Tfunction
+                                   (Tcons (tptr (Tstruct _list noattr)) Tnil)
+                                   (tptr (Tstruct _list noattr)) cc_default))
+                ((Etempvar _t'13 (tptr (Tstruct _list noattr))) :: nil)))
+            (Sset _copy_F (Etempvar _t'5 (tptr (Tstruct _list noattr)))))
+          (Ssequence
+            (Ssequence
               (Ssequence
-                (Sset _t'9
+                (Sset _t'10
                   (Efield
-                    (Ederef (Etempvar _t'8 (tptr (Tstruct _list noattr)))
+                    (Ederef (Etempvar _tail (tptr (Tstruct _list noattr)))
+                      (Tstruct _list noattr)) _line (tptr tschar)))
+                (Ssequence
+                  (Sset _t'11
+                    (Efield
+                      (Ederef
+                        (Etempvar _copy_F (tptr (Tstruct _list noattr)))
+                        (Tstruct _list noattr)) _shift tulong))
+                  (Ssequence
+                    (Sset _t'12
+                      (Efield
+                        (Ederef
+                          (Etempvar _copy_F (tptr (Tstruct _list noattr)))
+                          (Tstruct _list noattr)) _line (tptr tschar)))
+                    (Scall (Some _t'6)
+                      (Evar _line_concats (Tfunction
+                                            (Tcons (tptr tschar)
+                                              (Tcons tulong
+                                                (Tcons (tptr tschar) Tnil)))
+                                            (tptr tschar) cc_default))
+                      ((Etempvar _t'10 (tptr tschar)) ::
+                       (Etempvar _t'11 tulong) ::
+                       (Etempvar _t'12 (tptr tschar)) :: nil)))))
+              (Sassign
+                (Efield
+                  (Ederef (Etempvar _tail (tptr (Tstruct _list noattr)))
+                    (Tstruct _list noattr)) _line (tptr tschar))
+                (Etempvar _t'6 (tptr tschar))))
+            (Ssequence
+              (Ssequence
+                (Sset _t'8
+                  (Efield
+                    (Ederef (Etempvar _copy_F (tptr (Tstruct _list noattr)))
                       (Tstruct _list noattr)) _tail
                     (tptr (Tstruct _list noattr))))
                 (Ssequence
-                  (Sset _t'10
+                  (Sset _t'9
                     (Efield
                       (Ederef (Etempvar _G (tptr (Tstruct _t noattr)))
                         (Tstruct _t noattr)) _last_line_width tuint))
@@ -2456,19 +2453,14 @@ Definition f_to_text_add_beside := {|
                                           (Tcons tulong Tnil))
                                         (tptr (Tstruct _list noattr))
                                         cc_default))
-                    ((Etempvar _t'9 (tptr (Tstruct _list noattr))) ::
-                     (Etempvar _t'10 tuint) :: nil)))))
-            (Ssequence
+                    ((Etempvar _t'8 (tptr (Tstruct _list noattr))) ::
+                     (Etempvar _t'9 tuint) :: nil))))
               (Ssequence
-                (Sset _t'6
-                  (Efield
-                    (Ederef (Etempvar _F (tptr (Tstruct _t noattr)))
-                      (Tstruct _t noattr)) _to_text
-                    (tptr (Tstruct _list noattr))))
                 (Ssequence
                   (Sset _t'7
                     (Efield
-                      (Ederef (Etempvar _t'6 (tptr (Tstruct _list noattr)))
+                      (Ederef
+                        (Etempvar _copy_F (tptr (Tstruct _list noattr)))
                         (Tstruct _list noattr)) _tail
                       (tptr (Tstruct _list noattr))))
                   (Sassign
@@ -2476,8 +2468,13 @@ Definition f_to_text_add_beside := {|
                       (Ederef (Etempvar _tail (tptr (Tstruct _list noattr)))
                         (Tstruct _list noattr)) _tail
                       (tptr (Tstruct _list noattr)))
-                    (Etempvar _t'7 (tptr (Tstruct _list noattr))))))
-              (Sreturn (Some (Etempvar _head (tptr (Tstruct _list noattr))))))))))))
+                    (Etempvar _t'7 (tptr (Tstruct _list noattr)))))
+                (Ssequence
+                  (Scall None
+                    (Evar _free (Tfunction (Tcons (tptr tvoid) Tnil) tvoid
+                                  cc_default))
+                    ((Etempvar _copy_F (tptr (Tstruct _list noattr))) :: nil))
+                  (Sreturn (Some (Etempvar _head (tptr (Tstruct _list noattr))))))))))))))
 |}.
 
 Definition f_add_beside := {|
