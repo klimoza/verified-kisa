@@ -94,6 +94,7 @@ Definition _f : ident := $"f".
 Definition _first_line_width : ident := $"first_line_width".
 Definition _first_line_width_new : ident := $"first_line_width_new".
 Definition _flw_add_beside : ident := $"flw_add_beside".
+Definition _flw_add_fill : ident := $"flw_add_fill".
 Definition _format_copy : ident := $"format_copy".
 Definition _free : ident := $"free".
 Definition _get_applied_length : ident := $"get_applied_length".
@@ -118,11 +119,13 @@ Definition _line_concats : ident := $"line_concats".
 Definition _list : ident := $"list".
 Definition _list_concat : ident := $"list_concat".
 Definition _list_copy : ident := $"list_copy".
+Definition _llw_add_fill : ident := $"llw_add_fill".
 Definition _main : ident := $"main".
 Definition _malloc : ident := $"malloc".
 Definition _max : ident := $"max".
 Definition _mdw_add_above : ident := $"mdw_add_above".
 Definition _mdw_add_beside : ident := $"mdw_add_beside".
+Definition _mdw_add_fill : ident := $"mdw_add_fill".
 Definition _middle_width : ident := $"middle_width".
 Definition _middle_width_new : ident := $"middle_width_new".
 Definition _n : ident := $"n".
@@ -132,7 +135,6 @@ Definition _new_list : ident := $"new_list".
 Definition _newline : ident := $"newline".
 Definition _nt : ident := $"nt".
 Definition _of_string : ident := $"of_string".
-Definition _realloc : ident := $"realloc".
 Definition _result : ident := $"result".
 Definition _s : ident := $"s".
 Definition _shift : ident := $"shift".
@@ -152,11 +154,11 @@ Definition _to_string : ident := $"to_string".
 Definition _to_text : ident := $"to_text".
 Definition _to_text_add_above : ident := $"to_text_add_above".
 Definition _to_text_add_beside : ident := $"to_text_add_beside".
+Definition _to_text_add_fill : ident := $"to_text_add_fill".
 Definition _to_text_apply : ident := $"to_text_apply".
 Definition _to_text_cpy : ident := $"to_text_cpy".
 Definition _to_text_head : ident := $"to_text_head".
 Definition _to_text_new : ident := $"to_text_new".
-Definition _to_text_new_tail : ident := $"to_text_new_tail".
 Definition _total_length : ident := $"total_length".
 Definition _total_width : ident := $"total_width".
 Definition _t'1 : ident := 128%positive.
@@ -195,51 +197,10 @@ Definition _t'39 : ident := 166%positive.
 Definition _t'4 : ident := 131%positive.
 Definition _t'40 : ident := 167%positive.
 Definition _t'41 : ident := 168%positive.
-Definition _t'42 : ident := 169%positive.
-Definition _t'43 : ident := 170%positive.
-Definition _t'44 : ident := 171%positive.
-Definition _t'45 : ident := 172%positive.
-Definition _t'46 : ident := 173%positive.
-Definition _t'47 : ident := 174%positive.
-Definition _t'48 : ident := 175%positive.
-Definition _t'49 : ident := 176%positive.
 Definition _t'5 : ident := 132%positive.
-Definition _t'50 : ident := 177%positive.
-Definition _t'51 : ident := 178%positive.
-Definition _t'52 : ident := 179%positive.
-Definition _t'53 : ident := 180%positive.
-Definition _t'54 : ident := 181%positive.
-Definition _t'55 : ident := 182%positive.
-Definition _t'56 : ident := 183%positive.
-Definition _t'57 : ident := 184%positive.
-Definition _t'58 : ident := 185%positive.
-Definition _t'59 : ident := 186%positive.
 Definition _t'6 : ident := 133%positive.
-Definition _t'60 : ident := 187%positive.
-Definition _t'61 : ident := 188%positive.
-Definition _t'62 : ident := 189%positive.
-Definition _t'63 : ident := 190%positive.
-Definition _t'64 : ident := 191%positive.
-Definition _t'65 : ident := 192%positive.
-Definition _t'66 : ident := 193%positive.
-Definition _t'67 : ident := 194%positive.
-Definition _t'68 : ident := 195%positive.
-Definition _t'69 : ident := 196%positive.
 Definition _t'7 : ident := 134%positive.
-Definition _t'70 : ident := 197%positive.
-Definition _t'71 : ident := 198%positive.
-Definition _t'72 : ident := 199%positive.
-Definition _t'73 : ident := 200%positive.
-Definition _t'74 : ident := 201%positive.
-Definition _t'75 : ident := 202%positive.
-Definition _t'76 : ident := 203%positive.
-Definition _t'77 : ident := 204%positive.
-Definition _t'78 : ident := 205%positive.
-Definition _t'79 : ident := 206%positive.
 Definition _t'8 : ident := 135%positive.
-Definition _t'80 : ident := 207%positive.
-Definition _t'81 : ident := 208%positive.
-Definition _t'82 : ident := 209%positive.
 Definition _t'9 : ident := 136%positive.
 
 Definition v___stringlit_1 := {|
@@ -2636,383 +2597,349 @@ Definition f_add_beside := {|
                         (Sreturn (Some (Etempvar _result (tptr (Tstruct _t noattr)))))))))))))))))
 |}.
 
-Definition f_add_fill := {|
-  fn_return := (tptr (Tstruct _t noattr));
+Definition f_mdw_add_fill := {|
+  fn_return := tuint;
   fn_callconv := cc_default;
   fn_params := ((_G, (tptr (Tstruct _t noattr))) ::
-                (_F, (tptr (Tstruct _t noattr))) :: (_shift, tuint) :: nil);
+                (_F, (tptr (Tstruct _t noattr))) :: (_shift, tulong) :: nil);
   fn_vars := nil;
-  fn_temps := ((_result, (tptr (Tstruct _t noattr))) ::
-               (_middle_width_new, tuint) ::
-               (_first_line_width_new, tuint) ::
-               (_last_line_width_new, tuint) ::
-               (_to_text_new, (tptr (Tstruct _list noattr))) ::
-               (_to_text_new_tail, (tptr (Tstruct _list noattr))) ::
-               (_t'18, (tptr (Tstruct _list noattr))) ::
-               (_t'17, (tptr tschar)) :: (_t'16, (tptr tschar)) ::
-               (_t'15, (tptr tschar)) :: (_t'14, (tptr tvoid)) ::
-               (_t'13, tulong) :: (_t'12, tulong) ::
-               (_t'11, (tptr (Tstruct _list noattr))) :: (_t'10, tint) ::
-               (_t'9, tint) :: (_t'8, tint) :: (_t'7, tuint) ::
-               (_t'6, tuint) :: (_t'5, tuint) :: (_t'4, tuint) ::
-               (_t'3, (tptr (Tstruct _list noattr))) ::
-               (_t'2, (tptr (Tstruct _list noattr))) ::
-               (_t'1, (tptr tvoid)) :: (_t'82, tuint) :: (_t'81, tuint) ::
-               (_t'80, tuint) :: (_t'79, tuint) ::
-               (_t'78, (tptr (Tstruct _list noattr))) :: (_t'77, tuint) ::
-               (_t'76, tuint) :: (_t'75, tuint) :: (_t'74, tuint) ::
-               (_t'73, (tptr (Tstruct _list noattr))) :: (_t'72, tuint) ::
-               (_t'71, tuint) :: (_t'70, tuint) :: (_t'69, tuint) ::
-               (_t'68, tuint) :: (_t'67, tuint) :: (_t'66, tuint) ::
-               (_t'65, tuint) :: (_t'64, tuint) :: (_t'63, tuint) ::
-               (_t'62, tuint) :: (_t'61, tuint) :: (_t'60, tuint) ::
-               (_t'59, tuint) :: (_t'58, tuint) :: (_t'57, tuint) ::
-               (_t'56, tuint) :: (_t'55, tuint) :: (_t'54, tuint) ::
-               (_t'53, tuint) :: (_t'52, tuint) :: (_t'51, tuint) ::
-               (_t'50, tuint) :: (_t'49, tuint) :: (_t'48, tuint) ::
-               (_t'47, tuint) :: (_t'46, tuint) :: (_t'45, tuint) ::
-               (_t'44, tuint) :: (_t'43, tuint) :: (_t'42, tuint) ::
-               (_t'41, tuint) :: (_t'40, tuint) ::
-               (_t'39, (tptr (Tstruct _list noattr))) ::
-               (_t'38, (tptr (Tstruct _list noattr))) ::
-               (_t'37, (tptr tschar)) :: (_t'36, (tptr tschar)) ::
-               (_t'35, (tptr (Tstruct _list noattr))) :: (_t'34, tulong) ::
-               (_t'33, (tptr (Tstruct _list noattr))) ::
-               (_t'32, (tptr tschar)) :: (_t'31, tulong) ::
-               (_t'30, (tptr (Tstruct _list noattr))) ::
-               (_t'29, (tptr tschar)) :: (_t'28, (tptr tschar)) ::
-               (_t'27, (tptr (Tstruct _list noattr))) ::
-               (_t'26, (tptr tschar)) ::
-               (_t'25, (tptr (Tstruct _list noattr))) ::
-               (_t'24, (tptr (Tstruct _list noattr))) :: (_t'23, tulong) ::
-               (_t'22, tuint) :: (_t'21, tuint) :: (_t'20, tuint) ::
-               (_t'19, tuint) :: nil);
+  fn_temps := ((_middle_width_new, tuint) :: (_t'8, tint) :: (_t'7, tint) ::
+               (_t'6, tint) :: (_t'5, tint) :: (_t'4, tuint) ::
+               (_t'3, tuint) :: (_t'2, tuint) :: (_t'1, tuint) ::
+               (_t'41, tuint) :: (_t'40, tuint) :: (_t'39, tuint) ::
+               (_t'38, tuint) :: (_t'37, tuint) :: (_t'36, tuint) ::
+               (_t'35, tuint) :: (_t'34, tuint) :: (_t'33, tuint) ::
+               (_t'32, tuint) :: (_t'31, tuint) :: (_t'30, tuint) ::
+               (_t'29, tuint) :: (_t'28, tuint) :: (_t'27, tuint) ::
+               (_t'26, tuint) :: (_t'25, tuint) :: (_t'24, tuint) ::
+               (_t'23, tuint) :: (_t'22, tuint) :: (_t'21, tuint) ::
+               (_t'20, tuint) :: (_t'19, tuint) :: (_t'18, tuint) ::
+               (_t'17, tuint) :: (_t'16, tuint) :: (_t'15, tuint) ::
+               (_t'14, tuint) :: (_t'13, tuint) :: (_t'12, tuint) ::
+               (_t'11, tuint) :: (_t'10, tuint) :: (_t'9, tuint) :: nil);
   fn_body :=
 (Ssequence
   (Ssequence
-    (Scall (Some _t'1)
-      (Evar _malloc (Tfunction (Tcons tulong Tnil) (tptr tvoid) cc_default))
-      ((Esizeof (Tstruct _t noattr) tulong) :: nil))
-    (Sset _result (Etempvar _t'1 (tptr tvoid))))
+    (Sset _t'40
+      (Efield
+        (Ederef (Etempvar _G (tptr (Tstruct _t noattr))) (Tstruct _t noattr))
+        _height tuint))
+    (Sifthenelse (Ebinop Oeq (Etempvar _t'40 tuint)
+                   (Econst_int (Int.repr 0) tint) tint)
+      (Ssequence
+        (Sset _t'41
+          (Efield
+            (Ederef (Etempvar _F (tptr (Tstruct _t noattr)))
+              (Tstruct _t noattr)) _middle_width tuint))
+        (Sreturn (Some (Etempvar _t'41 tuint))))
+      Sskip))
   (Ssequence
-    (Sifthenelse (Eunop Onotbool
-                   (Etempvar _result (tptr (Tstruct _t noattr))) tint)
-      (Scall None (Evar _exit (Tfunction (Tcons tint Tnil) tvoid cc_default))
-        ((Econst_int (Int.repr 1) tint) :: nil))
-      Sskip)
+    (Ssequence
+      (Sset _t'38
+        (Efield
+          (Ederef (Etempvar _F (tptr (Tstruct _t noattr)))
+            (Tstruct _t noattr)) _height tuint))
+      (Sifthenelse (Ebinop Oeq (Etempvar _t'38 tuint)
+                     (Econst_int (Int.repr 0) tint) tint)
+        (Ssequence
+          (Sset _t'39
+            (Efield
+              (Ederef (Etempvar _G (tptr (Tstruct _t noattr)))
+                (Tstruct _t noattr)) _middle_width tuint))
+          (Sreturn (Some (Etempvar _t'39 tuint))))
+        Sskip))
     (Ssequence
       (Ssequence
-        (Sset _t'19
-          (Efield
-            (Ederef (Etempvar _G (tptr (Tstruct _t noattr)))
-              (Tstruct _t noattr)) _height tuint))
-        (Sifthenelse (Ebinop Oeq (Etempvar _t'19 tuint)
-                       (Econst_int (Int.repr 0) tint) tint)
-          (Ssequence
+        (Ssequence
+          (Sset _t'36
+            (Efield
+              (Ederef (Etempvar _G (tptr (Tstruct _t noattr)))
+                (Tstruct _t noattr)) _height tuint))
+          (Sifthenelse (Ebinop Oeq (Etempvar _t'36 tuint)
+                         (Econst_int (Int.repr 1) tint) tint)
             (Ssequence
-              (Sset _t'82
+              (Sset _t'37
                 (Efield
                   (Ederef (Etempvar _F (tptr (Tstruct _t noattr)))
                     (Tstruct _t noattr)) _height tuint))
-              (Sassign
-                (Efield
-                  (Ederef (Etempvar _result (tptr (Tstruct _t noattr)))
-                    (Tstruct _t noattr)) _height tuint)
-                (Etempvar _t'82 tuint)))
+              (Sset _t'8
+                (Ecast
+                  (Ebinop Oeq (Etempvar _t'37 tuint)
+                    (Econst_int (Int.repr 1) tint) tint) tbool)))
+            (Sset _t'8 (Econst_int (Int.repr 0) tint))))
+        (Sifthenelse (Etempvar _t'8 tint)
+          (Ssequence
+            (Sset _t'34
+              (Efield
+                (Ederef (Etempvar _G (tptr (Tstruct _t noattr)))
+                  (Tstruct _t noattr)) _first_line_width tuint))
             (Ssequence
-              (Ssequence
-                (Sset _t'81
-                  (Efield
-                    (Ederef (Etempvar _F (tptr (Tstruct _t noattr)))
-                      (Tstruct _t noattr)) _first_line_width tuint))
-                (Sassign
-                  (Efield
-                    (Ederef (Etempvar _result (tptr (Tstruct _t noattr)))
-                      (Tstruct _t noattr)) _first_line_width tuint)
-                  (Etempvar _t'81 tuint)))
-              (Ssequence
+              (Sset _t'35
+                (Efield
+                  (Ederef (Etempvar _F (tptr (Tstruct _t noattr)))
+                    (Tstruct _t noattr)) _first_line_width tuint))
+              (Sset _middle_width_new
+                (Ebinop Oadd (Etempvar _t'34 tuint) (Etempvar _t'35 tuint)
+                  tuint))))
+          (Ssequence
+            (Ssequence
+              (Sset _t'32
+                (Efield
+                  (Ederef (Etempvar _G (tptr (Tstruct _t noattr)))
+                    (Tstruct _t noattr)) _height tuint))
+              (Sifthenelse (Ebinop Oeq (Etempvar _t'32 tuint)
+                             (Econst_int (Int.repr 1) tint) tint)
                 (Ssequence
-                  (Sset _t'80
+                  (Sset _t'33
                     (Efield
                       (Ederef (Etempvar _F (tptr (Tstruct _t noattr)))
-                        (Tstruct _t noattr)) _middle_width tuint))
-                  (Sassign
-                    (Efield
-                      (Ederef (Etempvar _result (tptr (Tstruct _t noattr)))
-                        (Tstruct _t noattr)) _middle_width tuint)
-                    (Etempvar _t'80 tuint)))
+                        (Tstruct _t noattr)) _height tuint))
+                  (Sset _t'7
+                    (Ecast
+                      (Ebinop Oeq (Etempvar _t'33 tuint)
+                        (Econst_int (Int.repr 2) tint) tint) tbool)))
+                (Sset _t'7 (Econst_int (Int.repr 0) tint))))
+            (Sifthenelse (Etempvar _t'7 tint)
+              (Ssequence
+                (Sset _t'30
+                  (Efield
+                    (Ederef (Etempvar _G (tptr (Tstruct _t noattr)))
+                      (Tstruct _t noattr)) _first_line_width tuint))
                 (Ssequence
+                  (Sset _t'31
+                    (Efield
+                      (Ederef (Etempvar _F (tptr (Tstruct _t noattr)))
+                        (Tstruct _t noattr)) _first_line_width tuint))
+                  (Sset _middle_width_new
+                    (Ebinop Oadd (Etempvar _t'30 tuint)
+                      (Etempvar _t'31 tuint) tuint))))
+              (Ssequence
+                (Sset _t'9
+                  (Efield
+                    (Ederef (Etempvar _G (tptr (Tstruct _t noattr)))
+                      (Tstruct _t noattr)) _height tuint))
+                (Sifthenelse (Ebinop Oeq (Etempvar _t'9 tuint)
+                               (Econst_int (Int.repr 1) tint) tint)
                   (Ssequence
-                    (Sset _t'79
+                    (Sset _t'29
                       (Efield
                         (Ederef (Etempvar _F (tptr (Tstruct _t noattr)))
-                          (Tstruct _t noattr)) _last_line_width tuint))
-                    (Sassign
-                      (Efield
-                        (Ederef (Etempvar _result (tptr (Tstruct _t noattr)))
-                          (Tstruct _t noattr)) _last_line_width tuint)
-                      (Etempvar _t'79 tuint)))
+                          (Tstruct _t noattr)) _middle_width tuint))
+                    (Sset _middle_width_new
+                      (Ecast
+                        (Ebinop Oadd (Etempvar _shift tulong)
+                          (Etempvar _t'29 tuint) tulong) tuint)))
                   (Ssequence
                     (Ssequence
-                      (Sset _t'78
-                        (Efield
-                          (Ederef (Etempvar _F (tptr (Tstruct _t noattr)))
-                            (Tstruct _t noattr)) _to_text
-                          (tptr (Tstruct _list noattr))))
-                      (Scall (Some _t'2)
-                        (Evar _list_copy (Tfunction
-                                           (Tcons
-                                             (tptr (Tstruct _list noattr))
-                                             Tnil)
-                                           (tptr (Tstruct _list noattr))
-                                           cc_default))
-                        ((Etempvar _t'78 (tptr (Tstruct _list noattr))) ::
-                         nil)))
-                    (Sassign
-                      (Efield
-                        (Ederef (Etempvar _result (tptr (Tstruct _t noattr)))
-                          (Tstruct _t noattr)) _to_text
-                        (tptr (Tstruct _list noattr)))
-                      (Etempvar _t'2 (tptr (Tstruct _list noattr)))))))))
-          (Ssequence
-            (Sset _t'20
-              (Efield
-                (Ederef (Etempvar _F (tptr (Tstruct _t noattr)))
-                  (Tstruct _t noattr)) _height tuint))
-            (Sifthenelse (Ebinop Oeq (Etempvar _t'20 tuint)
-                           (Econst_int (Int.repr 0) tint) tint)
-              (Ssequence
-                (Ssequence
-                  (Sset _t'77
-                    (Efield
-                      (Ederef (Etempvar _G (tptr (Tstruct _t noattr)))
-                        (Tstruct _t noattr)) _height tuint))
-                  (Sassign
-                    (Efield
-                      (Ederef (Etempvar _result (tptr (Tstruct _t noattr)))
-                        (Tstruct _t noattr)) _height tuint)
-                    (Etempvar _t'77 tuint)))
-                (Ssequence
-                  (Ssequence
-                    (Sset _t'76
-                      (Efield
-                        (Ederef (Etempvar _G (tptr (Tstruct _t noattr)))
-                          (Tstruct _t noattr)) _first_line_width tuint))
-                    (Sassign
-                      (Efield
-                        (Ederef (Etempvar _result (tptr (Tstruct _t noattr)))
-                          (Tstruct _t noattr)) _first_line_width tuint)
-                      (Etempvar _t'76 tuint)))
-                  (Ssequence
-                    (Ssequence
-                      (Sset _t'75
+                      (Sset _t'27
                         (Efield
                           (Ederef (Etempvar _G (tptr (Tstruct _t noattr)))
-                            (Tstruct _t noattr)) _middle_width tuint))
-                      (Sassign
-                        (Efield
-                          (Ederef
-                            (Etempvar _result (tptr (Tstruct _t noattr)))
-                            (Tstruct _t noattr)) _middle_width tuint)
-                        (Etempvar _t'75 tuint)))
-                    (Ssequence
-                      (Ssequence
-                        (Sset _t'74
-                          (Efield
-                            (Ederef (Etempvar _G (tptr (Tstruct _t noattr)))
-                              (Tstruct _t noattr)) _last_line_width tuint))
-                        (Sassign
-                          (Efield
-                            (Ederef
-                              (Etempvar _result (tptr (Tstruct _t noattr)))
-                              (Tstruct _t noattr)) _last_line_width tuint)
-                          (Etempvar _t'74 tuint)))
-                      (Ssequence
+                            (Tstruct _t noattr)) _height tuint))
+                      (Sifthenelse (Ebinop Oeq (Etempvar _t'27 tuint)
+                                     (Econst_int (Int.repr 2) tint) tint)
                         (Ssequence
-                          (Sset _t'73
+                          (Sset _t'28
                             (Efield
                               (Ederef
-                                (Etempvar _G (tptr (Tstruct _t noattr)))
-                                (Tstruct _t noattr)) _to_text
-                              (tptr (Tstruct _list noattr))))
-                          (Scall (Some _t'3)
-                            (Evar _list_copy (Tfunction
-                                               (Tcons
-                                                 (tptr (Tstruct _list noattr))
-                                                 Tnil)
-                                               (tptr (Tstruct _list noattr))
-                                               cc_default))
-                            ((Etempvar _t'73 (tptr (Tstruct _list noattr))) ::
-                             nil)))
-                        (Sassign
-                          (Efield
-                            (Ederef
-                              (Etempvar _result (tptr (Tstruct _t noattr)))
-                              (Tstruct _t noattr)) _to_text
-                            (tptr (Tstruct _list noattr)))
-                          (Etempvar _t'3 (tptr (Tstruct _list noattr)))))))))
-              (Ssequence
-                (Ssequence
-                  (Ssequence
-                    (Sset _t'70
-                      (Efield
-                        (Ederef (Etempvar _G (tptr (Tstruct _t noattr)))
-                          (Tstruct _t noattr)) _height tuint))
-                    (Sifthenelse (Ebinop Oeq (Etempvar _t'70 tuint)
-                                   (Econst_int (Int.repr 1) tint) tint)
-                      (Ssequence
-                        (Sset _t'71
-                          (Efield
-                            (Ederef (Etempvar _F (tptr (Tstruct _t noattr)))
-                              (Tstruct _t noattr)) _height tuint))
-                        (Sifthenelse (Ebinop Oeq (Etempvar _t'71 tuint)
-                                       (Econst_int (Int.repr 1) tint) tint)
-                          (Sset _t'10
-                            (Ecast (Econst_int (Int.repr 1) tint) tbool))
-                          (Ssequence
-                            (Ssequence
-                              (Sset _t'72
-                                (Efield
-                                  (Ederef
-                                    (Etempvar _F (tptr (Tstruct _t noattr)))
-                                    (Tstruct _t noattr)) _height tuint))
-                              (Sset _t'10
-                                (Ecast
-                                  (Ebinop Oeq (Etempvar _t'72 tuint)
-                                    (Econst_int (Int.repr 2) tint) tint)
-                                  tbool)))
-                            (Sset _t'10 (Ecast (Etempvar _t'10 tint) tbool)))))
-                      (Sset _t'10 (Econst_int (Int.repr 0) tint))))
-                  (Sifthenelse (Etempvar _t'10 tint)
-                    (Ssequence
-                      (Sset _t'68
+                                (Etempvar _F (tptr (Tstruct _t noattr)))
+                                (Tstruct _t noattr)) _height tuint))
+                          (Sset _t'6
+                            (Ecast
+                              (Ebinop Oeq (Etempvar _t'28 tuint)
+                                (Econst_int (Int.repr 1) tint) tint) tbool)))
+                        (Sset _t'6 (Econst_int (Int.repr 0) tint))))
+                    (Sifthenelse (Etempvar _t'6 tint)
+                      (Sset _middle_width_new
                         (Efield
                           (Ederef (Etempvar _G (tptr (Tstruct _t noattr)))
                             (Tstruct _t noattr)) _first_line_width tuint))
                       (Ssequence
-                        (Sset _t'69
-                          (Efield
-                            (Ederef (Etempvar _F (tptr (Tstruct _t noattr)))
-                              (Tstruct _t noattr)) _first_line_width tuint))
-                        (Sset _middle_width_new
-                          (Ebinop Oadd (Etempvar _t'68 tuint)
-                            (Etempvar _t'69 tuint) tuint))))
-                    (Ssequence
-                      (Sset _t'47
-                        (Efield
-                          (Ederef (Etempvar _G (tptr (Tstruct _t noattr)))
-                            (Tstruct _t noattr)) _height tuint))
-                      (Sifthenelse (Ebinop Oeq (Etempvar _t'47 tuint)
-                                     (Econst_int (Int.repr 1) tint) tint)
                         (Ssequence
-                          (Sset _t'67
+                          (Sset _t'25
                             (Efield
                               (Ederef
                                 (Etempvar _G (tptr (Tstruct _t noattr)))
-                                (Tstruct _t noattr)) _middle_width tuint))
-                          (Sset _middle_width_new
-                            (Ebinop Oadd (Etempvar _shift tuint)
-                              (Etempvar _t'67 tuint) tuint)))
-                        (Ssequence
+                                (Tstruct _t noattr)) _height tuint))
+                          (Sifthenelse (Ebinop Oeq (Etempvar _t'25 tuint)
+                                         (Econst_int (Int.repr 2) tint) tint)
+                            (Ssequence
+                              (Sset _t'26
+                                (Efield
+                                  (Ederef
+                                    (Etempvar _F (tptr (Tstruct _t noattr)))
+                                    (Tstruct _t noattr)) _height tuint))
+                              (Sset _t'5
+                                (Ecast
+                                  (Ebinop Oeq (Etempvar _t'26 tuint)
+                                    (Econst_int (Int.repr 2) tint) tint)
+                                  tbool)))
+                            (Sset _t'5 (Econst_int (Int.repr 0) tint))))
+                        (Sifthenelse (Etempvar _t'5 tint)
                           (Ssequence
-                            (Sset _t'65
+                            (Sset _t'23
+                              (Efield
+                                (Ederef
+                                  (Etempvar _G (tptr (Tstruct _t noattr)))
+                                  (Tstruct _t noattr)) _last_line_width
+                                tuint))
+                            (Ssequence
+                              (Sset _t'24
+                                (Efield
+                                  (Ederef
+                                    (Etempvar _F (tptr (Tstruct _t noattr)))
+                                    (Tstruct _t noattr)) _first_line_width
+                                  tuint))
+                              (Sset _middle_width_new
+                                (Ebinop Oadd (Etempvar _t'23 tuint)
+                                  (Etempvar _t'24 tuint) tuint))))
+                          (Ssequence
+                            (Sset _t'10
                               (Efield
                                 (Ederef
                                   (Etempvar _G (tptr (Tstruct _t noattr)))
                                   (Tstruct _t noattr)) _height tuint))
-                            (Sifthenelse (Ebinop Oeq (Etempvar _t'65 tuint)
+                            (Sifthenelse (Ebinop Oeq (Etempvar _t'10 tuint)
                                            (Econst_int (Int.repr 2) tint)
                                            tint)
                               (Ssequence
-                                (Sset _t'66
-                                  (Efield
-                                    (Ederef
-                                      (Etempvar _F (tptr (Tstruct _t noattr)))
-                                      (Tstruct _t noattr)) _height tuint))
-                                (Sset _t'9
-                                  (Ecast
-                                    (Ebinop Oeq (Etempvar _t'66 tuint)
-                                      (Econst_int (Int.repr 1) tint) tint)
-                                    tbool)))
-                              (Sset _t'9 (Econst_int (Int.repr 0) tint))))
-                          (Sifthenelse (Etempvar _t'9 tint)
-                            (Sset _middle_width_new
-                              (Efield
-                                (Ederef
-                                  (Etempvar _G (tptr (Tstruct _t noattr)))
-                                  (Tstruct _t noattr)) _first_line_width
-                                tuint))
-                            (Ssequence
-                              (Ssequence
-                                (Sset _t'63
-                                  (Efield
-                                    (Ederef
-                                      (Etempvar _G (tptr (Tstruct _t noattr)))
-                                      (Tstruct _t noattr)) _height tuint))
-                                (Sifthenelse (Ebinop Oeq
-                                               (Etempvar _t'63 tuint)
-                                               (Econst_int (Int.repr 2) tint)
-                                               tint)
-                                  (Ssequence
-                                    (Sset _t'64
-                                      (Efield
-                                        (Ederef
-                                          (Etempvar _F (tptr (Tstruct _t noattr)))
-                                          (Tstruct _t noattr)) _height tuint))
-                                    (Sset _t'8
-                                      (Ecast
-                                        (Ebinop Oeq (Etempvar _t'64 tuint)
-                                          (Econst_int (Int.repr 2) tint)
-                                          tint) tbool)))
-                                  (Sset _t'8 (Econst_int (Int.repr 0) tint))))
-                              (Sifthenelse (Etempvar _t'8 tint)
                                 (Ssequence
-                                  (Sset _t'61
+                                  (Sset _t'20
                                     (Efield
                                       (Ederef
                                         (Etempvar _G (tptr (Tstruct _t noattr)))
                                         (Tstruct _t noattr)) _last_line_width
                                       tuint))
                                   (Ssequence
-                                    (Sset _t'62
+                                    (Sset _t'21
                                       (Efield
                                         (Ederef
                                           (Etempvar _F (tptr (Tstruct _t noattr)))
                                           (Tstruct _t noattr))
                                         _first_line_width tuint))
-                                    (Sset _middle_width_new
-                                      (Ebinop Oadd (Etempvar _t'61 tuint)
-                                        (Etempvar _t'62 tuint) tuint))))
-                                (Ssequence
-                                  (Sset _t'48
+                                    (Ssequence
+                                      (Sset _t'22
+                                        (Efield
+                                          (Ederef
+                                            (Etempvar _F (tptr (Tstruct _t noattr)))
+                                            (Tstruct _t noattr))
+                                          _middle_width tuint))
+                                      (Scall (Some _t'1)
+                                        (Evar _max (Tfunction
+                                                     (Tcons tuint
+                                                       (Tcons tuint Tnil))
+                                                     tuint cc_default))
+                                        ((Ebinop Oadd (Etempvar _t'20 tuint)
+                                           (Etempvar _t'21 tuint) tuint) ::
+                                         (Ebinop Oadd
+                                           (Etempvar _shift tulong)
+                                           (Etempvar _t'22 tuint) tulong) ::
+                                         nil)))))
+                                (Sset _middle_width_new
+                                  (Etempvar _t'1 tuint)))
+                              (Ssequence
+                                (Sset _t'11
+                                  (Efield
+                                    (Ederef
+                                      (Etempvar _F (tptr (Tstruct _t noattr)))
+                                      (Tstruct _t noattr)) _height tuint))
+                                (Sifthenelse (Ebinop Oeq
+                                               (Etempvar _t'11 tuint)
+                                               (Econst_int (Int.repr 1) tint)
+                                               tint)
+                                  (Sset _middle_width_new
                                     (Efield
                                       (Ederef
                                         (Etempvar _G (tptr (Tstruct _t noattr)))
-                                        (Tstruct _t noattr)) _height tuint))
-                                  (Sifthenelse (Ebinop Oeq
-                                                 (Etempvar _t'48 tuint)
-                                                 (Econst_int (Int.repr 2) tint)
-                                                 tint)
-                                    (Ssequence
+                                        (Tstruct _t noattr)) _middle_width
+                                      tuint))
+                                  (Ssequence
+                                    (Sset _t'12
+                                      (Efield
+                                        (Ederef
+                                          (Etempvar _F (tptr (Tstruct _t noattr)))
+                                          (Tstruct _t noattr)) _height tuint))
+                                    (Sifthenelse (Ebinop Oeq
+                                                   (Etempvar _t'12 tuint)
+                                                   (Econst_int (Int.repr 2) tint)
+                                                   tint)
                                       (Ssequence
-                                        (Sset _t'58
-                                          (Efield
-                                            (Ederef
-                                              (Etempvar _G (tptr (Tstruct _t noattr)))
-                                              (Tstruct _t noattr))
-                                            _last_line_width tuint))
                                         (Ssequence
-                                          (Sset _t'59
+                                          (Sset _t'17
                                             (Efield
                                               (Ederef
-                                                (Etempvar _F (tptr (Tstruct _t noattr)))
+                                                (Etempvar _G (tptr (Tstruct _t noattr)))
                                                 (Tstruct _t noattr))
-                                              _first_line_width tuint))
+                                              _middle_width tuint))
                                           (Ssequence
-                                            (Sset _t'60
+                                            (Sset _t'18
                                               (Efield
                                                 (Ederef
-                                                  (Etempvar _F (tptr (Tstruct _t noattr)))
+                                                  (Etempvar _G (tptr (Tstruct _t noattr)))
+                                                  (Tstruct _t noattr))
+                                                _last_line_width tuint))
+                                            (Ssequence
+                                              (Sset _t'19
+                                                (Efield
+                                                  (Ederef
+                                                    (Etempvar _F (tptr (Tstruct _t noattr)))
+                                                    (Tstruct _t noattr))
+                                                  _first_line_width tuint))
+                                              (Scall (Some _t'2)
+                                                (Evar _max (Tfunction
+                                                             (Tcons tuint
+                                                               (Tcons tuint
+                                                                 Tnil)) tuint
+                                                             cc_default))
+                                                ((Etempvar _t'17 tuint) ::
+                                                 (Ebinop Oadd
+                                                   (Etempvar _t'18 tuint)
+                                                   (Etempvar _t'19 tuint)
+                                                   tuint) :: nil)))))
+                                        (Sset _middle_width_new
+                                          (Etempvar _t'2 tuint)))
+                                      (Ssequence
+                                        (Ssequence
+                                          (Ssequence
+                                            (Sset _t'14
+                                              (Efield
+                                                (Ederef
+                                                  (Etempvar _G (tptr (Tstruct _t noattr)))
+                                                  (Tstruct _t noattr))
+                                                _last_line_width tuint))
+                                            (Ssequence
+                                              (Sset _t'15
+                                                (Efield
+                                                  (Ederef
+                                                    (Etempvar _F (tptr (Tstruct _t noattr)))
+                                                    (Tstruct _t noattr))
+                                                  _first_line_width tuint))
+                                              (Ssequence
+                                                (Sset _t'16
+                                                  (Efield
+                                                    (Ederef
+                                                      (Etempvar _F (tptr (Tstruct _t noattr)))
+                                                      (Tstruct _t noattr))
+                                                    _middle_width tuint))
+                                                (Scall (Some _t'3)
+                                                  (Evar _max (Tfunction
+                                                               (Tcons tuint
+                                                                 (Tcons tuint
+                                                                   Tnil))
+                                                               tuint
+                                                               cc_default))
+                                                  ((Ebinop Oadd
+                                                     (Etempvar _t'14 tuint)
+                                                     (Etempvar _t'15 tuint)
+                                                     tuint) ::
+                                                   (Ebinop Oadd
+                                                     (Etempvar _shift tulong)
+                                                     (Etempvar _t'16 tuint)
+                                                     tulong) :: nil)))))
+                                          (Ssequence
+                                            (Sset _t'13
+                                              (Efield
+                                                (Ederef
+                                                  (Etempvar _G (tptr (Tstruct _t noattr)))
                                                   (Tstruct _t noattr))
                                                 _middle_width tuint))
                                             (Scall (Some _t'4)
@@ -3021,552 +2948,489 @@ Definition f_add_fill := {|
                                                              (Tcons tuint
                                                                Tnil)) tuint
                                                            cc_default))
-                                              ((Ebinop Oadd
-                                                 (Etempvar _t'58 tuint)
-                                                 (Etempvar _t'59 tuint)
-                                                 tuint) ::
-                                               (Ebinop Oadd
-                                                 (Etempvar _shift tuint)
-                                                 (Etempvar _t'60 tuint)
-                                                 tuint) :: nil)))))
-                                      (Sset _middle_width_new
-                                        (Etempvar _t'4 tuint)))
-                                    (Ssequence
-                                      (Sset _t'49
-                                        (Efield
-                                          (Ederef
-                                            (Etempvar _F (tptr (Tstruct _t noattr)))
-                                            (Tstruct _t noattr)) _height
-                                          tuint))
-                                      (Sifthenelse (Ebinop Oeq
-                                                     (Etempvar _t'49 tuint)
-                                                     (Econst_int (Int.repr 1) tint)
-                                                     tint)
+                                              ((Etempvar _t'13 tuint) ::
+                                               (Etempvar _t'3 tuint) :: nil))))
                                         (Sset _middle_width_new
-                                          (Efield
-                                            (Ederef
-                                              (Etempvar _G (tptr (Tstruct _t noattr)))
-                                              (Tstruct _t noattr))
-                                            _middle_width tuint))
-                                        (Ssequence
-                                          (Sset _t'50
-                                            (Efield
-                                              (Ederef
-                                                (Etempvar _F (tptr (Tstruct _t noattr)))
-                                                (Tstruct _t noattr)) _height
-                                              tuint))
-                                          (Sifthenelse (Ebinop Oeq
-                                                         (Etempvar _t'50 tuint)
-                                                         (Econst_int (Int.repr 2) tint)
-                                                         tint)
-                                            (Ssequence
-                                              (Ssequence
-                                                (Sset _t'55
-                                                  (Efield
-                                                    (Ederef
-                                                      (Etempvar _G (tptr (Tstruct _t noattr)))
-                                                      (Tstruct _t noattr))
-                                                    _middle_width tuint))
-                                                (Ssequence
-                                                  (Sset _t'56
-                                                    (Efield
-                                                      (Ederef
-                                                        (Etempvar _G (tptr (Tstruct _t noattr)))
-                                                        (Tstruct _t noattr))
-                                                      _last_line_width tuint))
-                                                  (Ssequence
-                                                    (Sset _t'57
-                                                      (Efield
-                                                        (Ederef
-                                                          (Etempvar _F (tptr (Tstruct _t noattr)))
-                                                          (Tstruct _t noattr))
-                                                        _first_line_width
-                                                        tuint))
-                                                    (Scall (Some _t'5)
-                                                      (Evar _max (Tfunction
-                                                                   (Tcons
-                                                                    tuint
-                                                                    (Tcons
-                                                                    tuint
-                                                                    Tnil))
-                                                                   tuint
-                                                                   cc_default))
-                                                      ((Etempvar _t'55 tuint) ::
-                                                       (Ebinop Oadd
-                                                         (Etempvar _t'56 tuint)
-                                                         (Etempvar _t'57 tuint)
-                                                         tuint) :: nil)))))
-                                              (Sset _middle_width_new
-                                                (Etempvar _t'5 tuint)))
-                                            (Ssequence
-                                              (Ssequence
-                                                (Ssequence
-                                                  (Sset _t'52
-                                                    (Efield
-                                                      (Ederef
-                                                        (Etempvar _G (tptr (Tstruct _t noattr)))
-                                                        (Tstruct _t noattr))
-                                                      _last_line_width tuint))
-                                                  (Ssequence
-                                                    (Sset _t'53
-                                                      (Efield
-                                                        (Ederef
-                                                          (Etempvar _F (tptr (Tstruct _t noattr)))
-                                                          (Tstruct _t noattr))
-                                                        _first_line_width
-                                                        tuint))
-                                                    (Ssequence
-                                                      (Sset _t'54
-                                                        (Efield
-                                                          (Ederef
-                                                            (Etempvar _F (tptr (Tstruct _t noattr)))
-                                                            (Tstruct _t noattr))
-                                                          _middle_width
-                                                          tuint))
-                                                      (Scall (Some _t'6)
-                                                        (Evar _max (Tfunction
-                                                                    (Tcons
-                                                                    tuint
-                                                                    (Tcons
-                                                                    tuint
-                                                                    Tnil))
-                                                                    tuint
-                                                                    cc_default))
-                                                        ((Ebinop Oadd
-                                                           (Etempvar _t'52 tuint)
-                                                           (Etempvar _t'53 tuint)
-                                                           tuint) ::
-                                                         (Ebinop Oadd
-                                                           (Etempvar _shift tuint)
-                                                           (Etempvar _t'54 tuint)
-                                                           tuint) :: nil)))))
-                                                (Ssequence
-                                                  (Sset _t'51
-                                                    (Efield
-                                                      (Ederef
-                                                        (Etempvar _G (tptr (Tstruct _t noattr)))
-                                                        (Tstruct _t noattr))
-                                                      _middle_width tuint))
-                                                  (Scall (Some _t'7)
-                                                    (Evar _max (Tfunction
-                                                                 (Tcons tuint
-                                                                   (Tcons
-                                                                    tuint
-                                                                    Tnil))
-                                                                 tuint
-                                                                 cc_default))
-                                                    ((Etempvar _t'51 tuint) ::
-                                                     (Etempvar _t'6 tuint) ::
-                                                     nil))))
-                                              (Sset _middle_width_new
-                                                (Etempvar _t'7 tuint)))))))))))))))))
+                                          (Etempvar _t'4 tuint)))))))))))))))))))
+      (Sreturn (Some (Etempvar _middle_width_new tuint))))))
+|}.
+
+Definition f_llw_add_fill := {|
+  fn_return := tuint;
+  fn_callconv := cc_default;
+  fn_params := ((_G, (tptr (Tstruct _t noattr))) ::
+                (_F, (tptr (Tstruct _t noattr))) :: (_shift, tulong) :: nil);
+  fn_vars := nil;
+  fn_temps := ((_last_line_width_new, tuint) :: (_t'8, tuint) ::
+               (_t'7, tuint) :: (_t'6, tuint) :: (_t'5, tuint) ::
+               (_t'4, tuint) :: (_t'3, tuint) :: (_t'2, tuint) ::
+               (_t'1, tuint) :: nil);
+  fn_body :=
+(Ssequence
+  (Ssequence
+    (Sset _t'7
+      (Efield
+        (Ederef (Etempvar _G (tptr (Tstruct _t noattr))) (Tstruct _t noattr))
+        _height tuint))
+    (Sifthenelse (Ebinop Oeq (Etempvar _t'7 tuint)
+                   (Econst_int (Int.repr 0) tint) tint)
+      (Ssequence
+        (Sset _t'8
+          (Efield
+            (Ederef (Etempvar _F (tptr (Tstruct _t noattr)))
+              (Tstruct _t noattr)) _last_line_width tuint))
+        (Sreturn (Some (Etempvar _t'8 tuint))))
+      Sskip))
+  (Ssequence
+    (Ssequence
+      (Sset _t'5
+        (Efield
+          (Ederef (Etempvar _F (tptr (Tstruct _t noattr)))
+            (Tstruct _t noattr)) _height tuint))
+      (Sifthenelse (Ebinop Oeq (Etempvar _t'5 tuint)
+                     (Econst_int (Int.repr 0) tint) tint)
+        (Ssequence
+          (Sset _t'6
+            (Efield
+              (Ederef (Etempvar _G (tptr (Tstruct _t noattr)))
+                (Tstruct _t noattr)) _last_line_width tuint))
+          (Sreturn (Some (Etempvar _t'6 tuint))))
+        Sskip))
+    (Ssequence
+      (Ssequence
+        (Sset _t'1
+          (Efield
+            (Ederef (Etempvar _F (tptr (Tstruct _t noattr)))
+              (Tstruct _t noattr)) _height tuint))
+        (Sifthenelse (Ebinop Oeq (Etempvar _t'1 tuint)
+                       (Econst_int (Int.repr 1) tint) tint)
+          (Ssequence
+            (Sset _t'3
+              (Efield
+                (Ederef (Etempvar _F (tptr (Tstruct _t noattr)))
+                  (Tstruct _t noattr)) _last_line_width tuint))
+            (Ssequence
+              (Sset _t'4
+                (Efield
+                  (Ederef (Etempvar _G (tptr (Tstruct _t noattr)))
+                    (Tstruct _t noattr)) _last_line_width tuint))
+              (Sset _last_line_width_new
+                (Ebinop Oadd (Etempvar _t'3 tuint) (Etempvar _t'4 tuint)
+                  tuint))))
+          (Ssequence
+            (Sset _t'2
+              (Efield
+                (Ederef (Etempvar _F (tptr (Tstruct _t noattr)))
+                  (Tstruct _t noattr)) _last_line_width tuint))
+            (Sset _last_line_width_new
+              (Ecast
+                (Ebinop Oadd (Etempvar _t'2 tuint) (Etempvar _shift tulong)
+                  tulong) tuint)))))
+      (Sreturn (Some (Etempvar _last_line_width_new tuint))))))
+|}.
+
+Definition f_flw_add_fill := {|
+  fn_return := tuint;
+  fn_callconv := cc_default;
+  fn_params := ((_G, (tptr (Tstruct _t noattr))) ::
+                (_F, (tptr (Tstruct _t noattr))) :: nil);
+  fn_vars := nil;
+  fn_temps := ((_first_line_width_new, tuint) :: (_t'7, tuint) ::
+               (_t'6, tuint) :: (_t'5, tuint) :: (_t'4, tuint) ::
+               (_t'3, tuint) :: (_t'2, tuint) :: (_t'1, tuint) :: nil);
+  fn_body :=
+(Ssequence
+  (Ssequence
+    (Sset _t'6
+      (Efield
+        (Ederef (Etempvar _G (tptr (Tstruct _t noattr))) (Tstruct _t noattr))
+        _height tuint))
+    (Sifthenelse (Ebinop Oeq (Etempvar _t'6 tuint)
+                   (Econst_int (Int.repr 0) tint) tint)
+      (Ssequence
+        (Sset _t'7
+          (Efield
+            (Ederef (Etempvar _F (tptr (Tstruct _t noattr)))
+              (Tstruct _t noattr)) _first_line_width tuint))
+        (Sreturn (Some (Etempvar _t'7 tuint))))
+      Sskip))
+  (Ssequence
+    (Ssequence
+      (Sset _t'4
+        (Efield
+          (Ederef (Etempvar _F (tptr (Tstruct _t noattr)))
+            (Tstruct _t noattr)) _height tuint))
+      (Sifthenelse (Ebinop Oeq (Etempvar _t'4 tuint)
+                     (Econst_int (Int.repr 0) tint) tint)
+        (Ssequence
+          (Sset _t'5
+            (Efield
+              (Ederef (Etempvar _G (tptr (Tstruct _t noattr)))
+                (Tstruct _t noattr)) _first_line_width tuint))
+          (Sreturn (Some (Etempvar _t'5 tuint))))
+        Sskip))
+    (Ssequence
+      (Ssequence
+        (Sset _t'1
+          (Efield
+            (Ederef (Etempvar _G (tptr (Tstruct _t noattr)))
+              (Tstruct _t noattr)) _height tuint))
+        (Sifthenelse (Ebinop Oeq (Etempvar _t'1 tuint)
+                       (Econst_int (Int.repr 1) tint) tint)
+          (Ssequence
+            (Sset _t'2
+              (Efield
+                (Ederef (Etempvar _G (tptr (Tstruct _t noattr)))
+                  (Tstruct _t noattr)) _first_line_width tuint))
+            (Ssequence
+              (Sset _t'3
+                (Efield
+                  (Ederef (Etempvar _F (tptr (Tstruct _t noattr)))
+                    (Tstruct _t noattr)) _first_line_width tuint))
+              (Sset _first_line_width_new
+                (Ebinop Oadd (Etempvar _t'2 tuint) (Etempvar _t'3 tuint)
+                  tuint))))
+          (Sset _first_line_width_new
+            (Efield
+              (Ederef (Etempvar _G (tptr (Tstruct _t noattr)))
+                (Tstruct _t noattr)) _first_line_width tuint))))
+      (Sreturn (Some (Etempvar _first_line_width_new tuint))))))
+|}.
+
+Definition f_to_text_add_fill := {|
+  fn_return := (tptr (Tstruct _list noattr));
+  fn_callconv := cc_default;
+  fn_params := ((_G, (tptr (Tstruct _t noattr))) ::
+                (_F, (tptr (Tstruct _t noattr))) :: (_shift, tulong) :: nil);
+  fn_vars := nil;
+  fn_temps := ((_head, (tptr (Tstruct _list noattr))) ::
+               (_tail, (tptr (Tstruct _list noattr))) ::
+               (_copy_F, (tptr (Tstruct _list noattr))) ::
+               (_t'6, (tptr tschar)) ::
+               (_t'5, (tptr (Tstruct _list noattr))) ::
+               (_t'4, (tptr (Tstruct _list noattr))) ::
+               (_t'3, (tptr (Tstruct _list noattr))) ::
+               (_t'2, (tptr (Tstruct _list noattr))) ::
+               (_t'1, (tptr (Tstruct _list noattr))) ::
+               (_t'17, (tptr (Tstruct _list noattr))) :: (_t'16, tuint) ::
+               (_t'15, (tptr (Tstruct _list noattr))) :: (_t'14, tuint) ::
+               (_t'13, (tptr (Tstruct _list noattr))) ::
+               (_t'12, (tptr (Tstruct _list noattr))) ::
+               (_t'11, (tptr tschar)) :: (_t'10, tulong) ::
+               (_t'9, (tptr tschar)) ::
+               (_t'8, (tptr (Tstruct _list noattr))) ::
+               (_t'7, (tptr (Tstruct _list noattr))) :: nil);
+  fn_body :=
+(Ssequence
+  (Ssequence
+    (Sset _t'16
+      (Efield
+        (Ederef (Etempvar _G (tptr (Tstruct _t noattr))) (Tstruct _t noattr))
+        _height tuint))
+    (Sifthenelse (Ebinop Oeq (Etempvar _t'16 tuint)
+                   (Econst_int (Int.repr 0) tint) tint)
+      (Ssequence
+        (Ssequence
+          (Sset _t'17
+            (Efield
+              (Ederef (Etempvar _F (tptr (Tstruct _t noattr)))
+                (Tstruct _t noattr)) _to_text (tptr (Tstruct _list noattr))))
+          (Scall (Some _t'1)
+            (Evar _list_copy (Tfunction
+                               (Tcons (tptr (Tstruct _list noattr)) Tnil)
+                               (tptr (Tstruct _list noattr)) cc_default))
+            ((Etempvar _t'17 (tptr (Tstruct _list noattr))) :: nil)))
+        (Sreturn (Some (Etempvar _t'1 (tptr (Tstruct _list noattr))))))
+      Sskip))
+  (Ssequence
+    (Ssequence
+      (Sset _t'14
+        (Efield
+          (Ederef (Etempvar _F (tptr (Tstruct _t noattr)))
+            (Tstruct _t noattr)) _height tuint))
+      (Sifthenelse (Ebinop Oeq (Etempvar _t'14 tuint)
+                     (Econst_int (Int.repr 0) tint) tint)
+        (Ssequence
+          (Ssequence
+            (Sset _t'15
+              (Efield
+                (Ederef (Etempvar _G (tptr (Tstruct _t noattr)))
+                  (Tstruct _t noattr)) _to_text
+                (tptr (Tstruct _list noattr))))
+            (Scall (Some _t'2)
+              (Evar _list_copy (Tfunction
+                                 (Tcons (tptr (Tstruct _list noattr)) Tnil)
+                                 (tptr (Tstruct _list noattr)) cc_default))
+              ((Etempvar _t'15 (tptr (Tstruct _list noattr))) :: nil)))
+          (Sreturn (Some (Etempvar _t'2 (tptr (Tstruct _list noattr))))))
+        Sskip))
+    (Ssequence
+      (Ssequence
+        (Ssequence
+          (Sset _t'13
+            (Efield
+              (Ederef (Etempvar _G (tptr (Tstruct _t noattr)))
+                (Tstruct _t noattr)) _to_text (tptr (Tstruct _list noattr))))
+          (Scall (Some _t'3)
+            (Evar _list_copy (Tfunction
+                               (Tcons (tptr (Tstruct _list noattr)) Tnil)
+                               (tptr (Tstruct _list noattr)) cc_default))
+            ((Etempvar _t'13 (tptr (Tstruct _list noattr))) :: nil)))
+        (Sset _head (Etempvar _t'3 (tptr (Tstruct _list noattr)))))
+      (Ssequence
+        (Ssequence
+          (Scall (Some _t'4)
+            (Evar _get_list_tail (Tfunction
+                                   (Tcons (tptr (Tstruct _list noattr)) Tnil)
+                                   (tptr (Tstruct _list noattr)) cc_default))
+            ((Etempvar _head (tptr (Tstruct _list noattr))) :: nil))
+          (Sset _tail (Etempvar _t'4 (tptr (Tstruct _list noattr)))))
+        (Ssequence
+          (Ssequence
+            (Ssequence
+              (Sset _t'12
+                (Efield
+                  (Ederef (Etempvar _F (tptr (Tstruct _t noattr)))
+                    (Tstruct _t noattr)) _to_text
+                  (tptr (Tstruct _list noattr))))
+              (Scall (Some _t'5)
+                (Evar _list_copy (Tfunction
+                                   (Tcons (tptr (Tstruct _list noattr)) Tnil)
+                                   (tptr (Tstruct _list noattr)) cc_default))
+                ((Etempvar _t'12 (tptr (Tstruct _list noattr))) :: nil)))
+            (Sset _copy_F (Etempvar _t'5 (tptr (Tstruct _list noattr)))))
+          (Ssequence
+            (Ssequence
+              (Ssequence
+                (Sset _t'9
+                  (Efield
+                    (Ederef (Etempvar _tail (tptr (Tstruct _list noattr)))
+                      (Tstruct _list noattr)) _line (tptr tschar)))
+                (Ssequence
+                  (Sset _t'10
+                    (Efield
+                      (Ederef
+                        (Etempvar _copy_F (tptr (Tstruct _list noattr)))
+                        (Tstruct _list noattr)) _shift tulong))
+                  (Ssequence
+                    (Sset _t'11
+                      (Efield
+                        (Ederef
+                          (Etempvar _copy_F (tptr (Tstruct _list noattr)))
+                          (Tstruct _list noattr)) _line (tptr tschar)))
+                    (Scall (Some _t'6)
+                      (Evar _line_concats (Tfunction
+                                            (Tcons (tptr tschar)
+                                              (Tcons tulong
+                                                (Tcons (tptr tschar) Tnil)))
+                                            (tptr tschar) cc_default))
+                      ((Etempvar _t'9 (tptr tschar)) ::
+                       (Etempvar _t'10 tulong) ::
+                       (Etempvar _t'11 (tptr tschar)) :: nil)))))
+              (Sassign
+                (Efield
+                  (Ederef (Etempvar _tail (tptr (Tstruct _list noattr)))
+                    (Tstruct _list noattr)) _line (tptr tschar))
+                (Etempvar _t'6 (tptr tschar))))
+            (Ssequence
+              (Ssequence
+                (Sset _t'8
+                  (Efield
+                    (Ederef (Etempvar _copy_F (tptr (Tstruct _list noattr)))
+                      (Tstruct _list noattr)) _tail
+                    (tptr (Tstruct _list noattr))))
+                (Scall None
+                  (Evar _shift_list (Tfunction
+                                      (Tcons (tptr (Tstruct _list noattr))
+                                        (Tcons tulong Tnil))
+                                      (tptr (Tstruct _list noattr))
+                                      cc_default))
+                  ((Etempvar _t'8 (tptr (Tstruct _list noattr))) ::
+                   (Etempvar _shift tulong) :: nil)))
+              (Ssequence
+                (Ssequence
+                  (Sset _t'7
+                    (Efield
+                      (Ederef
+                        (Etempvar _copy_F (tptr (Tstruct _list noattr)))
+                        (Tstruct _list noattr)) _tail
+                      (tptr (Tstruct _list noattr))))
+                  (Sassign
+                    (Efield
+                      (Ederef (Etempvar _tail (tptr (Tstruct _list noattr)))
+                        (Tstruct _list noattr)) _tail
+                      (tptr (Tstruct _list noattr)))
+                    (Etempvar _t'7 (tptr (Tstruct _list noattr)))))
+                (Ssequence
+                  (Scall None
+                    (Evar _free (Tfunction (Tcons (tptr tvoid) Tnil) tvoid
+                                  cc_default))
+                    ((Etempvar _copy_F (tptr (Tstruct _list noattr))) :: nil))
+                  (Sreturn (Some (Etempvar _head (tptr (Tstruct _list noattr))))))))))))))
+|}.
+
+Definition f_add_fill := {|
+  fn_return := (tptr (Tstruct _t noattr));
+  fn_callconv := cc_default;
+  fn_params := ((_G, (tptr (Tstruct _t noattr))) ::
+                (_F, (tptr (Tstruct _t noattr))) :: (_shift, tulong) :: nil);
+  fn_vars := nil;
+  fn_temps := ((_result, (tptr (Tstruct _t noattr))) ::
+               (_middle_width_new, tuint) ::
+               (_first_line_width_new, tuint) ::
+               (_last_line_width_new, tuint) ::
+               (_to_text_new, (tptr (Tstruct _list noattr))) ::
+               (_t'7, (tptr (Tstruct _list noattr))) :: (_t'6, tuint) ::
+               (_t'5, tuint) :: (_t'4, tuint) :: (_t'3, (tptr tvoid)) ::
+               (_t'2, (tptr (Tstruct _t noattr))) ::
+               (_t'1, (tptr (Tstruct _t noattr))) :: (_t'11, tuint) ::
+               (_t'10, tuint) :: (_t'9, tuint) :: (_t'8, tuint) :: nil);
+  fn_body :=
+(Ssequence
+  (Ssequence
+    (Sset _t'11
+      (Efield
+        (Ederef (Etempvar _G (tptr (Tstruct _t noattr))) (Tstruct _t noattr))
+        _height tuint))
+    (Sifthenelse (Ebinop Oeq (Etempvar _t'11 tuint)
+                   (Econst_int (Int.repr 0) tint) tint)
+      (Ssequence
+        (Scall (Some _t'1)
+          (Evar _format_copy (Tfunction
+                               (Tcons (tptr (Tstruct _t noattr)) Tnil)
+                               (tptr (Tstruct _t noattr)) cc_default))
+          ((Etempvar _F (tptr (Tstruct _t noattr))) :: nil))
+        (Sreturn (Some (Etempvar _t'1 (tptr (Tstruct _t noattr))))))
+      Sskip))
+  (Ssequence
+    (Ssequence
+      (Sset _t'10
+        (Efield
+          (Ederef (Etempvar _F (tptr (Tstruct _t noattr)))
+            (Tstruct _t noattr)) _height tuint))
+      (Sifthenelse (Ebinop Oeq (Etempvar _t'10 tuint)
+                     (Econst_int (Int.repr 0) tint) tint)
+        (Ssequence
+          (Scall (Some _t'2)
+            (Evar _format_copy (Tfunction
+                                 (Tcons (tptr (Tstruct _t noattr)) Tnil)
+                                 (tptr (Tstruct _t noattr)) cc_default))
+            ((Etempvar _G (tptr (Tstruct _t noattr))) :: nil))
+          (Sreturn (Some (Etempvar _t'2 (tptr (Tstruct _t noattr))))))
+        Sskip))
+    (Ssequence
+      (Ssequence
+        (Scall (Some _t'3)
+          (Evar _malloc (Tfunction (Tcons tulong Tnil) (tptr tvoid)
+                          cc_default))
+          ((Esizeof (Tstruct _t noattr) tulong) :: nil))
+        (Sset _result (Etempvar _t'3 (tptr tvoid))))
+      (Ssequence
+        (Sifthenelse (Eunop Onotbool
+                       (Etempvar _result (tptr (Tstruct _t noattr))) tint)
+          (Scall None
+            (Evar _exit (Tfunction (Tcons tint Tnil) tvoid cc_default))
+            ((Econst_int (Int.repr 1) tint) :: nil))
+          Sskip)
+        (Ssequence
+          (Ssequence
+            (Scall (Some _t'4)
+              (Evar _mdw_add_fill (Tfunction
+                                    (Tcons (tptr (Tstruct _t noattr))
+                                      (Tcons (tptr (Tstruct _t noattr))
+                                        (Tcons tulong Tnil))) tuint
+                                    cc_default))
+              ((Etempvar _G (tptr (Tstruct _t noattr))) ::
+               (Etempvar _F (tptr (Tstruct _t noattr))) ::
+               (Etempvar _shift tulong) :: nil))
+            (Sset _middle_width_new (Etempvar _t'4 tuint)))
+          (Ssequence
+            (Ssequence
+              (Scall (Some _t'5)
+                (Evar _flw_add_fill (Tfunction
+                                      (Tcons (tptr (Tstruct _t noattr))
+                                        (Tcons (tptr (Tstruct _t noattr))
+                                          Tnil)) tuint cc_default))
+                ((Etempvar _G (tptr (Tstruct _t noattr))) ::
+                 (Etempvar _F (tptr (Tstruct _t noattr))) :: nil))
+              (Sset _first_line_width_new (Etempvar _t'5 tuint)))
+            (Ssequence
+              (Ssequence
+                (Scall (Some _t'6)
+                  (Evar _llw_add_fill (Tfunction
+                                        (Tcons (tptr (Tstruct _t noattr))
+                                          (Tcons (tptr (Tstruct _t noattr))
+                                            (Tcons tulong Tnil))) tuint
+                                        cc_default))
+                  ((Etempvar _G (tptr (Tstruct _t noattr))) ::
+                   (Etempvar _F (tptr (Tstruct _t noattr))) ::
+                   (Etempvar _shift tulong) :: nil))
+                (Sset _last_line_width_new (Etempvar _t'6 tuint)))
+              (Ssequence
+                (Ssequence
+                  (Scall (Some _t'7)
+                    (Evar _to_text_add_fill (Tfunction
+                                              (Tcons
+                                                (tptr (Tstruct _t noattr))
+                                                (Tcons
+                                                  (tptr (Tstruct _t noattr))
+                                                  (Tcons tulong Tnil)))
+                                              (tptr (Tstruct _list noattr))
+                                              cc_default))
+                    ((Etempvar _G (tptr (Tstruct _t noattr))) ::
+                     (Etempvar _F (tptr (Tstruct _t noattr))) ::
+                     (Etempvar _shift tulong) :: nil))
+                  (Sset _to_text_new
+                    (Etempvar _t'7 (tptr (Tstruct _list noattr)))))
                 (Ssequence
                   (Ssequence
-                    (Sset _t'44
+                    (Sset _t'8
                       (Efield
                         (Ederef (Etempvar _G (tptr (Tstruct _t noattr)))
                           (Tstruct _t noattr)) _height tuint))
-                    (Sifthenelse (Ebinop Oeq (Etempvar _t'44 tuint)
-                                   (Econst_int (Int.repr 1) tint) tint)
-                      (Ssequence
-                        (Sset _t'45
-                          (Efield
-                            (Ederef (Etempvar _G (tptr (Tstruct _t noattr)))
-                              (Tstruct _t noattr)) _first_line_width tuint))
-                        (Ssequence
-                          (Sset _t'46
-                            (Efield
-                              (Ederef
-                                (Etempvar _F (tptr (Tstruct _t noattr)))
-                                (Tstruct _t noattr)) _first_line_width tuint))
-                          (Sset _first_line_width_new
-                            (Ebinop Oadd (Etempvar _t'45 tuint)
-                              (Etempvar _t'46 tuint) tuint))))
-                      (Sset _first_line_width_new
-                        (Efield
-                          (Ederef (Etempvar _G (tptr (Tstruct _t noattr)))
-                            (Tstruct _t noattr)) _first_line_width tuint))))
-                  (Ssequence
                     (Ssequence
-                      (Sset _t'40
+                      (Sset _t'9
                         (Efield
                           (Ederef (Etempvar _F (tptr (Tstruct _t noattr)))
                             (Tstruct _t noattr)) _height tuint))
-                      (Sifthenelse (Ebinop Oeq (Etempvar _t'40 tuint)
-                                     (Econst_int (Int.repr 1) tint) tint)
-                        (Ssequence
-                          (Sset _t'42
-                            (Efield
-                              (Ederef
-                                (Etempvar _F (tptr (Tstruct _t noattr)))
-                                (Tstruct _t noattr)) _last_line_width tuint))
-                          (Ssequence
-                            (Sset _t'43
-                              (Efield
-                                (Ederef
-                                  (Etempvar _G (tptr (Tstruct _t noattr)))
-                                  (Tstruct _t noattr)) _last_line_width
-                                tuint))
-                            (Sset _last_line_width_new
-                              (Ebinop Oadd (Etempvar _t'42 tuint)
-                                (Etempvar _t'43 tuint) tuint))))
-                        (Ssequence
-                          (Sset _t'41
-                            (Efield
-                              (Ederef
-                                (Etempvar _F (tptr (Tstruct _t noattr)))
-                                (Tstruct _t noattr)) _last_line_width tuint))
-                          (Sset _last_line_width_new
-                            (Ebinop Oadd (Etempvar _t'41 tuint)
-                              (Etempvar _shift tuint) tuint)))))
+                      (Sassign
+                        (Efield
+                          (Ederef
+                            (Etempvar _result (tptr (Tstruct _t noattr)))
+                            (Tstruct _t noattr)) _height tuint)
+                        (Ebinop Osub
+                          (Ebinop Oadd (Etempvar _t'8 tuint)
+                            (Etempvar _t'9 tuint) tuint)
+                          (Econst_int (Int.repr 1) tint) tuint))))
+                  (Ssequence
+                    (Sassign
+                      (Efield
+                        (Ederef (Etempvar _result (tptr (Tstruct _t noattr)))
+                          (Tstruct _t noattr)) _first_line_width tuint)
+                      (Etempvar _first_line_width_new tuint))
                     (Ssequence
+                      (Sassign
+                        (Efield
+                          (Ederef
+                            (Etempvar _result (tptr (Tstruct _t noattr)))
+                            (Tstruct _t noattr)) _middle_width tuint)
+                        (Etempvar _middle_width_new tuint))
                       (Ssequence
+                        (Sassign
+                          (Efield
+                            (Ederef
+                              (Etempvar _result (tptr (Tstruct _t noattr)))
+                              (Tstruct _t noattr)) _last_line_width tuint)
+                          (Etempvar _last_line_width_new tuint))
                         (Ssequence
-                          (Sset _t'39
+                          (Sassign
                             (Efield
                               (Ederef
-                                (Etempvar _G (tptr (Tstruct _t noattr)))
+                                (Etempvar _result (tptr (Tstruct _t noattr)))
                                 (Tstruct _t noattr)) _to_text
-                              (tptr (Tstruct _list noattr))))
-                          (Scall (Some _t'11)
-                            (Evar _list_copy (Tfunction
-                                               (Tcons
-                                                 (tptr (Tstruct _list noattr))
-                                                 Tnil)
-                                               (tptr (Tstruct _list noattr))
-                                               cc_default))
-                            ((Etempvar _t'39 (tptr (Tstruct _list noattr))) ::
-                             nil)))
-                        (Sset _to_text_new
-                          (Etempvar _t'11 (tptr (Tstruct _list noattr)))))
-                      (Ssequence
-                        (Sset _to_text_new_tail
-                          (Etempvar _to_text_new (tptr (Tstruct _list noattr))))
-                        (Ssequence
-                          (Sloop
-                            (Ssequence
-                              (Ssequence
-                                (Sset _t'38
-                                  (Efield
-                                    (Ederef
-                                      (Etempvar _to_text_new_tail (tptr (Tstruct _list noattr)))
-                                      (Tstruct _list noattr)) _tail
-                                    (tptr (Tstruct _list noattr))))
-                                (Sifthenelse (Ebinop One
-                                               (Etempvar _t'38 (tptr (Tstruct _list noattr)))
-                                               (Ecast
-                                                 (Econst_int (Int.repr 0) tint)
-                                                 (tptr tvoid)) tint)
-                                  Sskip
-                                  Sbreak))
-                              (Sset _to_text_new_tail
-                                (Efield
-                                  (Ederef
-                                    (Etempvar _to_text_new_tail (tptr (Tstruct _list noattr)))
-                                    (Tstruct _list noattr)) _tail
-                                  (tptr (Tstruct _list noattr)))))
-                            Sskip)
-                          (Ssequence
-                            (Ssequence
-                              (Ssequence
-                                (Ssequence
-                                  (Ssequence
-                                    (Sset _t'37
-                                      (Efield
-                                        (Ederef
-                                          (Etempvar _to_text_new_tail (tptr (Tstruct _list noattr)))
-                                          (Tstruct _list noattr)) _line
-                                        (tptr tschar)))
-                                    (Scall (Some _t'12)
-                                      (Evar _strlen (Tfunction
-                                                      (Tcons (tptr tschar)
-                                                        Tnil) tulong
-                                                      cc_default))
-                                      ((Etempvar _t'37 (tptr tschar)) :: nil)))
-                                  (Ssequence
-                                    (Sset _t'35
-                                      (Efield
-                                        (Ederef
-                                          (Etempvar _F (tptr (Tstruct _t noattr)))
-                                          (Tstruct _t noattr)) _to_text
-                                        (tptr (Tstruct _list noattr))))
-                                    (Ssequence
-                                      (Sset _t'36
-                                        (Efield
-                                          (Ederef
-                                            (Etempvar _t'35 (tptr (Tstruct _list noattr)))
-                                            (Tstruct _list noattr)) _line
-                                          (tptr tschar)))
-                                      (Scall (Some _t'13)
-                                        (Evar _strlen (Tfunction
-                                                        (Tcons (tptr tschar)
-                                                          Tnil) tulong
-                                                        cc_default))
-                                        ((Etempvar _t'36 (tptr tschar)) ::
-                                         nil)))))
-                                (Ssequence
-                                  (Sset _t'32
-                                    (Efield
-                                      (Ederef
-                                        (Etempvar _to_text_new_tail (tptr (Tstruct _list noattr)))
-                                        (Tstruct _list noattr)) _line
-                                      (tptr tschar)))
-                                  (Ssequence
-                                    (Sset _t'33
-                                      (Efield
-                                        (Ederef
-                                          (Etempvar _F (tptr (Tstruct _t noattr)))
-                                          (Tstruct _t noattr)) _to_text
-                                        (tptr (Tstruct _list noattr))))
-                                    (Ssequence
-                                      (Sset _t'34
-                                        (Efield
-                                          (Ederef
-                                            (Etempvar _t'33 (tptr (Tstruct _list noattr)))
-                                            (Tstruct _list noattr)) _shift
-                                          tulong))
-                                      (Scall (Some _t'14)
-                                        (Evar _realloc (Tfunction
-                                                         (Tcons (tptr tvoid)
-                                                           (Tcons tulong
-                                                             Tnil))
-                                                         (tptr tvoid)
-                                                         cc_default))
-                                        ((Etempvar _t'32 (tptr tschar)) ::
-                                         (Ebinop Oadd
-                                           (Ebinop Oadd
-                                             (Ebinop Oadd
-                                               (Etempvar _t'12 tulong)
-                                               (Etempvar _t'34 tulong)
-                                               tulong)
-                                             (Etempvar _t'13 tulong) tulong)
-                                           (Econst_int (Int.repr 1) tint)
-                                           tulong) :: nil))))))
-                              (Sassign
-                                (Efield
-                                  (Ederef
-                                    (Etempvar _to_text_new_tail (tptr (Tstruct _list noattr)))
-                                    (Tstruct _list noattr)) _line
-                                  (tptr tschar))
-                                (Etempvar _t'14 (tptr tvoid))))
-                            (Ssequence
-                              (Ssequence
-                                (Ssequence
-                                  (Ssequence
-                                    (Sset _t'30
-                                      (Efield
-                                        (Ederef
-                                          (Etempvar _F (tptr (Tstruct _t noattr)))
-                                          (Tstruct _t noattr)) _to_text
-                                        (tptr (Tstruct _list noattr))))
-                                    (Ssequence
-                                      (Sset _t'31
-                                        (Efield
-                                          (Ederef
-                                            (Etempvar _t'30 (tptr (Tstruct _list noattr)))
-                                            (Tstruct _list noattr)) _shift
-                                          tulong))
-                                      (Scall (Some _t'15)
-                                        (Evar _sp (Tfunction
-                                                    (Tcons tulong Tnil)
-                                                    (tptr tschar) cc_default))
-                                        ((Etempvar _t'31 tulong) :: nil))))
-                                  (Ssequence
-                                    (Sset _t'29
-                                      (Efield
-                                        (Ederef
-                                          (Etempvar _to_text_new_tail (tptr (Tstruct _list noattr)))
-                                          (Tstruct _list noattr)) _line
-                                        (tptr tschar)))
-                                    (Scall (Some _t'16)
-                                      (Evar _strcat (Tfunction
-                                                      (Tcons (tptr tschar)
-                                                        (Tcons (tptr tschar)
-                                                          Tnil))
-                                                      (tptr tschar)
-                                                      cc_default))
-                                      ((Etempvar _t'29 (tptr tschar)) ::
-                                       (Etempvar _t'15 (tptr tschar)) :: nil))))
-                                (Sassign
-                                  (Efield
-                                    (Ederef
-                                      (Etempvar _to_text_new_tail (tptr (Tstruct _list noattr)))
-                                      (Tstruct _list noattr)) _line
-                                    (tptr tschar))
-                                  (Etempvar _t'16 (tptr tschar))))
-                              (Ssequence
-                                (Ssequence
-                                  (Ssequence
-                                    (Sset _t'26
-                                      (Efield
-                                        (Ederef
-                                          (Etempvar _to_text_new_tail (tptr (Tstruct _list noattr)))
-                                          (Tstruct _list noattr)) _line
-                                        (tptr tschar)))
-                                    (Ssequence
-                                      (Sset _t'27
-                                        (Efield
-                                          (Ederef
-                                            (Etempvar _F (tptr (Tstruct _t noattr)))
-                                            (Tstruct _t noattr)) _to_text
-                                          (tptr (Tstruct _list noattr))))
-                                      (Ssequence
-                                        (Sset _t'28
-                                          (Efield
-                                            (Ederef
-                                              (Etempvar _t'27 (tptr (Tstruct _list noattr)))
-                                              (Tstruct _list noattr)) _line
-                                            (tptr tschar)))
-                                        (Scall (Some _t'17)
-                                          (Evar _strcat (Tfunction
-                                                          (Tcons
-                                                            (tptr tschar)
-                                                            (Tcons
-                                                              (tptr tschar)
-                                                              Tnil))
-                                                          (tptr tschar)
-                                                          cc_default))
-                                          ((Etempvar _t'26 (tptr tschar)) ::
-                                           (Etempvar _t'28 (tptr tschar)) ::
-                                           nil)))))
-                                  (Sassign
-                                    (Efield
-                                      (Ederef
-                                        (Etempvar _to_text_new_tail (tptr (Tstruct _list noattr)))
-                                        (Tstruct _list noattr)) _line
-                                      (tptr tschar))
-                                    (Etempvar _t'17 (tptr tschar))))
-                                (Ssequence
-                                  (Ssequence
-                                    (Ssequence
-                                      (Sset _t'24
-                                        (Efield
-                                          (Ederef
-                                            (Etempvar _F (tptr (Tstruct _t noattr)))
-                                            (Tstruct _t noattr)) _to_text
-                                          (tptr (Tstruct _list noattr))))
-                                      (Ssequence
-                                        (Sset _t'25
-                                          (Efield
-                                            (Ederef
-                                              (Etempvar _t'24 (tptr (Tstruct _list noattr)))
-                                              (Tstruct _list noattr)) _tail
-                                            (tptr (Tstruct _list noattr))))
-                                        (Scall (Some _t'18)
-                                          (Evar _list_copy (Tfunction
-                                                             (Tcons
-                                                               (tptr (Tstruct _list noattr))
-                                                               Tnil)
-                                                             (tptr (Tstruct _list noattr))
-                                                             cc_default))
-                                          ((Etempvar _t'25 (tptr (Tstruct _list noattr))) ::
-                                           nil))))
-                                    (Sassign
-                                      (Efield
-                                        (Ederef
-                                          (Etempvar _to_text_new_tail (tptr (Tstruct _list noattr)))
-                                          (Tstruct _list noattr)) _tail
-                                        (tptr (Tstruct _list noattr)))
-                                      (Etempvar _t'18 (tptr (Tstruct _list noattr)))))
-                                  (Ssequence
-                                    (Sset _to_text_new_tail
-                                      (Efield
-                                        (Ederef
-                                          (Etempvar _to_text_new_tail (tptr (Tstruct _list noattr)))
-                                          (Tstruct _list noattr)) _tail
-                                        (tptr (Tstruct _list noattr))))
-                                    (Ssequence
-                                      (Swhile
-                                        (Ebinop One
-                                          (Etempvar _to_text_new_tail (tptr (Tstruct _list noattr)))
-                                          (Ecast
-                                            (Econst_int (Int.repr 0) tint)
-                                            (tptr tvoid)) tint)
-                                        (Ssequence
-                                          (Ssequence
-                                            (Sset _t'23
-                                              (Efield
-                                                (Ederef
-                                                  (Etempvar _to_text_new_tail (tptr (Tstruct _list noattr)))
-                                                  (Tstruct _list noattr))
-                                                _shift tulong))
-                                            (Sassign
-                                              (Efield
-                                                (Ederef
-                                                  (Etempvar _to_text_new_tail (tptr (Tstruct _list noattr)))
-                                                  (Tstruct _list noattr))
-                                                _shift tulong)
-                                              (Ebinop Oadd
-                                                (Etempvar _t'23 tulong)
-                                                (Etempvar _shift tuint)
-                                                tulong)))
-                                          (Sset _to_text_new_tail
-                                            (Efield
-                                              (Ederef
-                                                (Etempvar _to_text_new_tail (tptr (Tstruct _list noattr)))
-                                                (Tstruct _list noattr)) _tail
-                                              (tptr (Tstruct _list noattr))))))
-                                      (Ssequence
-                                        (Ssequence
-                                          (Sset _t'21
-                                            (Efield
-                                              (Ederef
-                                                (Etempvar _G (tptr (Tstruct _t noattr)))
-                                                (Tstruct _t noattr)) _height
-                                              tuint))
-                                          (Ssequence
-                                            (Sset _t'22
-                                              (Efield
-                                                (Ederef
-                                                  (Etempvar _F (tptr (Tstruct _t noattr)))
-                                                  (Tstruct _t noattr))
-                                                _height tuint))
-                                            (Sassign
-                                              (Efield
-                                                (Ederef
-                                                  (Etempvar _result (tptr (Tstruct _t noattr)))
-                                                  (Tstruct _t noattr))
-                                                _height tuint)
-                                              (Ebinop Osub
-                                                (Ebinop Oadd
-                                                  (Etempvar _t'21 tuint)
-                                                  (Etempvar _t'22 tuint)
-                                                  tuint)
-                                                (Econst_int (Int.repr 1) tint)
-                                                tuint))))
-                                        (Ssequence
-                                          (Sassign
-                                            (Efield
-                                              (Ederef
-                                                (Etempvar _result (tptr (Tstruct _t noattr)))
-                                                (Tstruct _t noattr))
-                                              _first_line_width tuint)
-                                            (Etempvar _first_line_width_new tuint))
-                                          (Ssequence
-                                            (Sassign
-                                              (Efield
-                                                (Ederef
-                                                  (Etempvar _result (tptr (Tstruct _t noattr)))
-                                                  (Tstruct _t noattr))
-                                                _middle_width tuint)
-                                              (Etempvar _middle_width_new tuint))
-                                            (Ssequence
-                                              (Sassign
-                                                (Efield
-                                                  (Ederef
-                                                    (Etempvar _result (tptr (Tstruct _t noattr)))
-                                                    (Tstruct _t noattr))
-                                                  _last_line_width tuint)
-                                                (Etempvar _last_line_width_new tuint))
-                                              (Sassign
-                                                (Efield
-                                                  (Ederef
-                                                    (Etempvar _result (tptr (Tstruct _t noattr)))
-                                                    (Tstruct _t noattr))
-                                                  _to_text
-                                                  (tptr (Tstruct _list noattr)))
-                                                (Etempvar _to_text_new (tptr (Tstruct _list noattr))))))))))))))))))))))))
-      (Sreturn (Some (Etempvar _result (tptr (Tstruct _t noattr))))))))
+                              (tptr (Tstruct _list noattr)))
+                            (Etempvar _to_text_new (tptr (Tstruct _list noattr))))
+                          (Sreturn (Some (Etempvar _result (tptr (Tstruct _t noattr))))))))))))))))))
 |}.
 
 Definition f_to_string := {|
@@ -4140,11 +4004,6 @@ Definition global_definitions : list (ident * globdef fundef type) :=
  (_malloc,
    Gfun(External EF_malloc (Tcons tulong Tnil) (tptr tvoid) cc_default)) ::
  (_free, Gfun(External EF_free (Tcons (tptr tvoid) Tnil) tvoid cc_default)) ::
- (_realloc,
-   Gfun(External (EF_external "realloc"
-                   (mksignature (AST.Tlong :: AST.Tlong :: nil) AST.Tlong
-                     cc_default)) (Tcons (tptr tvoid) (Tcons tulong Tnil))
-     (tptr tvoid) cc_default)) ::
  (_exit,
    Gfun(External (EF_external "exit"
                    (mksignature (AST.Tint :: nil) AST.Tvoid cc_default))
@@ -4171,6 +4030,10 @@ Definition global_definitions : list (ident * globdef fundef type) :=
  (_shift_list, Gfun(Internal f_shift_list)) ::
  (_to_text_add_beside, Gfun(Internal f_to_text_add_beside)) ::
  (_add_beside, Gfun(Internal f_add_beside)) ::
+ (_mdw_add_fill, Gfun(Internal f_mdw_add_fill)) ::
+ (_llw_add_fill, Gfun(Internal f_llw_add_fill)) ::
+ (_flw_add_fill, Gfun(Internal f_flw_add_fill)) ::
+ (_to_text_add_fill, Gfun(Internal f_to_text_add_fill)) ::
  (_add_fill, Gfun(Internal f_add_fill)) ::
  (_to_string, Gfun(Internal f_to_string)) ::
  (_total_width, Gfun(Internal f_total_width)) ::
@@ -4179,13 +4042,14 @@ Definition global_definitions : list (ident * globdef fundef type) :=
 
 Definition public_idents : list ident :=
 (_indent :: _of_string :: _total_width :: _to_string :: _add_fill ::
+ _to_text_add_fill :: _flw_add_fill :: _llw_add_fill :: _mdw_add_fill ::
  _add_beside :: _to_text_add_beside :: _shift_list :: _line_concats ::
  _flw_add_beside :: _mdw_add_beside :: _add_above :: _to_text_add_above ::
  _mdw_add_above :: _list_concat :: _get_list_tail :: _format_copy ::
  _newline :: _line :: _empty :: _is_less_than :: _less_components ::
  _to_text_apply :: _get_applied_length :: _sp :: _new_list :: _list_copy ::
- _max :: _strcat :: _strcpy :: _strlen :: _exit :: _realloc :: _free ::
- _malloc :: ___builtin_debug :: ___builtin_fmin :: ___builtin_fmax ::
+ _max :: _strcat :: _strcpy :: _strlen :: _exit :: _free :: _malloc ::
+ ___builtin_debug :: ___builtin_fmin :: ___builtin_fmax ::
  ___builtin_fnmsub :: ___builtin_fnmadd :: ___builtin_fmsub ::
  ___builtin_fmadd :: ___builtin_clsll :: ___builtin_clsl :: ___builtin_cls ::
  ___builtin_fence :: ___builtin_expect :: ___builtin_unreachable ::
