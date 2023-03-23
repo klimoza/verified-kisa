@@ -8,6 +8,7 @@ Require Import Coq.Strings.Ascii.
 Require Import format_specs.
 Require Import format_std_proof.
 Require Import format_proof.
+Require Import list_specs.
 
 Lemma eq_and_true_impl (n a m b : nat):
   ((n =? a)%nat && (m =? b)%nat)%bool = true ->
@@ -370,7 +371,8 @@ Proof.
     unfold add_above.
     replace (height G) with 0%nat in * by lia.
     split; auto.
-    ins; desf; assert (sigmaG = []) by auto; subst; list_solve. }
+    ins; desf; assert (Zlength sigmaG = 0) by auto.
+    assert (sigmaG = []) by list_solve; subst; list_solve. }
   { forward; entailer!. }
 
   forward.
@@ -387,11 +389,12 @@ Proof.
     2: { unfold concrete_mformat; entailer!.
       split; apply mk_format_mp; auto. }
     unfold add_above.
-    replace (height F) with 0%nat by lia.
     destruct (height G).
     { lia. }
+    replace (height F) with 0%nat in * by lia.
     split; auto.
-    ins; desf; assert (sigmaF = []) by auto; subst; list_solve. }
+    ins; desf; assert (Zlength sigmaF = 0) by auto.
+    assert (sigmaF = []) by list_solve; subst; list_solve. }
   { forward; entailer!. }
 
   forward.
@@ -431,10 +434,8 @@ Proof.
     unfold to_text_eq.
     intros shift line.
     apply text_from_concat_add_above; auto.
-    { destruct sigmaG; desf.
-      assert (0 = Z.of_nat (S n)) by auto; lia. }
-    destruct sigmaF; desf.
-    assert (0 = Z.of_nat (S n0)) by auto; lia. }
+    { destruct sigmaG; desf. }
+    destruct sigmaF; desf. }
   destruct format_mp_list_mp.
   destruct format_mp_list_mp0.
   apply mk_list_mp; list_solve.
@@ -527,14 +528,11 @@ Proof.
   { rewrite <- K2; lia. }
   { rewrite <- K3; lia. }
   rewrite <- K1.
-  split; ins.
-  { assert (height G = 0%nat) by lia; lia. }
-  subst.
-  destruct sigmaG.
-  2: vauto.
-  desf.
-  assert (0 = Z.of_nat (height G)) by auto.
-  lia.
+  replace to_text with (sigmaG ++ sigmaF) by list_solve.
+  replace (Z.of_nat (height G)) with (Zlength sigmaG) by list_solve.
+  getnw; destruct FMT_MP.
+  replace (Z.of_nat (height F)) with (Zlength sigmaF) by list_solve.
+  list_solve.
 Qed.
 
 Lemma body_mdw_add_beside: semax_body Vprog Gprog f_mdw_add_beside mdw_add_beside_spec.
@@ -960,8 +958,8 @@ Proof.
     split.
     { unfold add_beside; desf. }
     split.
-    { subst; list_solve. }
-    split; apply mk_format_mp; vauto. }
+    { subst; split; list_solve. }
+    split; split; list_solve. }
   { forward; entailer!. }
   forward.
   getnw; destruct FMT_MP.
@@ -976,7 +974,11 @@ Proof.
     unfold concrete_mformat; entailer!.
     split.
     { unfold add_beside; desf. }
-    split; apply mk_format_mp; vauto. }
+    split.
+    { unfold list_add_beside_length.
+      replace (height F) with 0%nat in * by lia.
+      replace sigmaF with ([] : list (Z * list byte)) by list_solve; desf. }
+    split; split; list_solve. }
   { forward; entailer!. }
   forward.
   prove_ptr.
@@ -989,8 +991,7 @@ Proof.
   Intros tail_ptr.
   assert (Zlength sigmaG = 0 \/ Zlength sigmaG > 0) as K by list_solve.
   destruct K.
-  { destruct (sigmaG); try list_solve.
-    desf; assert (0 = Z.of_nat (height G)) by auto; lia. }
+  { destruct (sigmaG); try list_solve. }
   replace (sublist (Zlength sigmaG - 1) (Zlength sigmaG) sigmaG) with 
     [Znth (Zlength sigmaG - 1) sigmaG] by list_solve.
   unff listrep.
@@ -1084,7 +1085,7 @@ Proof.
         2: { apply List.Forall_map; simpl.
           inv list_mp_forall_snd0; auto. }
         enough (0 <= Zlength line_con + 1 <= Int.max_unsigned) by list_solve; vauto. }
-      list_solve. }
+      unfold list_add_beside_length; desf; list_solve. }
     unfold to_text_eq.
     ins.
     unfold add_beside.
@@ -1318,12 +1319,18 @@ Proof.
   { apply mk_format_mp; vauto.
     { rewrite K1; lia. }
     { rewrite K2; lia. }
-    split.
-    { lia. }
-    ins; desf.
-    destruct (sigmaG).
-    { assert(0 = Z.of_nat (height G)) by auto; lia. }
-    list_solve. }
+    rewrite K1; ins.
+    replace (Zlength to_text_list) with (list_add_beside_length sigmaG sigmaF) by vauto.
+    unfold list_add_beside_length.
+    assert (sigmaG <> []).
+    { assert (height G <> 0%nat) by lia.
+      assert (Zlength sigmaG <> 0) by lia.
+      destruct sigmaG; vauto. }
+    assert (sigmaF <> []).
+    { assert (height F <> 0%nat) by lia.
+      assert (Zlength sigmaF <> 0) by lia.
+      destruct sigmaF; vauto. }
+      desf; list_solve. }
   rewrite K1.
   rewrite K2.
   repeat rewrite Nat2Z.inj_add.
@@ -1653,7 +1660,7 @@ Proof.
     split.
     { unfold add_fill; desf. }
     split.
-    { subst; list_solve. }
+    { subst; split; list_solve. }
     split; apply mk_format_mp; vauto. }
   { forward; entailer!. }
   forward.
@@ -1669,7 +1676,10 @@ Proof.
     unfold concrete_mformat; entailer!.
     split.
     { unfold add_fill; desf. }
-    split; apply mk_format_mp; vauto. }
+    split.
+    2: split; split; list_solve.
+    unfold list_add_beside_length.
+    replace (sigmaF) with ([] : list (Z * list byte)) by list_solve; desf. }
   { forward; entailer!. }
   forward.
   prove_ptr.
@@ -1682,8 +1692,7 @@ Proof.
   Intros tail_ptr.
   assert (Zlength sigmaG = 0 \/ Zlength sigmaG > 0) as K by list_solve.
   destruct K.
-  { destruct (sigmaG); try list_solve.
-    desf; assert (0 = Z.of_nat (height G)) by auto; lia. }
+  { destruct (sigmaG); try list_solve. }
   replace (sublist (Zlength sigmaG - 1) (Zlength sigmaG) sigmaG) with 
     [Znth (Zlength sigmaG - 1) sigmaG] by list_solve.
   unff listrep.
@@ -1776,7 +1785,7 @@ Proof.
         2: { apply List.Forall_map; simpl.
           inv list_mp_forall_snd0; auto. }
         enough (0 <= Zlength line_con + 1 <= Int.max_unsigned) by list_solve; vauto. }
-      list_solve. }
+      unfold list_add_beside_length; desf; list_solve. }
     unfold to_text_eq; ins.
     unfold add_fill.
     destruct (height G); vauto.
@@ -2003,12 +2012,20 @@ Proof.
   entailer!.
   { apply mk_format_mp; vauto.
     { rewrite K1; lia. }
-    split.
-    { lia. }
-    ins; desf.
-    destruct (sigmaG).
-    { assert(0 = Z.of_nat (height G)) by auto; lia. }
-    list_solve. }
+    rewrite K1; ins.
+    replace (Zlength to_text_list) with (list_add_beside_length sigmaG sigmaF).
+    unfold list_add_beside_length.
+    assert (sigmaG <> []).
+    { assert (height G <> 0%nat) by lia.
+      assert (Zlength sigmaG = Z.of_nat (height G)) by lia.
+      assert (Zlength sigmaG <> 0) by lia.
+      destruct sigmaG; vauto. }
+    assert (sigmaF <> []).
+    { assert (height F <> 0%nat) by lia.
+      assert (Zlength sigmaF = Z.of_nat (height F)) by lia.
+      assert (Zlength sigmaF <> 0) by lia.
+      destruct sigmaF; vauto. }
+    desf; list_solve. }
   rewrite K1.
   replace (Z.of_nat (height G + height F - 1)) with 
     (Z.of_nat (height G) + Z.of_nat (height F) - 1) by list_solve.

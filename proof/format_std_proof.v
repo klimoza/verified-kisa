@@ -6,6 +6,7 @@ Require Import printer.printer_files.compiled_format.
 Require Import printer.verified_printer.Format.
 Require Import Coq.Strings.Ascii.
 Require Import format_specs.
+Require Import list_specs.
 
 Lemma body_max: semax_body Vprog Gprog f_max max_spec.
 Proof.

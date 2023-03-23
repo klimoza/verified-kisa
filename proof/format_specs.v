@@ -188,7 +188,7 @@ Record format_mp (G : t) (sigma : list (Z * list byte)) : Prop :=
     format_mp_flw : 0 <= Z.of_nat (first_line_width G) <= Int.max_unsigned;
     format_mp_mw : 0 <= Z.of_nat (middle_width G) <= Int.max_unsigned;
     format_mp_llw : 0 <= Z.of_nat (last_line_width G) <= Int.max_unsigned;
-    format_mp_zero_hg: 0 = Z.of_nat (height G) <-> sigma = nil;
+    format_mp_zero_hg: Z.of_nat (height G) = Zlength sigma;
   }.
 
 Record format_comb_pred (G F : t) (sigmaG sigmaF : list (Z * list byte)) : Prop :=
@@ -493,6 +493,13 @@ DECLARE _flw_add_beside
     RETURN(Vint (Int.repr (Z.of_nat (first_line_width (add_beside G F)))))
     SEP(concrete_mformat G pointer_G sigmaG pG; concrete_mformat F pointer_F sigmaF pF).
 
+Definition list_add_beside_length (sigmaG sigmaF : list (Z * list byte)) :=
+  match sigmaG, sigmaF with
+  | nil, _ => Zlength sigmaF
+  | _, nil => Zlength sigmaG
+  | _, _ => Zlength sigmaG + Zlength sigmaF - 1
+  end.
+
 Definition to_text_add_beside_spec : ident * funspec :=
 DECLARE _to_text_add_beside
   WITH G : t, F : t, pointer_G : val, pointer_F : val,
@@ -509,7 +516,7 @@ DECLARE _to_text_add_beside
     EX q : val, EX sigma : list (Z * list byte),
     PROP(to_text_eq (to_text (add_beside G F)) sigma; list_mp sigma;
           0 <= Zlength sigma + 1 <= Int.max_unsigned;
-          Zlength sigma >= Zlength sigmaG)
+          Zlength sigma = list_add_beside_length sigmaG sigmaF)
     RETURN(q)
     SEP(concrete_mformat G pointer_G sigmaG pG; 
         concrete_mformat F pointer_F sigmaF pF;
@@ -596,7 +603,7 @@ DECLARE _to_text_add_fill
     EX q : val, EX sigma : list (Z * list byte),
     PROP(to_text_eq (to_text (add_fill G F (Z.to_nat shift))) sigma; list_mp sigma;
           0 <= Zlength sigma + 1 <= Int.max_unsigned;
-          Zlength sigma >= Zlength sigmaG)
+          Zlength sigma = list_add_beside_length sigmaG sigmaF)
     RETURN(q)
     SEP(concrete_mformat G pointer_G sigmaG pG; 
         concrete_mformat F pointer_F sigmaF pF;
@@ -634,17 +641,3 @@ Ltac dest_ptr ptr :=
 Ltac unff def := unfold def; fold def.
 
 Ltac prove_ptr := entailer!; unnw; desf.
-
-Definition Gprog : funspecs :=
-        ltac:(with_library prog [
-                   max_spec; strlen_spec; strcpy_spec; strcat_spec;
-                   list_copy_spec; less_components_spec; is_less_than_spec; 
-                   empty_spec; line_spec; sp_spec; 
-                   get_applied_length_spec; format_copy_spec; get_list_tail_spec;
-                   mdw_add_above_spec; list_concat_spec; to_text_add_above_spec;
-                   new_list_spec; add_above_spec;
-                   flw_add_beside_spec; shift_list_spec; add_beside_spec; line_concats_spec;
-                   mdw_add_beside_spec; to_text_add_beside_spec;
-                   mdw_add_fill_spec; flw_add_fill_spec; to_text_add_fill_spec;
-                   llw_add_fill_spec; add_fill_spec
- ]).

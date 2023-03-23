@@ -492,3 +492,41 @@ t *indent(t *f, unsigned int shift) {
 
   return result;
 }
+
+struct format_list {
+  t* G;
+  struct format_list *tail;
+} typedef format_list;
+
+format_list* beside_doc(unsigned int width, unsigned int height, format_list *fs1, format_list *fs2) {
+  if (fs1 == NULL)
+    return NULL;
+  if (fs2 == NULL)
+    return NULL;
+
+  format_list *result = malloc(sizeof(format_list));
+  format_list *result_tail = result;
+  unsigned int cnt = 0;
+  format_list *fs1_tail = fs1;
+  while(fs1_tail != NULL) {
+    format_list *fs2_tail = fs2;
+    while(fs2_tail != NULL) {
+      t* G = add_beside(fs1_tail->G, fs2_tail->G);
+      if(total_width(G) <= width && G->height <= height) {
+        result_tail->G = G;
+        result_tail->tail = malloc(sizeof(format_list));
+        result_tail = result_tail->tail;
+        cnt++;
+      }
+      fs2_tail = fs2_tail->tail;
+    }
+    fs1_tail = fs1_tail->tail;
+  }
+  free(fs1);
+  free(fs2);
+  if(cnt == 0) {
+    free(result);
+    return NULL;
+  }
+  return result;
+}
