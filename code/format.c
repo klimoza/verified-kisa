@@ -498,35 +498,69 @@ struct format_list {
   struct format_list *tail;
 } typedef format_list;
 
+void clear_to_text(list *l) {
+  if(l == NULL)
+    return;
+  clear_to_text(l->tail);
+  if(l->line != NULL)
+    free(l->line);
+  free(l);
+}
+
+void clear_format_list(format_list *fs) {
+  if(fs == NULL)
+    return;
+  clear_format_list(fs->tail);
+  if(fs->G != NULL) {
+    clear_to_text(fs->G->to_text);
+    free(fs->G);
+  }
+  free(fs);
+}
+
 format_list* beside_doc(unsigned int width, unsigned int height, format_list *fs1, format_list *fs2) {
-  if (fs1 == NULL)
+  if (fs1 == NULL) {
+    if (fs2 != NULL)
+      clear_format_list(fs2);
     return NULL;
-  if (fs2 == NULL)
+  }
+  if (fs2 == NULL) {
+    clear_format_list(fs1);
     return NULL;
+  }
 
   format_list *result = malloc(sizeof(format_list));
+  if(result == NULL) exit(1);
   format_list *result_tail = result;
-  unsigned int cnt = 0;
-  format_list *fs1_tail = fs1;
-  while(fs1_tail != NULL) {
-    format_list *fs2_tail = fs2;
-    while(fs2_tail != NULL) {
+  bool has_item = false;
+  format_list *fs2_tail = fs2;
+  while(fs2_tail != NULL) {
+    format_list *fs1_tail = fs1;
+    while(fs1_tail != NULL) {
       t* G = add_beside(fs1_tail->G, fs2_tail->G);
       if(total_width(G) <= width && G->height <= height) {
         result_tail->G = G;
         result_tail->tail = malloc(sizeof(format_list));
+        if(result_tail->tail == NULL) exit(1);
         result_tail = result_tail->tail;
-        cnt++;
+        result_tail->tail = NULL;
+        has_item = true;
       }
-      fs2_tail = fs2_tail->tail;
+      fs1_tail = fs1_tail->tail;
     }
-    fs1_tail = fs1_tail->tail;
+    fs2_tail = fs2_tail->tail;
   }
-  free(fs1);
-  free(fs2);
-  if(cnt == 0) {
+  clear_format_list(fs1);
+  clear_format_list(fs2);
+  if(!has_item) {
     free(result);
     return NULL;
   }
+  result_tail = result;
+  while(result_tail->tail->tail != NULL) {
+    result_tail = result_tail->tail;
+  }
+  free(result_tail->tail);
+  result_tail->tail = NULL;
   return result;
 }
