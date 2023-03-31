@@ -543,7 +543,6 @@ format_list* beside_doc(unsigned int width, unsigned int height, format_list *fs
         result_tail->tail = malloc(sizeof(format_list));
         if(result_tail->tail == NULL) exit(1);
         result_tail = result_tail->tail;
-        result_tail->tail = NULL;
         has_item = true;
       }
       fs1_tail = fs1_tail->tail;
@@ -556,11 +555,12 @@ format_list* beside_doc(unsigned int width, unsigned int height, format_list *fs
     free(result);
     return NULL;
   }
-  result_tail = result;
-  while(result_tail->tail->tail != NULL) {
-    result_tail = result_tail->tail;
-  }
-  free(result_tail->tail);
   result_tail->tail = NULL;
+  format_list *new_result_tail = result;
+  while(new_result_tail->tail->tail != NULL) {
+    new_result_tail = new_result_tail->tail;
+  }
+  free(new_result_tail->tail);
+  new_result_tail->tail = NULL;
   return result;
 }

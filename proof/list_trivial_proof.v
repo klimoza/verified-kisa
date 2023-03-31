@@ -127,6 +127,32 @@ Instance t_Inhabitant : Inhabitant t := {
   default := empty;
 }.
 
+Lemma lsegf_local_facts sigma x y p:
+  lsegf sigma x y *
+  malloc_token Ews t_flist y *
+  data_at Ews t_flist p y |--
+  !! is_pointer_or_null x &&
+  lsegf sigma x y *
+  malloc_token Ews t_flist y *
+  data_at Ews t_flist p y.
+Proof.
+  ins.
+  assert (
+    lsegf sigma x y * malloc_token Ews t_flist y
+    * data_at Ews t_flist p y |--
+    !! is_pointer_or_null y &&
+    lsegf sigma x y * malloc_token Ews t_flist y
+    * data_at Ews t_flist p y
+  ) by entailer!.
+  eapply derives_trans; eauto.
+  induction sigma.
+  { unff lsegf; entailer!. }
+  unff lsegf.
+  Intros h y0.
+  Exists h y0.
+  entailer!.
+Qed.
+
 
 Lemma body_beside_doc : semax_body Vprog Gprog f_beside_doc beside_doc_spec.
 Proof.
@@ -171,18 +197,19 @@ Proof.
       LOCAL(temp _fs2_tail head_ptr;
             temp _has_item (Val.of_bool (0 <? Zlength res_part)); temp _result result_ptr; gvars gv; 
             temp _width (Vint (Int.repr w)); temp _height (Vint (Int.repr h));
-            temp _fs1 p1; temp _fs2 p2)
+            temp _fs1 p1; temp _fs2 p2; temp _result_tail result_tail_ptr)
       SEP (mem_mgr gv; listrepf fs1 p1; lsegf (sublist 0 i fs2) p2 head_ptr; 
           listrepf (sublist i (Zlength fs2) fs2) head_ptr; lsegf res_part result_ptr result_tail_ptr;
-          malloc_token Ews t_flist result_tail_ptr; data_at_ Ews t_flist result_ptr)) as loop_invariant eqn:eqn_loop.
+          malloc_token Ews t_flist result_tail_ptr; data_at_ Ews t_flist result_tail_ptr)) as loop_invariant eqn:eqn_loop.
   remember (
       EX result_tail_ptr : val, EX res_part : list t,
       PROP(res_part = filter (fun G => (G.(height) <=? Z.to_nat h)%nat) (FormatTrivial.besideDoc (Z.to_nat w) fs1 fs2))
-      LOCAL(temp _has_item (Val.of_bool (0 <? Zlength res_part)); temp _result result_ptr; gvars gv; 
+      LOCAL(temp _has_item (Val.of_bool (0 <? Zlength res_part)); temp _result result_ptr; gvars gv;
+            temp _result_tail result_tail_ptr;
             temp _width (Vint (Int.repr w)); temp _height (Vint (Int.repr h));
             temp _fs1 p1; temp _fs2 p2)
       SEP (mem_mgr gv; listrepf fs1 p1; listrepf fs2 p2; lsegf res_part result_ptr result_tail_ptr;
-          malloc_token Ews t_flist result_tail_ptr; data_at_ Ews t_flist result_ptr)) as break_invariant eqn:eqn_break.
+          malloc_token Ews t_flist result_tail_ptr; data_at_ Ews t_flist result_tail_ptr)) as break_invariant eqn:eqn_break.
   forward_loop(loop_invariant) break: (break_invariant).
   { subst.
     Exists 0 p2 result_ptr ([] : list t).
@@ -216,7 +243,187 @@ Proof.
         assert (Zlength (filter (fun G : t => (height G <=? Z.to_nat h)%nat)
            (FormatTrivial.besideDoc (Z.to_nat w) fs1 fs2)) = 0) as K by vauto.
         rewrite K in *; vauto. }
-      forward.
+      do 2 forward.
+      remember 
+        (data_at Ews t_flist ((fst (default_val t_flist : @reptype CompSpecs t_flist), (Vlong (Int64.repr (Int.signed (Int.repr 0))))) : @reptype CompSpecs t_flist) result_tail_ptr)
+          as result_mpred eqn:eqn_result.
+      forward_loop(
+        EX i : Z, EX new_result_tail : val,
+        PROP(0 <= i < Zlength res_part)
+        LOCAL(temp _new_result_tail new_result_tail; temp _fs1 p1; temp _fs2 p2; 
+              temp _result_tail result_tail_ptr)
+        SEP(mem_mgr gv; lsegf (sublist 0 i res_part) result_ptr new_result_tail; 
+            lsegf (sublist i (Zlength res_part) res_part) new_result_tail result_tail_ptr;
+            malloc_token Ews t_flist result_tail_ptr; result_mpred))
+      break: (
+        EX new_result_tail : val,
+        PROP()
+        LOCAL(temp _new_result_tail new_result_tail; temp _fs1 p1; temp _fs2 p2; 
+              temp _result_tail result_tail_ptr)
+        SEP(mem_mgr gv; lsegf (sublist 0 (Zlength res_part - 1) res_part) result_ptr new_result_tail; 
+            lsegf (sublist (Zlength res_part - 1) (Zlength res_part) res_part) new_result_tail result_tail_ptr;
+            malloc_token Ews t_flist result_tail_ptr; result_mpred)).
+      { Exists 0 result_ptr; entailer!.
+        remember (filter (fun G : t => (height G <=? Z.to_nat h)%nat) (FormatTrivial.besideDoc (Z.to_nat w) fs1 fs2)) as res_part.
+        replace (sublist 0 0 res_part) with ([] : list t) by list_solve.
+        replace (sublist 0 (Zlength res_part) res_part) with res_part by list_solve.
+        unff lsegf; entailer!. }
+      { Intros i new_result_tail.
+        replace (sublist i (Zlength res_part) res_part) 
+          with (Znth i res_part :: (sublist (i + 1) (Zlength res_part) res_part)) by list_solve.
+        unff lsegf.
+        Intros ith_tail_ptr ith_format_ptr.
+        forward.
+        { entailer. 
+          remember (filter (fun G : t => (height G <=? Z.to_nat h)%nat) (FormatTrivial.besideDoc (Z.to_nat w) fs1 fs2))
+              as res_part.
+          destruct (sublist (i + 1) (Zlength res_part) res_part).
+          { unff lsegf; unnw; entailer!. }
+          unff lsegf; Intros h0 y; entailer!. }
+        destruct (sublist (i + 1) (Zlength res_part) res_part) eqn:E.
+        { unff lsegf.
+          Intros; getnw.
+          rewrite LSEG_PTR_FACT.
+          rewrite eqn_result.
+          forward.
+          forward_if.
+          { forward.
+            Exists i new_result_tail.
+            entailer!. }
+          forward.
+          Exists new_result_tail.
+          entailer!.
+          remember (filter (fun G : t => (height G <=? Z.to_nat h)%nat) (FormatTrivial.besideDoc (Z.to_nat w) fs1 fs2))
+              as res_part.
+          assert(i + 1 < Zlength res_part \/ i + 1 = Zlength res_part) as K by lia.
+          destruct K.
+          { replace (sublist (i + 1) (Zlength res_part) res_part) 
+            with (Znth i res_part :: sublist (i + 2) (Zlength res_part) res_part) in * by list_solve; vauto. }
+          replace i with (Zlength res_part - 1) by lia.
+          replace (sublist (Zlength res_part - 1) (Zlength res_part) res_part) with [Znth (Zlength res_part - 1) res_part] by list_solve.
+          unff lsegf.
+          Exists result_tail_ptr ith_format_ptr.
+          entailer!. }
+        unff lsegf.
+        Intros ith_plus_tail_ptr ith_plus_format_ptr.
+        forward.
+        { entailer.
+          remember (filter (fun G : Format.t => (height G <=? Z.to_nat h)%nat) (FormatTrivial.besideDoc (Z.to_nat w) fs1 fs2))
+              as res_part.
+          assert (
+            !! is_pointer_or_null ith_plus_tail_ptr &&
+            mem_mgr gv
+            * lsegf (sublist 0 i res_part) result_ptr
+                new_result_tail
+            * mformat (Znth i res_part) ith_format_ptr
+            * malloc_token Ews t_flist new_result_tail
+            * data_at Ews t_flist (ith_format_ptr, ith_tail_ptr)
+                new_result_tail
+            * mformat t ith_plus_format_ptr
+            * malloc_token Ews t_flist ith_tail_ptr
+            * data_at Ews t_flist
+                (ith_plus_format_ptr, ith_plus_tail_ptr)
+                ith_tail_ptr
+            * lsegf l ith_plus_tail_ptr result_tail_ptr
+            * malloc_token Ews t_flist result_tail_ptr
+            * data_at Ews t_flist
+                (fst (default_val t_flist), Vlong (Int64.repr 0))
+                result_tail_ptr
+            |-- !! is_pointer_or_null ith_plus_tail_ptr
+          ) by entailer!.
+          eapply derives_trans.
+          2: eauto.
+          assert (
+            mem_mgr gv
+               * lsegf (sublist 0 i res_part) result_ptr
+                   new_result_tail
+               * mformat (Znth i res_part) ith_format_ptr
+               * malloc_token Ews t_flist new_result_tail
+               * data_at Ews t_flist (ith_format_ptr, ith_tail_ptr)
+                   new_result_tail
+               * mformat t ith_plus_format_ptr
+               * malloc_token Ews t_flist ith_tail_ptr
+               * data_at Ews t_flist
+                   (ith_plus_format_ptr, ith_plus_tail_ptr)
+                   ith_tail_ptr
+               * lsegf l ith_plus_tail_ptr result_tail_ptr
+               * malloc_token Ews t_flist result_tail_ptr
+               * data_at Ews t_flist
+                   (fst (default_val t_flist), Vlong (Int64.repr 0))
+                   result_tail_ptr |--
+            (lsegf l ith_plus_tail_ptr result_tail_ptr 
+            * malloc_token Ews t_flist result_tail_ptr
+            * data_at Ews t_flist
+                (fst (default_val t_flist), Vlong (Int64.repr 0))
+                result_tail_ptr) *
+            (
+              mem_mgr gv
+              * lsegf (sublist 0 i res_part) result_ptr
+                  new_result_tail
+              * mformat (Znth i res_part) ith_format_ptr
+              * malloc_token Ews t_flist new_result_tail
+              * data_at Ews t_flist (ith_format_ptr, ith_tail_ptr)
+                  new_result_tail
+              * mformat t ith_plus_format_ptr
+              * malloc_token Ews t_flist ith_tail_ptr
+              * data_at Ews t_flist
+                  (ith_plus_format_ptr, ith_plus_tail_ptr)
+                  ith_tail_ptr)
+          ) by entailer!.
+          eapply derives_trans; eauto.
+          assert (
+            (!!is_pointer_or_null ith_plus_tail_ptr && lsegf l ith_plus_tail_ptr result_tail_ptr 
+            * malloc_token Ews t_flist result_tail_ptr
+            * data_at Ews t_flist
+                (fst (default_val t_flist), Vlong (Int64.repr 0))
+                result_tail_ptr) *
+            (
+              mem_mgr gv
+              * lsegf (sublist 0 i res_part) result_ptr
+                  new_result_tail
+              * mformat (Znth i res_part) ith_format_ptr
+              * malloc_token Ews t_flist new_result_tail
+              * data_at Ews t_flist (ith_format_ptr, ith_tail_ptr)
+                  new_result_tail
+              * mformat t ith_plus_format_ptr
+              * malloc_token Ews t_flist ith_tail_ptr
+              * data_at Ews t_flist
+                  (ith_plus_format_ptr, ith_plus_tail_ptr)
+                  ith_tail_ptr)
+
+            |--
+            !! is_pointer_or_null ith_plus_tail_ptr && mem_mgr gv
+            * lsegf (sublist 0 i res_part) result_ptr
+                new_result_tail
+            * mformat (Znth i res_part) ith_format_ptr
+            * malloc_token Ews t_flist new_result_tail
+            * data_at Ews t_flist
+                (ith_format_ptr, ith_tail_ptr) new_result_tail
+            * mformat t ith_plus_format_ptr
+            * malloc_token Ews t_flist ith_tail_ptr
+            * data_at Ews t_flist
+                (ith_plus_format_ptr, ith_plus_tail_ptr)
+                ith_tail_ptr
+            * lsegf l ith_plus_tail_ptr result_tail_ptr
+            * malloc_token Ews t_flist result_tail_ptr
+            * data_at Ews t_flist
+                (fst (default_val t_flist),
+                 Vlong (Int64.repr 0)) result_tail_ptr 
+          ) by entailer!.
+          eapply derives_trans.
+          2: eauto.
+          eapply sepcon_derives.
+          2: entailer!.
+          apply lsegf_local_facts.
+        }
+        forward_if(ith_plus_tail_ptr <> nullval).
+        { apply denote_tc_test_eq_split.
+          2: entailer!.
+          remember (filter (fun G : Format.t => (height G <=? Z.to_nat h)%nat) (FormatTrivial.besideDoc (Z.to_nat w) fs1 fs2))
+              as res_part.
+          Search valid_pointer.
+        }
+      }
 }
 
 Admitted.
