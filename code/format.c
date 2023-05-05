@@ -531,8 +531,11 @@ format_list* beside_doc(unsigned int width, unsigned int height, format_list *fs
 
   format_list *result = malloc(sizeof(format_list));
   if(result == NULL) exit(1);
+  result->G = empty();
+  result->tail = NULL;
   format_list *result_tail = result;
   bool has_item = false;
+
   format_list *fs2_tail = fs2;
   while(fs2_tail != NULL) {
     format_list *fs1_tail = fs1;
@@ -542,6 +545,8 @@ format_list* beside_doc(unsigned int width, unsigned int height, format_list *fs
         result_tail->G = G;
         result_tail->tail = malloc(sizeof(format_list));
         if(result_tail->tail == NULL) exit(1);
+        result_tail->tail->G = empty();
+        result_tail->tail->tail = NULL;
         result_tail = result_tail->tail;
         has_item = true;
       }
@@ -549,18 +554,18 @@ format_list* beside_doc(unsigned int width, unsigned int height, format_list *fs
     }
     fs2_tail = fs2_tail->tail;
   }
+  
   clear_format_list(fs1);
   clear_format_list(fs2);
   if(!has_item) {
-    free(result);
+    clear_format_list(result);
     return NULL;
   }
-  result_tail->tail = NULL;
   format_list *new_result_tail = result;
   while(new_result_tail->tail->tail != NULL) {
     new_result_tail = new_result_tail->tail;
   }
-  free(new_result_tail->tail);
+  clear_format_list(new_result_tail->tail);
   new_result_tail->tail = NULL;
   return result;
 }

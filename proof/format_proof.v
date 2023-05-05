@@ -371,8 +371,10 @@ Proof.
     all: unfold line; simpl.
     { unfold Int.max_unsigned. simpl. lia. }
     4: ins.
-    all: rewrite list_byte_to_string_length; list_solve.
-  }
+    4: { list_simplify; ins.
+         rewrite <- list_byte_to_string_length.
+         list_solve. }
+    all: rewrite list_byte_to_string_length; list_solve. }
   unfold listrep.
   unfold cstring.
   Exists (Vlong (Int64.repr 0)) p.

@@ -527,12 +527,17 @@ Proof.
   { rewrite <- K1; lia. }
   { rewrite <- K2; lia. }
   { rewrite <- K3; lia. }
-  rewrite <- K1.
+  { rewrite <- K1.
+    replace to_text with (sigmaG ++ sigmaF) by list_solve.
+    replace (Z.of_nat (height G)) with (Zlength sigmaG) by list_solve.
+    getnw; destruct FMT_MP.
+    replace (Z.of_nat (height F)) with (Zlength sigmaF) by list_solve.
+    list_solve. }
   replace to_text with (sigmaG ++ sigmaF) by list_solve.
-  replace (Z.of_nat (height G)) with (Zlength sigmaG) by list_solve.
-  getnw; destruct FMT_MP.
-  replace (Z.of_nat (height F)) with (Zlength sigmaF) by list_solve.
-  list_solve.
+  apply Forall_forall.
+  intros x KK.
+  apply in_app_or in KK.
+  destruct KK.
 Qed.
 
 Lemma body_mdw_add_beside: semax_body Vprog Gprog f_mdw_add_beside mdw_add_beside_spec.

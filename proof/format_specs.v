@@ -189,6 +189,8 @@ Record format_mp (G : t) (sigma : list (Z * list byte)) : Prop :=
     format_mp_mw : 0 <= Z.of_nat (middle_width G) <= Int.max_unsigned;
     format_mp_llw : 0 <= Z.of_nat (last_line_width G) <= Int.max_unsigned;
     format_mp_zero_hg: Z.of_nat (height G) = Zlength sigma;
+    format_mp_flw_eq : Forall (fun x : Z * list byte => 
+        0 <= fst x + Zlength (snd x) <= Z.of_nat (total_width G)) sigma
   }.
 
 Record format_comb_pred (G F : t) (sigmaG sigmaF : list (Z * list byte)) : Prop :=
