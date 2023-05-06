@@ -10,22 +10,26 @@ Require Import format_specs.
 
 Definition t_flist := Tstruct _format_list noattr.
 
-Fixpoint listrepf (sigma: list t) (p: val) : mpred :=
+Definition good_format (G : t) (w h : Z) (sigma : list (Z * list byte)) : Prop :=
+   (Forall (fun x => 0 <= (fst x) + Zlength (snd x) <= w) sigma) /\ (G.(height) <= Z.to_nat h)%nat.
+
+Fixpoint listrepf (sigma: list t) (p: val) (wd ht : Z) : mpred :=
  match sigma with
  | G::hs =>
-    EX x:val, EX y: val,
-    mformat G y *
+    EX x:val, EX y: val, EX format_sigma : list (Z * list byte), EX sigma_pt : val,
+    !! (<< GOOD_FORMAT : good_format G wd ht format_sigma >>) &&
+    concrete_mformat G y format_sigma sigma_pt *
     malloc_token Ews t_flist p * 
     data_at Ews t_flist ((y, x) : @reptype CompSpecs t_flist) p *
-    listrepf hs x
+    listrepf hs x wd ht
  | nil =>
     !! (<< LIST_NULL_PTR : p = nullval >> ) && emp
  end.
 
-Arguments listrepf sigma p : simpl never.
+Arguments listrepf sigma p wd ht : simpl never.
 
-Lemma listrepf_local_facts sigma p :
-   listrepf sigma p |--
+Lemma listrepf_local_facts sigma p w h:
+   listrepf sigma p w h |--
    !! (<< LIST_PTR_FACT : is_pointer_or_null p /\ (p=nullval <-> sigma=nil) >>).
 Proof.
   intros.
@@ -38,33 +42,41 @@ Proof.
 Qed.
 #[export] Hint Resolve listrepf_local_facts : saturate_local.
 
-Lemma listrepf_valid_pointer sigma p :
-   listrepf sigma p |-- valid_pointer p.
+Lemma listrepf_valid_pointer sigma p w h :
+   listrepf sigma p w h |-- valid_pointer p.
 Proof.
   intros.
   unfold listrepf. destruct sigma; simpl; unnw.
   { entailer!. }
-  Intros x y. auto with valid_pointer.
+  Intros x y sigma0 sigma_pt. auto with valid_pointer.
 Qed.
 #[export] Hint Resolve listrepf_valid_pointer : valid_pointer.
 
-Fixpoint lsegf (sigma: list t) (x z: val) : mpred :=
+Fixpoint lsegf (sigma: list t) (x z: val) (wd ht : Z) : mpred :=
   match sigma with
   | nil => !! (<< LSEG_PTR_FACT : x = z >>) && emp
-  | G::hs => EX h: val, EX y:val, 
-      mformat G y *
+  | G::hs => EX h: val, EX y:val, EX format_sigma : list (Z * list byte), EX sigma_pt : val,
+      !! (<< GOOD_FORMAT : good_format G wd ht format_sigma >>) &&
+      concrete_mformat G y format_sigma sigma_pt *
       malloc_token Ews t_flist x * 
       data_at Ews t_flist ((y, h) : @reptype CompSpecs t_flist) x *
-      lsegf hs h z
+      lsegf hs h z wd ht
   end.
 
-Arguments lsegf sigma x z : simpl never.
+Arguments lsegf sigma x z wd ht : simpl never.
 
-Definition good_format (G : t) (w h : Z) : Prop :=
-   (total_width G <= Z.to_nat w)%nat /\ (G.(height) <= Z.to_nat h)%nat.
-
-Definition good_format_list (sigma : list t) (w h : Z) : Prop :=
-  Forall (fun G => good_format G w h) sigma.
+Definition max_width_spec : ident * funspec :=
+DECLARE _max_width
+   WITH G : t, p : val, sigma : list t, sigma_pt : val
+   PRE [ tptr t_format ]
+      PROP()
+      PARAMS(p)
+      SEP (concrete_mformat G p sigma sigma_pt)
+   POST [ tbool ]
+      EX a : bool,
+      PROP(a = true <-> Forall (fun x => fst x + Zlength (snd x) <= w) sigma)
+      RETURN (Val.of_bool a)
+      SEP(concrete_mformat G p sigma sigma_pt).
 
 Definition clear_to_text_spec : ident * funspec :=
 DECLARE _clear_to_text
@@ -77,10 +89,10 @@ DECLARE _clear_to_text
 
 Definition clear_format_list_spec : ident * funspec :=
 DECLARE _clear_format_list
-   WITH fs : list t, p : val, gv : globals
+   WITH fs : list t, p : val, w : Z, h : Z, gv : globals
    PRE [ tptr t_flist ]
       PROP() PARAMS(p) GLOBALS(gv)
-      SEP (listrepf fs p; mem_mgr gv)
+      SEP (listrepf fs p w h; mem_mgr gv)
    POST [ tvoid ]
       PROP() RETURN() SEP(mem_mgr gv).
 
@@ -88,17 +100,15 @@ Definition beside_doc_spec : ident * funspec :=
 DECLARE _beside_doc
    WITH fs1 : list t, fs2 : list t, p1 : val, p2 : val, w : Z, h : Z, gv : globals
    PRE [ tuint, tuint, tptr t_flist, tptr t_flist ]
-      PROP (good_format_list fs1 w h; good_format_list fs2 w h;
-            0 <= 4 * w <= Int.max_unsigned;
+      PROP (0 <= 4 * w <= Int.max_unsigned;
             0 <= 4 * h <= Int.max_unsigned)
       PARAMS(Vint (Int.repr w); Vint (Int.repr h); p1; p2) GLOBALS(gv)
-      SEP (listrepf fs1 p1; listrepf fs2 p2; mem_mgr gv)
+      SEP (listrepf fs1 p1 w h; listrepf fs2 p2 w h; mem_mgr gv)
    POST [ tptr t_flist ]
       EX p: val, EX sigma: list t,
-      PROP (good_format_list sigma w h;
-            sigma = filter (fun G => (G.(height) <=? (Z.to_nat h))%nat) (besideDoc (Z.to_nat w) fs1 fs2))
+      PROP (sigma = filter (fun G => (G.(height) <=? (Z.to_nat h))%nat) (besideDoc (Z.to_nat w) fs1 fs2))
       RETURN(p)
-      SEP (listrepf sigma p; mem_mgr gv).
+      SEP (listrepf sigma p w h; mem_mgr gv).
 
 Definition Gprog : funspecs :=
         ltac:(with_library prog [

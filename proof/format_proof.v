@@ -371,9 +371,6 @@ Proof.
     all: unfold line; simpl.
     { unfold Int.max_unsigned. simpl. lia. }
     4: ins.
-    4: { list_simplify; ins.
-         rewrite <- list_byte_to_string_length.
-         list_solve. }
     all: rewrite list_byte_to_string_length; list_solve. }
   unfold listrep.
   unfold cstring.

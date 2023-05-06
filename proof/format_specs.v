@@ -175,9 +175,9 @@ Record list_mp (sigma : list (Z * list byte)) : Prop :=
   mk_list_mp {
     list_mp_length     : 0 <= Zlength sigma + 1 <= Int.max_unsigned;
     list_mp_forall_fst :
-      Forall (fun x => 0 <= (fst x) <= Int.max_unsigned - 1) sigma;
+      Forall (fun x => 0 <= 4 * (fst x) <= Int.max_unsigned - 1) sigma;
     list_mp_forall_snd :
-      Forall (fun x => 0 <= Zlength (snd x) + 1 <= Int.max_unsigned) sigma;
+      Forall (fun x => 0 <= 4 * (Zlength (snd x)) + 1 <= Int.max_unsigned) sigma;
   }.
 
 Record format_mp (G : t) (sigma : list (Z * list byte)) : Prop :=
@@ -189,8 +189,6 @@ Record format_mp (G : t) (sigma : list (Z * list byte)) : Prop :=
     format_mp_mw : 0 <= Z.of_nat (middle_width G) <= Int.max_unsigned;
     format_mp_llw : 0 <= Z.of_nat (last_line_width G) <= Int.max_unsigned;
     format_mp_zero_hg: Z.of_nat (height G) = Zlength sigma;
-    format_mp_flw_eq : Forall (fun x : Z * list byte => 
-        0 <= fst x + Zlength (snd x) <= Z.of_nat (total_width G)) sigma
   }.
 
 Record format_comb_pred (G F : t) (sigmaG sigmaF : list (Z * list byte)) : Prop :=
@@ -284,7 +282,7 @@ Definition line_spec : ident * funspec :=
 DECLARE _line
   WITH p : val, sigma : list byte, gv : globals
   PRE [ tptr tschar ]
-    PROP(0 <= Zlength sigma + 1 <= Int.max_unsigned)
+    PROP(0 <= 4 * Zlength sigma + 1 <= Int.max_unsigned)
     PARAMS(p) GLOBALS(gv)
     SEP(mem_mgr gv; malloc_token Ews (Tarray tschar (Zlength sigma + 1) noattr) p * cstring Ews sigma p)
   POST [ tptr t_format ]
@@ -421,18 +419,20 @@ DECLARE _add_above
         concrete_mformat F pointer_F sigmaF pF; 
         mem_mgr gv)
   POST [ tptr t_format ]
-    EX p : val,
+    EX p : val, EX sigma : list (Z * list byte), EX sigma_pt : val,
     PROP()
     RETURN(p)
-    SEP(concrete_mformat G pointer_G sigmaG pG; 
+    SEP(!! (Forall (fun x => 0 <= (fst x) + (Zlength (snd x)) <= Int.max_unsigned) sigma) &&
+        concrete_mformat G pointer_G sigmaG pG; 
         concrete_mformat F pointer_F sigmaF pF; 
-        mformat (add_above G F) p; mem_mgr gv).
+        concrete_mformat (add_above G F) p sigma sigma_pt;
+        mem_mgr gv).
 
 Definition line_concats_spec : ident * funspec :=
 DECLARE _line_concats
   WITH l1 : list byte, p1 : val, l2 : list byte, p2 : val, shift : Z, gv : globals
   PRE [ tptr tschar, size_t, tptr tschar ]
-    PROP(0 <= Zlength l1 + shift + Zlength l2 + 1 <= Int.max_unsigned;
+    PROP(0 <= 4 * (Zlength l1 + shift + Zlength l2) + 1 <= Int.max_unsigned;
           0 <= shift <= Int.max_unsigned - 1)
     PARAMS(p1; Vptrofs (Ptrofs.repr shift); p2) GLOBALS(gv)
     SEP(mem_mgr gv; cstring Ews l1 p1; cstring Ews l2 p2;
@@ -441,7 +441,7 @@ DECLARE _line_concats
   POST [ tptr tschar ]
     EX sigma : list byte, EX p : val,
     PROP(<< LINE_CON_EQ: sigma = l1 ++ sp_byte (Z.to_nat shift) ++ l2 >>;
-          0 <= Zlength sigma + 1 <= Int.max_unsigned)
+          0 <= 4 * Zlength sigma + 1 <= Int.max_unsigned)
     RETURN(p)
     SEP(mem_mgr gv; cstring Ews sigma p;
         malloc_token Ews (Tarray tschar (Zlength l1 + shift + Zlength l2 + 1) noattr) p).
@@ -464,7 +464,7 @@ DECLARE _shift_list
 Definition to_text_add_beside_pred (G F : t) (sigmaG sigmaF : list (Z * list byte)) : Prop :=
   match sigmaF with
   | nil => True
-  | h::hs => Forall (fun x => 0 <= Zlength (snd x) + (fst h) + Zlength (snd h) + 1 <= Int.max_unsigned) sigmaG
+  | h::hs => Forall (fun x => 0 <= 4 * (Zlength (snd x) + (fst h) + Zlength (snd h)) + 1 <= Int.max_unsigned) sigmaG
 end.
 
 Definition mdw_add_beside_spec : ident * funspec :=
@@ -509,7 +509,7 @@ DECLARE _to_text_add_beside
     pG : val, pF : val, gv : globals
   PRE [ tptr t_format, tptr t_format ]
     PROP (0 <= Zlength sigmaG + Zlength sigmaF + 1 <= Int.max_unsigned;
-          << STMT: Forall (fun x => 0 <= fst x + (Z.of_nat (last_line_width G)) <= Int.max_unsigned - 1) sigmaF>>;
+          << STMT: Forall (fun x => 0 <= 4 * (fst x + (Z.of_nat (last_line_width G))) <= Int.max_unsigned - 1) sigmaF>>;
           << AB_PRED: to_text_add_beside_pred G F sigmaG sigmaF >>)
     PARAMS(pointer_G; pointer_F) GLOBALS(gv)
     SEP(concrete_mformat G pointer_G sigmaG pG; 
@@ -532,17 +532,19 @@ DECLARE _add_beside
     pG : val, pF : val, gv : globals
   PRE [ tptr t_format, tptr t_format ]
     PROP (<< COMB: format_comb_pred G F sigmaG sigmaF>>;
-          << STMT: Forall (fun x => 0 <= fst x + (Z.of_nat (last_line_width G)) <= Int.max_unsigned - 1) sigmaF>>;
+          << STMT: Forall (fun x => 0 <= 4 * (fst x + (Z.of_nat (last_line_width G))) <= Int.max_unsigned - 1) sigmaF>>;
           << AB_PRED: to_text_add_beside_pred G F sigmaG sigmaF >>)
     PARAMS(pointer_G; pointer_F) GLOBALS(gv)
     SEP(concrete_mformat G pointer_G sigmaG pG; 
       concrete_mformat F pointer_F sigmaF pF; mem_mgr gv)
   POST [ tptr t_format ]
-    EX p : val,
+    EX p : val, EX sigma : list (Z * list byte), EX sigma_pt : val,
     PROP()
     RETURN(p)
-    SEP(concrete_mformat G pointer_G sigmaG pG; concrete_mformat F pointer_F sigmaF pF; 
-        mformat (add_beside G F) p; mem_mgr gv).
+    SEP(!! (Forall (fun x => 0 <= (fst x) + (Zlength (snd x)) <= Int.max_unsigned) sigma) &&
+        concrete_mformat G pointer_G sigmaG pG; 
+        concrete_mformat F pointer_F sigmaF pF; 
+        concrete_mformat (add_beside G F) p sigma sigma_pt; mem_mgr gv).
 
 Definition mdw_add_fill_spec : ident * funspec :=
 DECLARE _mdw_add_fill
@@ -595,7 +597,7 @@ DECLARE _to_text_add_fill
     pG : val, pF : val, shift : Z, gv : globals
   PRE [ tptr t_format, tptr t_format, size_t ]
     PROP (0 <= Zlength sigmaG + Zlength sigmaF + 1 <= Int.max_unsigned;
-          << STMT: Forall (fun x => 0 <= fst x + shift <= Int.max_unsigned - 1) sigmaF>>;
+          << STMT: Forall (fun x => 0 <= 4 * (fst x + shift) <= Int.max_unsigned - 1) sigmaF>>;
           0 <= shift <= Int.max_unsigned;
           << AB_PRED: to_text_add_beside_pred G F sigmaG sigmaF >>)
     PARAMS(pointer_G; pointer_F; Vptrofs (Ptrofs.repr shift)) GLOBALS(gv)
@@ -619,18 +621,20 @@ DECLARE _add_fill
     pG : val, pF : val, shift : Z, gv : globals
   PRE [ tptr t_format, tptr t_format, size_t ]
     PROP (<< COMB: format_comb_pred G F sigmaG sigmaF>>;
-          << STMT: Forall (fun x => 0 <= fst x + shift <= Int.max_unsigned - 1) sigmaF>>;
+          << STMT: Forall (fun x => 0 <= 4 * (fst x + shift) <= Int.max_unsigned - 1) sigmaF>>;
           0 <= 4 * shift <= Int.max_unsigned;
           << AB_PRED: to_text_add_beside_pred G F sigmaG sigmaF >>)
     PARAMS(pointer_G; pointer_F; Vptrofs (Ptrofs.repr shift)) GLOBALS(gv)
     SEP(concrete_mformat G pointer_G sigmaG pG; 
       concrete_mformat F pointer_F sigmaF pF; mem_mgr gv)
   POST [ tptr t_format ]
-    EX p : val,
+    EX p : val, EX sigma : list (Z * list byte), EX sigma_pt : val,
     PROP()
     RETURN(p)
-    SEP(concrete_mformat G pointer_G sigmaG pG; concrete_mformat F pointer_F sigmaF pF; 
-        mformat (add_fill G F (Z.to_nat shift)) p; mem_mgr gv).
+    SEP(!! (Forall (fun x => 0 <= (fst x) + (Zlength (snd x)) <= Int.max_unsigned) sigma) &&
+        concrete_mformat G pointer_G sigmaG pG; 
+        concrete_mformat F pointer_F sigmaF pF; 
+        concrete_mformat (add_fill G F (Z.to_nat shift)) p sigma sigma_pt; mem_mgr gv).
 
 Ltac dest_ptr ptr := 
   destruct (eq_dec ptr nullval);

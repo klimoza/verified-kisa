@@ -441,6 +441,23 @@ Proof.
   apply mk_list_mp; list_solve.
 Qed.
 
+Lemma shift_line_sum (sigma : list (Z * list byte)) (w : Z):
+  Forall (fun x : Z * list byte => 0 <= 4 * fst x <= w - 1) sigma ->
+  Forall (fun x : Z * list byte => 0 <= 4 * Zlength (snd x) + 1 <= w) sigma ->
+  Forall (fun x : Z * list byte => 0 <= fst x + (Zlength (snd x)) <= w) sigma.
+Proof.
+  intros.
+  induction sigma.
+  { list_solve. }
+  apply Forall_cons_iff in H.
+  apply Forall_cons_iff in H0.
+  apply Forall_cons_iff.
+  desf.
+  split.
+  { lia. }
+  apply IHsigma; auto.
+Qed.
+
 Lemma body_add_above: semax_body Vprog Gprog f_add_above add_above_spec.
 Proof.
   start_function.
@@ -458,7 +475,12 @@ Proof.
     Exists sigmaF1 pF1.
     unfold concrete_mformat. unfold add_above.
     replace (height G) with 0%nat.
-    { entailer!. }
+    { entailer!. 
+      getnw; clear FMT_MP.
+      getnw.
+      inv FMT_MP.
+      inv format_mp_list_mp.
+      apply shift_line_sum; auto. }
     getnw. destruct FMT_MP.
     apply int_repr_eq; simpl; list_solve. }
   { forward; entailer!. }
@@ -477,7 +499,12 @@ Proof.
     destruct (height G) eqn:E.
     { lia. }
     replace (height F) with 0%nat.
-    { rewrite E. entailer!. }
+    { rewrite E. entailer!. 
+      getnw; clear FMT_MP.
+      getnw.
+      inv FMT_MP.
+      inv format_mp_list_mp.
+      apply shift_line_sum; auto. }
     getnw. destruct FMT_MP.
     apply int_repr_eq; list_solve. }
   { forward; entailer!. }
@@ -523,21 +550,25 @@ Proof.
   simpl in *.
   getnw; destruct FMT_MP.
   getnw; destruct FMT_MP.
+  split.
+  { replace to_text with (sigmaG ++ sigmaF) by list_solve.
+    apply Forall_app.
+    inv format_mp_list_mp.
+    getnw; inv FMT_MP.
+    inv format_mp_list_mp.
+    split.
+    { apply shift_line_sum; auto. }
+    apply shift_line_sum; auto. }
   apply mk_format_mp; auto.
   { rewrite <- K1; lia. }
   { rewrite <- K2; lia. }
   { rewrite <- K3; lia. }
-  { rewrite <- K1.
-    replace to_text with (sigmaG ++ sigmaF) by list_solve.
-    replace (Z.of_nat (height G)) with (Zlength sigmaG) by list_solve.
-    getnw; destruct FMT_MP.
-    replace (Z.of_nat (height F)) with (Zlength sigmaF) by list_solve.
-    list_solve. }
+  rewrite <- K1.
   replace to_text with (sigmaG ++ sigmaF) by list_solve.
-  apply Forall_forall.
-  intros x KK.
-  apply in_app_or in KK.
-  destruct KK.
+  replace (Z.of_nat (height G)) with (Zlength sigmaG) by list_solve.
+  getnw; destruct FMT_MP.
+  replace (Z.of_nat (height F)) with (Zlength sigmaF) by list_solve.
+  list_solve.
 Qed.
 
 Lemma body_mdw_add_beside: semax_body Vprog Gprog f_mdw_add_beside mdw_add_beside_spec.
@@ -774,7 +805,6 @@ Proof.
     with (default_val tschar :: Zrepeat (default_val tschar) (Zlength l1 + shift + Zlength l2)).
   2: { apply Zrepeat_cons; list_solve. }
   forward.
-  { entailer!. }
   rewrite upd_Znth0.
   forward_call(shift, gv).
   Intros shifted_ptr.
@@ -1022,13 +1052,9 @@ Proof.
     { assert (In (tail_shift, tail_line) sigmaG) as K.
       { rewrite Heqtail_el; apply Znth_In; list_solve. }
       replace (tail_line) with (snd (tail_shift, tail_line)) by auto.
-      remember (fun x : Z * list byte => 
-      0 <= Zlength (snd x) + f_fst_shift + Zlength f_fst_line + 1 <= Int.max_unsigned
-      ) as PP.
-      remember (computable_theorems.Forall_forall1 PP sigmaG).
-      assert (PP (tail_shift, tail_line)) as K2.
-      { list_solve. }
-      rewrite HeqPP in K2; auto. }
+      eapply (computable_theorems.Forall_forall1 _ _) in AB_PRED.
+      2: eauto.
+      list_solve. }
     destruct format_mp_list_mp0.
     assert(
       0 <= fst (f_fst_shift, f_fst_line) <= Int.max_unsigned - 1
@@ -1039,6 +1065,11 @@ Proof.
       { rewrite HeqPP in KK; auto. }
       eapply (Forall_inv _). Unshelve.
       { apply []. }
+      rewrite HeqPP.
+      apply Forall_cons.
+      2: apply Forall_nil.
+      apply Forall_cons_iff in list_mp_forall_fst.
+      destruct list_mp_forall_fst.
       list_solve. }
     simpl in KK; auto. }
   Intros line_concats.
@@ -1050,7 +1081,7 @@ Proof.
   { split.
     { list_solve. }
     remember (fun x : Z * list byte =>
-      0 <= fst x + Z.of_nat (last_line_width G) <= Int.max_unsigned - 1) as PP.
+      0 <= 4 * (fst x + Z.of_nat (last_line_width G)) <= Int.max_unsigned - 1) as PP.
     remember (fun x : Z * list byte =>
       0 <= fst x + Z.of_nat (last_line_width G) <= Int.max_unsigned) as FF.
     inversion STMT as [| tmp4 tmp3 tmp2 FACT tmp1].
@@ -1075,9 +1106,16 @@ Proof.
       { apply mk_list_mp. 
         { list_solve. }
         { apply Forall_app; split.
-          { list_solve. }
+          { replace sigmaG with (sublist 0 (Zlength sigmaG - 1) sigmaG ++ [Znth (Zlength sigmaG - 1) sigmaG])
+              in list_mp_forall_fst by list_solve.
+            apply Forall_app in list_mp_forall_fst.
+            destruct list_mp_forall_fst.
+            vauto. }
           apply Forall_app; split.
-          { enough (0 <= tail_shift <= Int.max_unsigned - 1) by list_solve.
+          { enough (0 <= 4 * tail_shift <= Int.max_unsigned - 1).
+            { apply Forall_cons.
+              2: apply Forall_nil.
+              ins. }
             replace tail_shift with (fst (tail_shift, tail_line)) by list_solve.
             rewrite Heqtail_el; list_solve. }
           apply List.Forall_map; simpl.
@@ -1089,7 +1127,11 @@ Proof.
         apply Forall_app; split.
         2: { apply List.Forall_map; simpl.
           inv list_mp_forall_snd0; auto. }
-        enough (0 <= Zlength line_con + 1 <= Int.max_unsigned) by list_solve; vauto. }
+        assert (0 <= 4 * (Zlength line_con) + 1 <= Int.max_unsigned).
+        { ins. }
+        apply Forall_cons.
+        2: apply Forall_nil.
+        ins. }
       unfold list_add_beside_length; desf; list_solve. }
     unfold to_text_eq.
     ins.
@@ -1142,7 +1184,7 @@ Proof.
       2: lia.
       inv list_mp_forall_fst0.
       remember (fun x : Z * list byte => 0 <= fst x <= Int.max_unsigned) as PP.
-      remember (fun x : Z * list byte => 0 <= fst x <= 4294967294) as FF.
+      remember (fun x : Z * list byte => 0 <= 4 * fst x <= 4294967294) as FF.
       eapply Forall_impl.
       2: eauto.
       rewrite HeqFF; rewrite HeqPP.
@@ -1196,7 +1238,7 @@ Proof.
     2: lia.
     inv list_mp_forall_fst0.
     remember (fun x : Z * list byte => 0 <= fst x <= Int.max_unsigned) as PP.
-    remember (fun x : Z * list byte => 0 <= fst x <= 4294967294) as FF.
+    remember (fun x : Z * list byte => 0 <= 4 * fst x <= 4294967294) as FF.
     eapply Forall_impl.
     2: eauto.
     rewrite HeqFF; rewrite HeqPP.
@@ -1257,14 +1299,19 @@ Proof.
     Intros result_ptr.
     forward.
     Exists result_ptr.
-    unfold concrete_mformat; entailer!.
-    { apply mk_format_mp; vauto. }
     unfold mformat.
     Intros sigma p.
+    unfold concrete_mformat; entailer!.
     Exists sigma p.
     unfold add_beside.
     replace (height G) with 0%nat by lia.
-    entailer!. }
+    entailer!.
+    split.
+    { getnw.
+      inv FMT_MP.
+      inv format_mp_list_mp0.
+      eapply shift_line_sum; eauto. }
+    apply mk_format_mp; auto. }
   { forward; entailer!. }
   forward.
   getnw; destruct FMT_MP.
@@ -1275,16 +1322,22 @@ Proof.
     Intros result_ptr.
     forward.
     Exists result_ptr.
-    unfold concrete_mformat; entailer!.
-    { apply mk_format_mp; vauto. }
     unfold mformat.
     Intros sigma p.
+    unfold concrete_mformat; entailer!.
     Exists sigma p.
     unfold add_beside.
-    destruct (height G).
+    destruct (height G) eqn:E.
     { lia. }
     replace (height F) with 0%nat by lia.
-    entailer!. }
+    entailer!. 
+    2: { rewrite <- E; auto. }
+    split.
+    { getnw.
+      inv FMT_MP.
+      inv format_mp_list_mp1.
+      eapply shift_line_sum; eauto. }
+    apply mk_format_mp; auto. }
   { forward; entailer!. }
 
   forward_call(t_format, gv).
@@ -1321,7 +1374,12 @@ Proof.
     simpl; lia. }
 
   entailer!.
-  { apply mk_format_mp; vauto.
+  { ins.
+    split.
+    { assert (list_mp to_text_list) as K by auto.
+      inv K.
+      eapply shift_line_sum; eauto. }
+    apply mk_format_mp; vauto.
     { rewrite K1; lia. }
     { rewrite K2; lia. }
     rewrite K1; ins.
@@ -1645,7 +1703,7 @@ Proof.
   destruct n; vauto; ins; list_solve. 
 Qed.
 
-Definition to_text_add_fill: semax_body Vprog Gprog f_to_text_add_fill to_text_add_fill_spec.
+Lemma body_to_text_add_fill: semax_body Vprog Gprog f_to_text_add_fill to_text_add_fill_spec.
 Proof.
   start_function.
   forward.
@@ -1666,7 +1724,7 @@ Proof.
     { unfold add_fill; desf. }
     split.
     { subst; split; list_solve. }
-    split; apply mk_format_mp; vauto. }
+    split; split; list_solve. }
   { forward; entailer!. }
   forward.
   getnw; destruct FMT_MP.
@@ -1682,9 +1740,10 @@ Proof.
     split.
     { unfold add_fill; desf. }
     split.
-    2: split; split; list_solve.
-    unfold list_add_beside_length.
-    replace (sigmaF) with ([] : list (Z * list byte)) by list_solve; desf. }
+    { unfold list_add_beside_length.
+      replace (height F) with 0%nat in * by lia.
+      replace sigmaF with ([] : list (Z * list byte)) by list_solve; desf. }
+    split; split; list_solve. }
   { forward; entailer!. }
   forward.
   prove_ptr.
@@ -1723,13 +1782,9 @@ Proof.
     { assert (In (tail_shift, tail_line) sigmaG) as K.
       { rewrite Heqtail_el; apply Znth_In; list_solve. }
       replace (tail_line) with (snd (tail_shift, tail_line)) by auto.
-      remember (fun x : Z * list byte => 
-      0 <= Zlength (snd x) + f_fst_shift + Zlength f_fst_line + 1 <= Int.max_unsigned
-      ) as PP.
-      remember (computable_theorems.Forall_forall1 PP sigmaG).
-      assert (PP (tail_shift, tail_line)) as K2.
-      { list_solve. }
-      rewrite HeqPP in K2; auto. }
+      eapply (computable_theorems.Forall_forall1 _ _) in AB_PRED.
+      2: eauto.
+      list_solve. }
     destruct format_mp_list_mp0.
     assert(
       0 <= fst (f_fst_shift, f_fst_line) <= Int.max_unsigned - 1
@@ -1740,6 +1795,11 @@ Proof.
       { rewrite HeqPP in KK; auto. }
       eapply (Forall_inv _). Unshelve.
       { apply []. }
+      rewrite HeqPP.
+      apply Forall_cons.
+      2: apply Forall_nil.
+      apply Forall_cons_iff in list_mp_forall_fst.
+      destruct list_mp_forall_fst.
       list_solve. }
     simpl in KK; auto. }
   Intros line_concats.
@@ -1750,7 +1810,7 @@ Proof.
   { split.
     { list_solve. }
     remember (fun x : Z * list byte =>
-      0 <= fst x + shift <= Int.max_unsigned - 1) as PP.
+      0 <= 4 * (fst x + shift) <= Int.max_unsigned - 1) as PP.
     remember (fun x : Z * list byte =>
       0 <= fst x + shift <= Int.max_unsigned) as FF.
     inversion STMT as [| tmp4 tmp3 tmp2 FACT tmp1].
@@ -1775,9 +1835,16 @@ Proof.
       { apply mk_list_mp. 
         { list_solve. }
         { apply Forall_app; split.
-          { list_solve. }
+          { replace sigmaG with (sublist 0 (Zlength sigmaG - 1) sigmaG ++ [Znth (Zlength sigmaG - 1) sigmaG])
+              in list_mp_forall_fst by list_solve.
+            apply Forall_app in list_mp_forall_fst.
+            destruct list_mp_forall_fst.
+            vauto. }
           apply Forall_app; split.
-          { enough (0 <= tail_shift <= Int.max_unsigned - 1) by list_solve.
+          { enough (0 <= 4 * tail_shift <= Int.max_unsigned - 1).
+            { apply Forall_cons.
+              2: apply Forall_nil.
+              ins. }
             replace tail_shift with (fst (tail_shift, tail_line)) by list_solve.
             rewrite Heqtail_el; list_solve. }
           apply List.Forall_map; simpl.
@@ -1789,9 +1856,14 @@ Proof.
         apply Forall_app; split.
         2: { apply List.Forall_map; simpl.
           inv list_mp_forall_snd0; auto. }
-        enough (0 <= Zlength line_con + 1 <= Int.max_unsigned) by list_solve; vauto. }
+        assert (0 <= 4 * (Zlength line_con) + 1 <= Int.max_unsigned).
+        { ins. }
+        apply Forall_cons.
+        2: apply Forall_nil.
+        ins. }
       unfold list_add_beside_length; desf; list_solve. }
-    unfold to_text_eq; ins.
+    unfold to_text_eq.
+    ins.
     unfold add_fill.
     destruct (height G); vauto.
     destruct (height F); vauto; ins.
@@ -1843,7 +1915,7 @@ Proof.
       2: { replace (Z.of_nat (Z.to_nat shift)) with shift by list_solve; auto. }
       inv list_mp_forall_fst0.
       remember (fun x : Z * list byte => 0 <= fst x <= Int.max_unsigned) as PP.
-      remember (fun x : Z * list byte => 0 <= fst x <= 4294967294) as FF.
+      remember (fun x : Z * list byte => 0 <= 4 * fst x <= 4294967294) as FF.
       eapply Forall_impl.
       2: eauto.
       rewrite HeqFF; rewrite HeqPP.
@@ -1881,7 +1953,7 @@ Proof.
     autorewrite with sublist norm.
     repeat rewrite <- app_assoc.
     replace (shifted_text_from
-        ([(tail_shift, tail_line ++ sp_byte (Z.to_nat f_fst_shift) ++ f_fst_line)] ++ p :: l) shift0)
+      ([(tail_shift, tail_line ++ sp_byte (Z.to_nat f_fst_shift) ++ f_fst_line)] ++ p :: l) shift0)
       with (
         sp_byte (Z.to_nat tail_shift + shift0) ++ 
         (tail_line ++ sp_byte (Z.to_nat f_fst_shift) ++ f_fst_line) ++ newline_byte ++
@@ -1899,7 +1971,7 @@ Proof.
     2: { replace (Z.of_nat (Z.to_nat shift)) with shift by list_solve; auto. }
     inv list_mp_forall_fst0.
     remember (fun x : Z * list byte => 0 <= fst x <= Int.max_unsigned) as PP.
-    remember (fun x : Z * list byte => 0 <= fst x <= 4294967294) as FF.
+    remember (fun x : Z * list byte => 0 <= 4 * fst x <= 4294967294) as FF.
     eapply Forall_impl.
     2: eauto.
     rewrite HeqFF; rewrite HeqPP.
@@ -1960,14 +2032,19 @@ Proof.
     Intros result_ptr.
     forward.
     Exists result_ptr.
-    unfold concrete_mformat; entailer!.
-    { apply mk_format_mp; vauto. }
     unfold mformat.
     Intros sigma p.
+    unfold concrete_mformat; entailer!.
     Exists sigma p.
     unfold add_fill.
     replace (height G) with 0%nat by lia.
-    entailer!. }
+    entailer!.
+    split.
+    { getnw.
+      inv FMT_MP.
+      inv format_mp_list_mp0.
+      eapply shift_line_sum; eauto. }
+    apply mk_format_mp; auto. }
   { forward; entailer!. }
   forward.
   getnw; destruct FMT_MP.
@@ -1978,16 +2055,22 @@ Proof.
     Intros result_ptr.
     forward.
     Exists result_ptr.
-    unfold concrete_mformat; entailer!.
-    { apply mk_format_mp; vauto. }
     unfold mformat.
     Intros sigma p.
+    unfold concrete_mformat; entailer!.
     Exists sigma p.
     unfold add_fill.
-    destruct (height G).
+    destruct (height G) eqn:E.
     { lia. }
     replace (height F) with 0%nat by lia.
-    entailer!. }
+    entailer!. 
+    2: { rewrite <- E; auto. }
+    split.
+    { getnw.
+      inv FMT_MP.
+      inv format_mp_list_mp1.
+      eapply shift_line_sum; eauto. }
+    apply mk_format_mp; auto. }
   { forward; entailer!. }
 
   forward_call(t_format, gv).
@@ -2011,27 +2094,31 @@ Proof.
   unfold concrete_mformat.
   assert (height (add_fill G F (Z.to_nat shift)) = height G + height F - 1)%nat as K1. 
   { unfold add_fill.
-    destruct (height G); vauto.
-    destruct (height F); vauto. }
+  destruct (height G); vauto.
+  destruct (height F); vauto. }
 
   entailer!.
-  { apply mk_format_mp; vauto.
+  { ins.
+    split.
+    { assert (list_mp to_text_list) as K by auto.
+      inv K.
+      eapply shift_line_sum; eauto. }
+    apply mk_format_mp; vauto.
     { rewrite K1; lia. }
     rewrite K1; ins.
-    replace (Zlength to_text_list) with (list_add_beside_length sigmaG sigmaF).
+    replace (Zlength to_text_list) with (list_add_beside_length sigmaG sigmaF) by vauto.
     unfold list_add_beside_length.
     assert (sigmaG <> []).
     { assert (height G <> 0%nat) by lia.
-      assert (Zlength sigmaG = Z.of_nat (height G)) by lia.
       assert (Zlength sigmaG <> 0) by lia.
       destruct sigmaG; vauto. }
     assert (sigmaF <> []).
     { assert (height F <> 0%nat) by lia.
-      assert (Zlength sigmaF = Z.of_nat (height F)) by lia.
       assert (Zlength sigmaF <> 0) by lia.
       destruct sigmaF; vauto. }
-    desf; list_solve. }
+      desf; list_solve. }
   rewrite K1.
+  repeat rewrite Nat2Z.inj_add.
   replace (Z.of_nat (height G + height F - 1)) with 
     (Z.of_nat (height G) + Z.of_nat (height F) - 1) by list_solve.
   entailer!.

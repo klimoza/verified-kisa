@@ -88,6 +88,7 @@ Definition _clear_to_text : ident := $"clear_to_text".
 Definition _copy_F : ident := $"copy_F".
 Definition _cur : ident := $"cur".
 Definition _cur_sigma : ident := $"cur_sigma".
+Definition _current_tail : ident := $"current_tail".
 Definition _d : ident := $"d".
 Definition _d__1 : ident := $"d__1".
 Definition _dest : ident := $"dest".
@@ -133,6 +134,7 @@ Definition _llw_add_fill : ident := $"llw_add_fill".
 Definition _main : ident := $"main".
 Definition _malloc : ident := $"malloc".
 Definition _max : ident := $"max".
+Definition _max_width_check : ident := $"max_width_check".
 Definition _mdw_add_above : ident := $"mdw_add_above".
 Definition _mdw_add_beside : ident := $"mdw_add_beside".
 Definition _mdw_add_fill : ident := $"mdw_add_fill".
@@ -3864,6 +3866,55 @@ Definition f_clear_format_list := {|
         ((Etempvar _fs (tptr (Tstruct _format_list noattr))) :: nil)))))
 |}.
 
+Definition f_max_width_check := {|
+  fn_return := tbool;
+  fn_callconv := cc_default;
+  fn_params := ((_G, (tptr (Tstruct _t noattr))) :: (_width, tuint) :: nil);
+  fn_vars := nil;
+  fn_temps := ((_current_tail, (tptr (Tstruct _list noattr))) ::
+               (_t'1, tulong) :: (_t'3, (tptr tschar)) :: (_t'2, tulong) ::
+               nil);
+  fn_body :=
+(Ssequence
+  (Sset _current_tail
+    (Efield
+      (Ederef (Etempvar _G (tptr (Tstruct _t noattr))) (Tstruct _t noattr))
+      _to_text (tptr (Tstruct _list noattr))))
+  (Ssequence
+    (Swhile
+      (Ebinop One (Etempvar _current_tail (tptr (Tstruct _list noattr)))
+        (Ecast (Econst_int (Int.repr 0) tint) (tptr tvoid)) tint)
+      (Ssequence
+        (Ssequence
+          (Ssequence
+            (Sset _t'3
+              (Efield
+                (Ederef
+                  (Etempvar _current_tail (tptr (Tstruct _list noattr)))
+                  (Tstruct _list noattr)) _line (tptr tschar)))
+            (Scall (Some _t'1)
+              (Evar _strlen (Tfunction (Tcons (tptr tschar) Tnil) tulong
+                              cc_default))
+              ((Etempvar _t'3 (tptr tschar)) :: nil)))
+          (Ssequence
+            (Sset _t'2
+              (Efield
+                (Ederef
+                  (Etempvar _current_tail (tptr (Tstruct _list noattr)))
+                  (Tstruct _list noattr)) _shift tulong))
+            (Sifthenelse (Ebinop Ogt
+                           (Ebinop Oadd (Etempvar _t'2 tulong)
+                             (Etempvar _t'1 tulong) tulong)
+                           (Etempvar _width tuint) tint)
+              (Sreturn (Some (Econst_int (Int.repr 0) tint)))
+              Sskip)))
+        (Sset _current_tail
+          (Efield
+            (Ederef (Etempvar _current_tail (tptr (Tstruct _list noattr)))
+              (Tstruct _list noattr)) _tail (tptr (Tstruct _list noattr))))))
+    (Sreturn (Some (Econst_int (Int.repr 1) tint)))))
+|}.
+
 Definition f_beside_doc := {|
   fn_return := (tptr (Tstruct _format_list noattr));
   fn_callconv := cc_default;
@@ -3878,7 +3929,7 @@ Definition f_beside_doc := {|
                (_fs1_tail, (tptr (Tstruct _format_list noattr))) ::
                (_G, (tptr (Tstruct _t noattr))) ::
                (_new_result_tail, (tptr (Tstruct _format_list noattr))) ::
-               (_t'7, tint) :: (_t'6, tuint) ::
+               (_t'7, tint) :: (_t'6, tbool) ::
                (_t'5, (tptr (Tstruct _t noattr))) :: (_t'4, (tptr tvoid)) ::
                (_t'3, (tptr (Tstruct _t noattr))) ::
                (_t'2, (tptr (Tstruct _t noattr))) :: (_t'1, (tptr tvoid)) ::
@@ -4015,17 +4066,16 @@ Definition f_beside_doc := {|
                                 (Ssequence
                                   (Ssequence
                                     (Scall (Some _t'6)
-                                      (Evar _total_width (Tfunction
-                                                           (Tcons
-                                                             (tptr (Tstruct _t noattr))
-                                                             Tnil) tuint
-                                                           cc_default))
+                                      (Evar _max_width_check (Tfunction
+                                                               (Tcons
+                                                                 (tptr (Tstruct _t noattr))
+                                                                 (Tcons tuint
+                                                                   Tnil))
+                                                               tbool
+                                                               cc_default))
                                       ((Etempvar _G (tptr (Tstruct _t noattr))) ::
-                                       nil))
-                                    (Sifthenelse (Ebinop Ole
-                                                   (Etempvar _t'6 tuint)
-                                                   (Etempvar _width tuint)
-                                                   tint)
+                                       (Etempvar _width tuint) :: nil))
+                                    (Sifthenelse (Etempvar _t'6 tbool)
                                       (Ssequence
                                         (Sset _t'14
                                           (Efield
@@ -4570,11 +4620,12 @@ Definition global_definitions : list (ident * globdef fundef type) :=
  (_indent, Gfun(Internal f_indent)) ::
  (_clear_to_text, Gfun(Internal f_clear_to_text)) ::
  (_clear_format_list, Gfun(Internal f_clear_format_list)) ::
+ (_max_width_check, Gfun(Internal f_max_width_check)) ::
  (_beside_doc, Gfun(Internal f_beside_doc)) :: nil).
 
 Definition public_idents : list ident :=
-(_beside_doc :: _clear_format_list :: _clear_to_text :: _indent ::
- _of_string :: _total_width :: _to_string :: _add_fill ::
+(_beside_doc :: _max_width_check :: _clear_format_list :: _clear_to_text ::
+ _indent :: _of_string :: _total_width :: _to_string :: _add_fill ::
  _to_text_add_fill :: _flw_add_fill :: _llw_add_fill :: _mdw_add_fill ::
  _add_beside :: _to_text_add_beside :: _shift_list :: _line_concats ::
  _flw_add_beside :: _mdw_add_beside :: _add_above :: _to_text_add_above ::
