@@ -3869,50 +3869,95 @@ Definition f_clear_format_list := {|
 Definition f_max_width_check := {|
   fn_return := tbool;
   fn_callconv := cc_default;
-  fn_params := ((_G, (tptr (Tstruct _t noattr))) :: (_width, tuint) :: nil);
+  fn_params := ((_G, (tptr (Tstruct _t noattr))) :: (_width, tuint) ::
+                (_height, tuint) :: nil);
   fn_vars := nil;
   fn_temps := ((_current_tail, (tptr (Tstruct _list noattr))) ::
-               (_t'1, tulong) :: (_t'3, (tptr tschar)) :: (_t'2, tulong) ::
-               nil);
+               (_t'1, tulong) :: (_t'7, tuint) :: (_t'6, tuint) ::
+               (_t'5, tuint) :: (_t'4, tuint) :: (_t'3, (tptr tschar)) ::
+               (_t'2, tulong) :: nil);
   fn_body :=
 (Ssequence
-  (Sset _current_tail
-    (Efield
-      (Ederef (Etempvar _G (tptr (Tstruct _t noattr))) (Tstruct _t noattr))
-      _to_text (tptr (Tstruct _list noattr))))
   (Ssequence
-    (Swhile
-      (Ebinop One (Etempvar _current_tail (tptr (Tstruct _list noattr)))
-        (Ecast (Econst_int (Int.repr 0) tint) (tptr tvoid)) tint)
+    (Sset _t'7
+      (Efield
+        (Ederef (Etempvar _G (tptr (Tstruct _t noattr))) (Tstruct _t noattr))
+        _height tuint))
+    (Sifthenelse (Ebinop Ogt (Etempvar _t'7 tuint) (Etempvar _height tuint)
+                   tint)
+      (Sreturn (Some (Econst_int (Int.repr 0) tint)))
+      Sskip))
+  (Ssequence
+    (Ssequence
+      (Sset _t'6
+        (Efield
+          (Ederef (Etempvar _G (tptr (Tstruct _t noattr)))
+            (Tstruct _t noattr)) _first_line_width tuint))
+      (Sifthenelse (Ebinop Ogt (Etempvar _t'6 tuint) (Etempvar _width tuint)
+                     tint)
+        (Sreturn (Some (Econst_int (Int.repr 0) tint)))
+        Sskip))
+    (Ssequence
+      (Ssequence
+        (Sset _t'5
+          (Efield
+            (Ederef (Etempvar _G (tptr (Tstruct _t noattr)))
+              (Tstruct _t noattr)) _middle_width tuint))
+        (Sifthenelse (Ebinop Ogt (Etempvar _t'5 tuint)
+                       (Etempvar _width tuint) tint)
+          (Sreturn (Some (Econst_int (Int.repr 0) tint)))
+          Sskip))
       (Ssequence
         (Ssequence
+          (Sset _t'4
+            (Efield
+              (Ederef (Etempvar _G (tptr (Tstruct _t noattr)))
+                (Tstruct _t noattr)) _last_line_width tuint))
+          (Sifthenelse (Ebinop Ogt (Etempvar _t'4 tuint)
+                         (Etempvar _width tuint) tint)
+            (Sreturn (Some (Econst_int (Int.repr 0) tint)))
+            Sskip))
+        (Ssequence
+          (Sset _current_tail
+            (Efield
+              (Ederef (Etempvar _G (tptr (Tstruct _t noattr)))
+                (Tstruct _t noattr)) _to_text (tptr (Tstruct _list noattr))))
           (Ssequence
-            (Sset _t'3
-              (Efield
-                (Ederef
-                  (Etempvar _current_tail (tptr (Tstruct _list noattr)))
-                  (Tstruct _list noattr)) _line (tptr tschar)))
-            (Scall (Some _t'1)
-              (Evar _strlen (Tfunction (Tcons (tptr tschar) Tnil) tulong
-                              cc_default))
-              ((Etempvar _t'3 (tptr tschar)) :: nil)))
-          (Ssequence
-            (Sset _t'2
-              (Efield
-                (Ederef
-                  (Etempvar _current_tail (tptr (Tstruct _list noattr)))
-                  (Tstruct _list noattr)) _shift tulong))
-            (Sifthenelse (Ebinop Ogt
-                           (Ebinop Oadd (Etempvar _t'2 tulong)
-                             (Etempvar _t'1 tulong) tulong)
-                           (Etempvar _width tuint) tint)
-              (Sreturn (Some (Econst_int (Int.repr 0) tint)))
-              Sskip)))
-        (Sset _current_tail
-          (Efield
-            (Ederef (Etempvar _current_tail (tptr (Tstruct _list noattr)))
-              (Tstruct _list noattr)) _tail (tptr (Tstruct _list noattr))))))
-    (Sreturn (Some (Econst_int (Int.repr 1) tint)))))
+            (Swhile
+              (Ebinop One
+                (Etempvar _current_tail (tptr (Tstruct _list noattr)))
+                (Ecast (Econst_int (Int.repr 0) tint) (tptr tvoid)) tint)
+              (Ssequence
+                (Ssequence
+                  (Ssequence
+                    (Sset _t'3
+                      (Efield
+                        (Ederef
+                          (Etempvar _current_tail (tptr (Tstruct _list noattr)))
+                          (Tstruct _list noattr)) _line (tptr tschar)))
+                    (Scall (Some _t'1)
+                      (Evar _strlen (Tfunction (Tcons (tptr tschar) Tnil)
+                                      tulong cc_default))
+                      ((Etempvar _t'3 (tptr tschar)) :: nil)))
+                  (Ssequence
+                    (Sset _t'2
+                      (Efield
+                        (Ederef
+                          (Etempvar _current_tail (tptr (Tstruct _list noattr)))
+                          (Tstruct _list noattr)) _shift tulong))
+                    (Sifthenelse (Ebinop Ogt
+                                   (Ebinop Oadd (Etempvar _t'2 tulong)
+                                     (Etempvar _t'1 tulong) tulong)
+                                   (Etempvar _width tuint) tint)
+                      (Sreturn (Some (Econst_int (Int.repr 0) tint)))
+                      Sskip)))
+                (Sset _current_tail
+                  (Efield
+                    (Ederef
+                      (Etempvar _current_tail (tptr (Tstruct _list noattr)))
+                      (Tstruct _list noattr)) _tail
+                    (tptr (Tstruct _list noattr))))))
+            (Sreturn (Some (Econst_int (Int.repr 1) tint)))))))))
 |}.
 
 Definition f_beside_doc := {|
@@ -3929,18 +3974,17 @@ Definition f_beside_doc := {|
                (_fs1_tail, (tptr (Tstruct _format_list noattr))) ::
                (_G, (tptr (Tstruct _t noattr))) ::
                (_new_result_tail, (tptr (Tstruct _format_list noattr))) ::
-               (_t'7, tint) :: (_t'6, tbool) ::
-               (_t'5, (tptr (Tstruct _t noattr))) :: (_t'4, (tptr tvoid)) ::
-               (_t'3, (tptr (Tstruct _t noattr))) ::
+               (_t'6, tbool) :: (_t'5, (tptr (Tstruct _t noattr))) ::
+               (_t'4, (tptr tvoid)) :: (_t'3, (tptr (Tstruct _t noattr))) ::
                (_t'2, (tptr (Tstruct _t noattr))) :: (_t'1, (tptr tvoid)) ::
-               (_t'16, (tptr (Tstruct _t noattr))) ::
-               (_t'15, (tptr (Tstruct _t noattr))) :: (_t'14, tuint) ::
-               (_t'13, (tptr (Tstruct _format_list noattr))) ::
+               (_t'14, (tptr (Tstruct _t noattr))) ::
+               (_t'13, (tptr (Tstruct _t noattr))) ::
                (_t'12, (tptr (Tstruct _format_list noattr))) ::
                (_t'11, (tptr (Tstruct _format_list noattr))) ::
                (_t'10, (tptr (Tstruct _format_list noattr))) ::
                (_t'9, (tptr (Tstruct _format_list noattr))) ::
-               (_t'8, (tptr (Tstruct _format_list noattr))) :: nil);
+               (_t'8, (tptr (Tstruct _format_list noattr))) ::
+               (_t'7, (tptr (Tstruct _format_list noattr))) :: nil);
   fn_body :=
 (Ssequence
   (Sifthenelse (Ebinop Oeq
@@ -4035,14 +4079,14 @@ Definition f_beside_doc := {|
                             (Ssequence
                               (Ssequence
                                 (Ssequence
-                                  (Sset _t'15
+                                  (Sset _t'13
                                     (Efield
                                       (Ederef
                                         (Etempvar _fs1_tail (tptr (Tstruct _format_list noattr)))
                                         (Tstruct _format_list noattr)) _G
                                       (tptr (Tstruct _t noattr))))
                                   (Ssequence
-                                    (Sset _t'16
+                                    (Sset _t'14
                                       (Efield
                                         (Ederef
                                           (Etempvar _fs2_tail (tptr (Tstruct _format_list noattr)))
@@ -4057,41 +4101,26 @@ Definition f_beside_doc := {|
                                                               Tnil))
                                                           (tptr (Tstruct _t noattr))
                                                           cc_default))
-                                      ((Etempvar _t'15 (tptr (Tstruct _t noattr))) ::
-                                       (Etempvar _t'16 (tptr (Tstruct _t noattr))) ::
+                                      ((Etempvar _t'13 (tptr (Tstruct _t noattr))) ::
+                                       (Etempvar _t'14 (tptr (Tstruct _t noattr))) ::
                                        nil))))
                                 (Sset _G
                                   (Etempvar _t'3 (tptr (Tstruct _t noattr)))))
                               (Ssequence
                                 (Ssequence
-                                  (Ssequence
-                                    (Scall (Some _t'6)
-                                      (Evar _max_width_check (Tfunction
-                                                               (Tcons
-                                                                 (tptr (Tstruct _t noattr))
+                                  (Scall (Some _t'6)
+                                    (Evar _max_width_check (Tfunction
+                                                             (Tcons
+                                                               (tptr (Tstruct _t noattr))
+                                                               (Tcons tuint
                                                                  (Tcons tuint
-                                                                   Tnil))
-                                                               tbool
-                                                               cc_default))
-                                      ((Etempvar _G (tptr (Tstruct _t noattr))) ::
-                                       (Etempvar _width tuint) :: nil))
-                                    (Sifthenelse (Etempvar _t'6 tbool)
-                                      (Ssequence
-                                        (Sset _t'14
-                                          (Efield
-                                            (Ederef
-                                              (Etempvar _G (tptr (Tstruct _t noattr)))
-                                              (Tstruct _t noattr)) _height
-                                            tuint))
-                                        (Sset _t'7
-                                          (Ecast
-                                            (Ebinop Ole
-                                              (Etempvar _t'14 tuint)
-                                              (Etempvar _height tuint) tint)
-                                            tbool)))
-                                      (Sset _t'7
-                                        (Econst_int (Int.repr 0) tint))))
-                                  (Sifthenelse (Etempvar _t'7 tint)
+                                                                   Tnil)))
+                                                             tbool
+                                                             cc_default))
+                                    ((Etempvar _G (tptr (Tstruct _t noattr))) ::
+                                     (Etempvar _width tuint) ::
+                                     (Etempvar _height tuint) :: nil))
+                                  (Sifthenelse (Etempvar _t'6 tbool)
                                     (Ssequence
                                       (Sassign
                                         (Efield
@@ -4120,7 +4149,7 @@ Definition f_beside_doc := {|
                                             (Etempvar _t'4 (tptr tvoid))))
                                         (Ssequence
                                           (Ssequence
-                                            (Sset _t'13
+                                            (Sset _t'12
                                               (Efield
                                                 (Ederef
                                                   (Etempvar _result_tail (tptr (Tstruct _format_list noattr)))
@@ -4128,7 +4157,7 @@ Definition f_beside_doc := {|
                                                 _tail
                                                 (tptr (Tstruct _format_list noattr))))
                                             (Sifthenelse (Ebinop Oeq
-                                                           (Etempvar _t'13 (tptr (Tstruct _format_list noattr)))
+                                                           (Etempvar _t'12 (tptr (Tstruct _format_list noattr)))
                                                            (Ecast
                                                              (Econst_int (Int.repr 0) tint)
                                                              (tptr tvoid))
@@ -4149,23 +4178,6 @@ Definition f_beside_doc := {|
                                                                cc_default))
                                                 nil)
                                               (Ssequence
-                                                (Sset _t'12
-                                                  (Efield
-                                                    (Ederef
-                                                      (Etempvar _result_tail (tptr (Tstruct _format_list noattr)))
-                                                      (Tstruct _format_list noattr))
-                                                    _tail
-                                                    (tptr (Tstruct _format_list noattr))))
-                                                (Sassign
-                                                  (Efield
-                                                    (Ederef
-                                                      (Etempvar _t'12 (tptr (Tstruct _format_list noattr)))
-                                                      (Tstruct _format_list noattr))
-                                                    _G
-                                                    (tptr (Tstruct _t noattr)))
-                                                  (Etempvar _t'5 (tptr (Tstruct _t noattr))))))
-                                            (Ssequence
-                                              (Ssequence
                                                 (Sset _t'11
                                                   (Efield
                                                     (Ederef
@@ -4177,6 +4189,23 @@ Definition f_beside_doc := {|
                                                   (Efield
                                                     (Ederef
                                                       (Etempvar _t'11 (tptr (Tstruct _format_list noattr)))
+                                                      (Tstruct _format_list noattr))
+                                                    _G
+                                                    (tptr (Tstruct _t noattr)))
+                                                  (Etempvar _t'5 (tptr (Tstruct _t noattr))))))
+                                            (Ssequence
+                                              (Ssequence
+                                                (Sset _t'10
+                                                  (Efield
+                                                    (Ederef
+                                                      (Etempvar _result_tail (tptr (Tstruct _format_list noattr)))
+                                                      (Tstruct _format_list noattr))
+                                                    _tail
+                                                    (tptr (Tstruct _format_list noattr))))
+                                                (Sassign
+                                                  (Efield
+                                                    (Ederef
+                                                      (Etempvar _t'10 (tptr (Tstruct _format_list noattr)))
                                                       (Tstruct _format_list noattr))
                                                     _tail
                                                     (tptr (Tstruct _format_list noattr)))
@@ -4248,7 +4277,7 @@ Definition f_beside_doc := {|
                               (Sloop
                                 (Ssequence
                                   (Ssequence
-                                    (Sset _t'9
+                                    (Sset _t'8
                                       (Efield
                                         (Ederef
                                           (Etempvar _new_result_tail (tptr (Tstruct _format_list noattr)))
@@ -4256,15 +4285,15 @@ Definition f_beside_doc := {|
                                         _tail
                                         (tptr (Tstruct _format_list noattr))))
                                     (Ssequence
-                                      (Sset _t'10
+                                      (Sset _t'9
                                         (Efield
                                           (Ederef
-                                            (Etempvar _t'9 (tptr (Tstruct _format_list noattr)))
+                                            (Etempvar _t'8 (tptr (Tstruct _format_list noattr)))
                                             (Tstruct _format_list noattr))
                                           _tail
                                           (tptr (Tstruct _format_list noattr))))
                                       (Sifthenelse (Ebinop One
-                                                     (Etempvar _t'10 (tptr (Tstruct _format_list noattr)))
+                                                     (Etempvar _t'9 (tptr (Tstruct _format_list noattr)))
                                                      (Ecast
                                                        (Econst_int (Int.repr 0) tint)
                                                        (tptr tvoid)) tint)
@@ -4279,7 +4308,7 @@ Definition f_beside_doc := {|
                                 Sskip)
                               (Ssequence
                                 (Ssequence
-                                  (Sset _t'8
+                                  (Sset _t'7
                                     (Efield
                                       (Ederef
                                         (Etempvar _new_result_tail (tptr (Tstruct _format_list noattr)))
@@ -4291,7 +4320,7 @@ Definition f_beside_doc := {|
                                                                  (tptr (Tstruct _format_list noattr))
                                                                  Tnil) tvoid
                                                                cc_default))
-                                    ((Etempvar _t'8 (tptr (Tstruct _format_list noattr))) ::
+                                    ((Etempvar _t'7 (tptr (Tstruct _format_list noattr))) ::
                                      nil)))
                                 (Ssequence
                                   (Sassign

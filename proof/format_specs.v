@@ -115,6 +115,86 @@ Fixpoint lseg (sigma: list (Z * (list byte))) (x z: val) : mpred :=
 
 Arguments lseg sigma x z : simpl never.
 
+Lemma singleton_listrep (a : Z) (b : list byte) (h : val) (x: val) :
+  cstring Ews b h *
+  malloc_token Ews (Tarray tschar (Zlength b + 1) noattr) h *
+  malloc_token Ews t_list x *
+  data_at Ews t_list ((Vptrofs (Ptrofs.repr a)), (h, nullval)) x
+   |-- listrep [(a, b)] x.
+Proof.
+  intros.
+  unfold listrep.
+  Exists nullval h.
+  entailer!.
+Qed.
+
+Lemma singleton_lseg (a : Z) (b : list byte) (h : val) (x y: val) :
+  cstring Ews b h *
+  malloc_token Ews (Tarray tschar (Zlength b + 1) noattr) h *
+  malloc_token Ews t_list x *
+  data_at Ews t_list ((Vptrofs (Ptrofs.repr a)), (h, y)) x
+   |-- lseg [(a, b)] x y.
+Proof.
+  intros.
+  unfold lseg. 
+  Exists y h.
+  entailer!.
+Qed.
+
+Lemma lseg_list (s1 s2: list (Z * list byte)) (x y: val) :
+  lseg s1 x y * listrep s2 y |-- listrep (s1 ++ s2) x.
+Proof.
+  generalize dependent x.
+  induction s1; ins; unfold lseg.
+  { entailer!. unnw. subst. entailer. }
+  unfold lseg; fold lseg. destruct a.
+  Intros h y0.
+  unfold listrep; fold listrep. Exists h y0.
+  entailer!. apply IHs1.
+Qed.
+
+Lemma lseg_lseg: forall (s1 s2: list (Z * list byte)) (x y z: val),
+  lseg s1 x y * lseg s2 y z |-- lseg (s1 ++ s2) x z.
+Proof.
+  intros s1. induction s1.
+  { intros. unfold lseg; fold lseg. simpl. entailer!. unnw. subst. entailer. }
+  intros. unfold lseg; fold lseg. destruct a. Intros h y0. simpl.
+  unfold lseg; fold lseg.
+  Exists h y0.
+  assert (
+    malloc_token Ews (Tarray tschar (Zlength l + 1) noattr) y0
+      * cstring Ews l y0
+      * malloc_token Ews t_list x
+      * data_at Ews t_list (Vptrofs (Ptrofs.repr z0), (y0, h)) x
+      * lseg s1 h y
+      * lseg s2 y z
+      |-- 
+    malloc_token Ews (Tarray tschar (Zlength l + 1) noattr) y0
+      * cstring Ews l y0
+      * malloc_token Ews t_list x
+      * data_at Ews t_list (Vptrofs (Ptrofs.repr z0), (y0, h)) x
+      * (lseg s1 h y
+      * lseg s2 y z)
+  ) as H by entailer!.
+  eapply (derives_trans _ _ _); eauto.
+  apply sepcon_derives; entailer.
+Qed.
+
+Lemma lseg_null_listrep (sigma : list (Z * list byte)) (p : val):
+  lseg sigma p nullval |-- listrep sigma p.
+Proof.
+  revert p.
+  induction sigma.
+  { unfold lseg. unfold listrep. entailer!. }
+  unfold lseg; fold lseg. destruct a.
+  intros p.
+  Intros h y.
+  unfold listrep; fold listrep.
+  Exists h y.
+  entailer!.
+Qed.
+
+
 Definition list_copy_spec : ident * funspec :=
 DECLARE _list_copy
   WITH sh : share, l : val, sigma : list (Z * (list byte)), gv: globals
@@ -179,6 +259,13 @@ Record list_mp (sigma : list (Z * list byte)) : Prop :=
     list_mp_forall_snd :
       Forall (fun x => 0 <= 4 * (Zlength (snd x)) + 1 <= Int.max_unsigned) sigma;
   }.
+
+Definition first_line_width_pred (G : t) (sigma : list (Z * list byte)) : Prop :=
+  match G.(height) with
+  | 0%nat => G.(first_line_width) = 0%nat
+  | _ => let fst_elem := Znth 0 sigma in
+      G.(first_line_width) = Z.to_nat (fst fst_elem + Zlength (snd fst_elem))
+  end.
 
 Record format_mp (G : t) (sigma : list (Z * list byte)) : Prop :=
   mk_format_mp {

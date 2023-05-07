@@ -8,10 +8,14 @@ Require Import printer.verified_printer.FormatTrivial.
 Require Import Coq.Strings.Ascii.
 Require Import format_specs.
 
-Definition t_flist := Tstruct _format_list noattr.
+Definition t_flist := Tstruct _fomat_list noattr.
 
 Definition good_format (G : t) (w h : Z) (sigma : list (Z * list byte)) : Prop :=
-   (Forall (fun x => 0 <= (fst x) + Zlength (snd x) <= w) sigma) /\ (G.(height) <= Z.to_nat h)%nat.
+   (Forall (fun x => 0 <= (fst x) + Zlength (snd x) <= w) sigma) /\ 
+   (G.(first_line_width) <= Z.to_nat w)%nat /\
+   (G.(middle_width) <= Z.to_nat w)%nat /\
+   (G.(last_line_width) <= Z.to_nat w)%nat /\
+   (G.(height) <= Z.to_nat h)%nat.
 
 Fixpoint listrepf (sigma: list t) (p: val) (wd ht : Z) : mpred :=
  match sigma with
@@ -65,16 +69,23 @@ Fixpoint lsegf (sigma: list t) (x z: val) (wd ht : Z) : mpred :=
 
 Arguments lsegf sigma x z wd ht : simpl never.
 
-Definition max_width_spec : ident * funspec :=
-DECLARE _max_width
-   WITH G : t, p : val, sigma : list t, sigma_pt : val
-   PRE [ tptr t_format ]
-      PROP()
-      PARAMS(p)
+Definition max_width_check_spec : ident * funspec :=
+DECLARE _max_width_check
+   WITH G : t, p : val, sigma : list (Z * list byte), sigma_pt : val, w : Z, h : Z
+   PRE [ tptr t_format, tuint, tuint ]
+      PROP(0 <= 8 * w <= Int.max_unsigned;
+           0 <= 8 * h <= Int.max_unsigned;
+           format_mp G sigma;
+           Forall (fun x => 0 <= (fst x) + Zlength (snd x) <= Int.max_unsigned) sigma)
+      PARAMS(p; Vint (Int.repr w); Vint (Int.repr h))
       SEP (concrete_mformat G p sigma sigma_pt)
    POST [ tbool ]
       EX a : bool,
-      PROP(a = true <-> Forall (fun x => fst x + Zlength (snd x) <= w) sigma)
+      PROP(a = true <-> (Forall (fun x => fst x + Zlength (snd x) <= w) sigma /\
+                         (G.(height) <= (Z.to_nat h))%nat /\
+                         (G.(first_line_width) <= (Z.to_nat w))%nat /\
+                         (G.(middle_width) <= (Z.to_nat w))%nat /\
+                         (G.(last_line_width) <= (Z.to_nat w))%nat))
       RETURN (Val.of_bool a)
       SEP(concrete_mformat G p sigma sigma_pt).
 
@@ -100,8 +111,8 @@ Definition beside_doc_spec : ident * funspec :=
 DECLARE _beside_doc
    WITH fs1 : list t, fs2 : list t, p1 : val, p2 : val, w : Z, h : Z, gv : globals
    PRE [ tuint, tuint, tptr t_flist, tptr t_flist ]
-      PROP (0 <= 4 * w <= Int.max_unsigned;
-            0 <= 4 * h <= Int.max_unsigned)
+      PROP (0 <= 8 * w <= Int.max_unsigned - 1;
+            0 <= 8 * h <= Int.max_unsigned)
       PARAMS(Vint (Int.repr w); Vint (Int.repr h); p1; p2) GLOBALS(gv)
       SEP (listrepf fs1 p1 w h; listrepf fs2 p2 w h; mem_mgr gv)
    POST [ tptr t_flist ]
@@ -121,5 +132,6 @@ Definition Gprog : funspecs :=
                    flw_add_beside_spec; shift_list_spec; add_beside_spec; line_concats_spec;
                    mdw_add_beside_spec; to_text_add_beside_spec;
                    mdw_add_fill_spec; flw_add_fill_spec; to_text_add_fill_spec;
-                   llw_add_fill_spec; add_fill_spec; beside_doc_spec; clear_format_list_spec; clear_to_text_spec
+                   llw_add_fill_spec; add_fill_spec; beside_doc_spec; clear_format_list_spec; clear_to_text_spec;
+                   max_width_check_spec
  ]).

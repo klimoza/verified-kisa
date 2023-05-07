@@ -1,6 +1,7 @@
 COQMODULE := printer
 COQMFFLAGS := -R $(OPAM_SWITCH_PREFIX)/lib/coq-variant/VST_aarch64_64/VST VST
 
+# ALLVFILES := printer_files/compiled_format.v verified_printer/*.v proof/format_specs.v proof/HahnBase.v proof/list_specs.v proof/list_trivial_proof.v
 ALLVFILES := printer_files/compiled_format.v verified_printer/*.v proof/*.v
 
 build: Makefile.coq
