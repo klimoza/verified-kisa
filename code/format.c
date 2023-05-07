@@ -519,20 +519,10 @@ void clear_format_list(format_list *fs) {
 }
 
 bool max_width_check(t *G, unsigned int width, unsigned int height) {
+  if(total_width(G) > width)
+    return false;
   if(G->height > height)
     return false;
-  if(G->first_line_width > width)
-    return false;
-  if(G->middle_width > width)
-    return false;
-  if(G->last_line_width > width)
-    return false;
-  list *current_tail = G->to_text;
-  while(current_tail != NULL) {
-    if(current_tail->shift + strlen(current_tail->line) > width)
-      return false;
-    current_tail = current_tail->tail;
-  }
   return true;
 }
 
@@ -560,6 +550,8 @@ format_list* beside_doc(unsigned int width, unsigned int height, format_list *fs
     while(fs1_tail != NULL) {
       t* G = add_beside(fs1_tail->G, fs2_tail->G);
       if(max_width_check(G, width, height)) {
+        clear_to_text(result_tail->G->to_text);
+        free(result_tail->G);
         result_tail->G = G;
         result_tail->tail = malloc(sizeof(format_list));
         if(result_tail->tail == NULL) exit(1);
@@ -567,6 +559,9 @@ format_list* beside_doc(unsigned int width, unsigned int height, format_list *fs
         result_tail->tail->tail = NULL;
         result_tail = result_tail->tail;
         has_item = true;
+      } else {
+        clear_to_text(G->to_text);
+        free(G);
       }
       fs1_tail = fs1_tail->tail;
     }

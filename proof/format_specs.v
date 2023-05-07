@@ -267,6 +267,21 @@ Definition first_line_width_pred (G : t) (sigma : list (Z * list byte)) : Prop :
       G.(first_line_width) = Z.to_nat (fst fst_elem + Zlength (snd fst_elem))
   end.
 
+Definition middle_width_pred (G : t) (sigma : list (Z * list byte)) : Prop :=
+  match G.(height) with
+  | 0%nat => G.(middle_width) = 0%nat
+  | 1%nat|2%nat => let fst_elem := Znth 0 sigma in
+      G.(middle_width) = Z.to_nat (fst fst_elem + Zlength (snd fst_elem))
+  | _ => G.(middle_width) = list_max (map (fun x => Z.to_nat (fst x + Zlength (snd x))) (sublist 1 (Zlength sigma - 1) sigma))
+  end.
+
+Definition last_line_width_pred (G : t) (sigma : list (Z * list byte)) : Prop :=
+  match G.(height) with
+  | 0%nat => G.(last_line_width) = 0%nat
+  | _ => let last_elem := Znth (Zlength sigma - 1) sigma in
+      G.(last_line_width) = Z.to_nat (fst last_elem + Zlength (snd last_elem))
+  end.
+
 Record format_mp (G : t) (sigma : list (Z * list byte)) : Prop :=
   mk_format_mp {
     format_mp_text_eq : to_text_eq G.(to_text) sigma;
@@ -276,6 +291,9 @@ Record format_mp (G : t) (sigma : list (Z * list byte)) : Prop :=
     format_mp_mw : 0 <= Z.of_nat (middle_width G) <= Int.max_unsigned;
     format_mp_llw : 0 <= Z.of_nat (last_line_width G) <= Int.max_unsigned;
     format_mp_zero_hg: Z.of_nat (height G) = Zlength sigma;
+    format_mp_flw_eq : first_line_width_pred G sigma;
+    format_mp_mw_eq : middle_width_pred G sigma;
+    format_mp_llw_eq : last_line_width_pred G sigma;
   }.
 
 Record format_comb_pred (G F : t) (sigmaG sigmaF : list (Z * list byte)) : Prop :=

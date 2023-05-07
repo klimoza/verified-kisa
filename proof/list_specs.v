@@ -8,20 +8,33 @@ Require Import printer.verified_printer.FormatTrivial.
 Require Import Coq.Strings.Ascii.
 Require Import format_specs.
 
-Definition t_flist := Tstruct _fomat_list noattr.
+Definition t_flist := Tstruct _format_list noattr.
 
-Definition good_format (G : t) (w h : Z) (sigma : list (Z * list byte)) : Prop :=
-   (Forall (fun x => 0 <= (fst x) + Zlength (snd x) <= w) sigma) /\ 
-   (G.(first_line_width) <= Z.to_nat w)%nat /\
-   (G.(middle_width) <= Z.to_nat w)%nat /\
-   (G.(last_line_width) <= Z.to_nat w)%nat /\
+Lemma list_max_cons (x : nat) (l : list nat):
+  list_max (x :: l) = max x (list_max l).
+Proof.
+  unfold list_max.
+  unfold fold_right.
+  lia.
+Qed.
+
+Lemma list_max_nil:
+  list_max [] = 0%nat.
+Proof.
+  unfold list_max.
+  unfold fold_right.
+  lia.
+Qed.
+
+Definition good_format (G : t) (w h : Z) : Prop :=
+   (total_width G <= Z.to_nat w)%nat /\
    (G.(height) <= Z.to_nat h)%nat.
 
 Fixpoint listrepf (sigma: list t) (p: val) (wd ht : Z) : mpred :=
  match sigma with
  | G::hs =>
     EX x:val, EX y: val, EX format_sigma : list (Z * list byte), EX sigma_pt : val,
-    !! (<< GOOD_FORMAT : good_format G wd ht format_sigma >>) &&
+    !! (<< GOOD_FORMAT : good_format G wd ht >>) &&
     concrete_mformat G y format_sigma sigma_pt *
     malloc_token Ews t_flist p * 
     data_at Ews t_flist ((y, x) : @reptype CompSpecs t_flist) p *
@@ -60,7 +73,7 @@ Fixpoint lsegf (sigma: list t) (x z: val) (wd ht : Z) : mpred :=
   match sigma with
   | nil => !! (<< LSEG_PTR_FACT : x = z >>) && emp
   | G::hs => EX h: val, EX y:val, EX format_sigma : list (Z * list byte), EX sigma_pt : val,
-      !! (<< GOOD_FORMAT : good_format G wd ht format_sigma >>) &&
+      !! (<< GOOD_FORMAT : good_format G wd ht >>) &&
       concrete_mformat G y format_sigma sigma_pt *
       malloc_token Ews t_flist x * 
       data_at Ews t_flist ((y, h) : @reptype CompSpecs t_flist) x *
@@ -69,23 +82,30 @@ Fixpoint lsegf (sigma: list t) (x z: val) (wd ht : Z) : mpred :=
 
 Arguments lsegf sigma x z wd ht : simpl never.
 
+Definition total_width_spec : ident * funspec :=
+DECLARE _total_width
+   WITH G : t, p : val, sigma : list (Z * list byte), sigma_pt : val
+   PRE [ tptr t_format ]
+      PROP(format_mp G sigma)
+      PARAMS(p)
+      SEP (concrete_mformat G p sigma sigma_pt)
+   POST [ tuint ]
+      PROP() RETURN (Vint (Int.repr (Z.of_nat (total_width G))))
+      SEP(concrete_mformat G p sigma sigma_pt).
+
 Definition max_width_check_spec : ident * funspec :=
 DECLARE _max_width_check
    WITH G : t, p : val, sigma : list (Z * list byte), sigma_pt : val, w : Z, h : Z
    PRE [ tptr t_format, tuint, tuint ]
       PROP(0 <= 8 * w <= Int.max_unsigned;
            0 <= 8 * h <= Int.max_unsigned;
-           format_mp G sigma;
-           Forall (fun x => 0 <= (fst x) + Zlength (snd x) <= Int.max_unsigned) sigma)
+           format_mp G sigma)
       PARAMS(p; Vint (Int.repr w); Vint (Int.repr h))
       SEP (concrete_mformat G p sigma sigma_pt)
    POST [ tbool ]
       EX a : bool,
-      PROP(a = true <-> (Forall (fun x => fst x + Zlength (snd x) <= w) sigma /\
-                         (G.(height) <= (Z.to_nat h))%nat /\
-                         (G.(first_line_width) <= (Z.to_nat w))%nat /\
-                         (G.(middle_width) <= (Z.to_nat w))%nat /\
-                         (G.(last_line_width) <= (Z.to_nat w))%nat))
+      PROP(a = true <-> ((total_width G <= (Z.to_nat w))%nat /\
+                         (G.(height) <= (Z.to_nat h))%nat))
       RETURN (Val.of_bool a)
       SEP(concrete_mformat G p sigma sigma_pt).
 
@@ -133,5 +153,5 @@ Definition Gprog : funspecs :=
                    mdw_add_beside_spec; to_text_add_beside_spec;
                    mdw_add_fill_spec; flw_add_fill_spec; to_text_add_fill_spec;
                    llw_add_fill_spec; add_fill_spec; beside_doc_spec; clear_format_list_spec; clear_to_text_spec;
-                   max_width_check_spec
+                   max_width_check_spec; total_width_spec
  ]).

@@ -10,6 +10,38 @@ Require Import Coq.Strings.Ascii.
 Require Import format_specs.
 Require Import list_specs.
 
+Lemma zmax_natmax_eq (a b : nat):
+  0 <= Z.of_nat a <= Int.max_unsigned ->
+  0 <= Z.of_nat b <= Int.max_unsigned ->
+  Z.max (Z.of_nat a) (Z.of_nat b) = Z.of_nat (max a b).
+Proof.
+  lia.
+Qed.
+
+Lemma body_total_width : semax_body Vprog Gprog f_total_width total_width_spec.
+Proof.
+  start_function.
+  unfold concrete_mformat.
+  Intros.
+  getnw; inv FMT_MP.
+  do 2 forward.
+  forward_call(Z.of_nat (middle_width G), Z.of_nat (last_line_width G)).
+  Intros vret.
+  forward.
+  forward_call(Z.of_nat (first_line_width G), vret).
+  Intros vret0.
+  forward.
+  entailer!.
+  { unfold total_width.
+    destruct G.
+    ins.
+    rewrite zmax_natmax_eq; try lia.
+    rewrite zmax_natmax_eq; try lia.
+    auto. } 
+  unfold concrete_mformat.
+  entailer!.
+Qed.
+
 Lemma body_clear_to_text : semax_body Vprog Gprog f_clear_to_text clear_to_text_spec.
 Proof.
   start_function.
@@ -142,163 +174,26 @@ Qed.
 Lemma body_max_width_check : semax_body Vprog Gprog f_max_width_check max_width_check_spec.
 Proof.
   start_function.
-  forward.
+  unfold concrete_mformat.
+  Intros.
   getnw; inv FMT_MP.
+  assert (0 <= Z.of_nat (total_width G) <= Int.max_unsigned) as K.
+  { unfold total_width.
+    desf; ins; lia. }
+  forward_call(G, p, sigma, sigma_pt).
+  { unfold concrete_mformat; entailer!. }
   forward_if.
   { forward.
     Exists false.
-    entailer!.
-    unfold concrete_mformat.
-    entailer!. }
-  forward.
-  forward_if.
-  { forward.
-    Exists false.
-    entailer!.
-    unfold concrete_mformat.
     entailer!. }
   forward.
   forward_if.
   { forward.
     Exists false.
-    entailer!.
-    unfold concrete_mformat.
-    entailer!. }
+    unfold concrete_mformat; entailer!. }
   forward.
-  forward_if.
-  { forward.
-    Exists false.
-    entailer!.
-    unfold concrete_mformat.
-    entailer!. }
-  forward.
-  { entailer; unnw; desf; entailer!. }
-  forward_loop(
-    EX i : Z, EX tail : val,
-    PROP (0 <= i <= Zlength sigma;
-          Forall (fun x => fst x + Zlength (snd x) <= w) (sublist 0 i sigma))
-    LOCAL (temp _current_tail tail; temp _G p; temp _width (Vint (Int.repr w)))
-    SEP(
-      lseg (sublist 0 i sigma) sigma_pt tail;
-      listrep (sublist i (Zlength sigma) sigma) tail;
-      format_without_to_text G p sigma_pt)).
-  2: { entailer!. }
-  { Exists 0 sigma_pt.
-    entailer!.
-    { replace (sublist 0 0 sigma) with ([] : list (Z * list byte)) by list_solve.
-      list_solve. }
-    autorewrite with sublist norm.
-    unff lseg.
-    unfold format_without_to_text.
-    entailer!. }
-  2: { forward.
-    getnw; desf.
-    assert (sublist i (Zlength sigma) sigma = []) as K by auto.
-    assert (i < Zlength sigma \/ i = Zlength sigma) as KK by lia.
-    destruct KK.
-    { replace (sublist i (Zlength sigma) sigma) with
-        (Znth i sigma :: sublist (i + 1) (Zlength sigma) sigma) in K by list_solve.
-      vauto. }
-    subst.
-    autorewrite with sublist norm.
-    Exists true.
-    unff listrep.
-    unfold format_without_to_text.
-    unfold concrete_mformat.
-    entailer!.
-    { split; ins.
-      replace (sublist 0 (Zlength sigma) sigma) with sigma in * by list_solve.
-      split; vauto; lia. }
-    apply lseg_null_listrep. }
-  assert (i = Zlength sigma \/ i < Zlength sigma) as K by lia.
-  destruct K.
-  { subst.
-    autorewrite with sublist norm.
-    unff listrep.
-    Intros.
-    unnw; vauto. }
-  replace (sublist i (Zlength sigma) sigma) with
-    (Znth i sigma :: sublist (i + 1) (Zlength sigma) sigma) by list_solve.
-  unff listrep.
-  destruct (Znth i sigma) as (ith_shift, ith_line) eqn:E.
-  Intros ith_tail_ptr ith_line_ptr.
-  forward.
-  forward_call(Ews, ith_line, ith_line_ptr).
-  forward.
-  forward_if.
-  { forward.
-    Exists false.
-    entailer!.
-    { split; ins; desf.
-      assert ((fun x : Z * list byte => fst x + Zlength (snd x) <= w) (Znth i sigma)) as K1.
-      { apply Forall_Znth; auto; lia. }
-      assert ((fun x : Z * list byte => 0 <= fst x + Zlength (snd x) <= Int.max_unsigned) (Znth i sigma)) as K2.
-      { apply Forall_Znth; auto; lia. }
-      rewrite E in *; ins.
-      autorewrite with sublist norm in *.
-      lia. }
-    unfold concrete_mformat.
-    unfold format_without_to_text.
-    entailer!.
-    assert (
-      lseg (sublist 0 (i + 1) sigma) sigma_pt ith_tail_ptr *
-      listrep (sublist (i + 1) (Zlength sigma) sigma) ith_tail_ptr |--
-      listrep sigma sigma_pt
-    ) as K.
-    { assert(sigma = (sublist 0 (i + 1) sigma ++ sublist (i + 1) (Zlength sigma) sigma)) as K by list_solve.
-      rewrite K at 4.
-      apply lseg_list. }
-    eapply derives_trans.
-    2: eauto.
-    entailer!.
-    assert(
-      lseg (sublist 0 i sigma) sigma_pt tail *
-      lseg [Znth i sigma] tail ith_tail_ptr |--
-      lseg (sublist 0 (i + 1) sigma) sigma_pt ith_tail_ptr
-    ) as F.
-    { replace (sublist 0 (i + 1) sigma) with
-        (sublist 0 i sigma ++ [Znth i sigma]) by list_solve.
-      apply lseg_lseg. }
-    eapply derives_trans.
-    2: eauto.
-    entailer!.
-    unff lseg.
-    rewrite E.
-    Exists ith_tail_ptr ith_line_ptr.
-    entailer!. }
-  forward.
-  { entailer!.
-    unnw; desf. } 
-  Exists ((i + 1), ith_tail_ptr).
-  assert ((fun x : Z * list byte => 0 <= fst x + Zlength (snd x) <= Int.max_unsigned) (Znth i sigma)) as K2.
-  { apply Forall_Znth; auto; lia. }
-  entailer!.
-  { split.
-    { lia. }
-    replace (sublist 0 (i + 1) sigma) with
-      (sublist 0 i sigma ++ [Znth i sigma]) by list_solve.
-    apply Forall_app; split; vauto.
-    rewrite E in *.
-    ins.
-    autorewrite with sublist norm in *.
-    apply Forall_cons.
-    2: apply Forall_nil.
-    ins; lia. }
-  entailer!.
-  assert(
-    lseg (sublist 0 i sigma) sigma_pt tail *
-    lseg [Znth i sigma] tail ith_tail_ptr |--
-    lseg (sublist 0 (i + 1) sigma) sigma_pt ith_tail_ptr
-  ) as F.
-  { replace (sublist 0 (i + 1) sigma) with
-      (sublist 0 i sigma ++ [Znth i sigma]) by list_solve.
-    apply lseg_lseg. }
-  eapply derives_trans.
-  2: eauto.
-  entailer!.
-  unff lseg.
-  rewrite E.
-  Exists ith_tail_ptr ith_line_ptr.
+  Exists true.
+  unfold concrete_mformat.
   entailer!.
 Qed.
 
@@ -414,6 +309,76 @@ Proof.
        apply mk_list_mp; vauto.
        list_solve. }
   unfold Int.max_unsigned; ins.
+  lia.
+Qed.
+
+Lemma total_width_eq (G : t) (sigma : list (Z * list byte)):
+  << FMT_MP : format_mp G sigma >> ->
+  total_width G = list_max (map (fun x => Z.to_nat (fst x + Zlength (snd x))) sigma).
+Proof.
+  ins.
+  getnw; inv FMT_MP.
+  unfold first_line_width_pred in *.
+  unfold middle_width_pred in *.
+  unfold last_line_width_pred in *.
+  desf; ins; unfold total_width; desf; ins.
+  all: rewrite format_mp_flw_eq.
+  all: rewrite format_mp_mw_eq.
+  all: rewrite format_mp_llw_eq.
+  { replace sigma with ([] : list (Z * list byte)) by list_solve.
+    list_solve. }
+  { replace sigma with [Znth 0 sigma] by list_solve.
+    rewrite map_cons.
+    rewrite map_nil.
+    rewrite list_max_cons.
+    rewrite list_max_nil.
+    autorewrite with sublist norm.
+    lia. }
+  { replace (Zlength sigma) with 2%Z by lia.
+    replace (2 - 1) with 1 by lia.
+    replace sigma with [Znth 0 sigma; Znth 1 sigma] by list_solve.
+    repeat rewrite map_cons.
+    rewrite map_nil.
+    repeat rewrite list_max_cons.
+    rewrite list_max_nil.
+    autorewrite with sublist norm.
+    replace (Znth 1 [Znth 0 sigma;  Znth 1 sigma]) with (Znth 1 sigma) by list_solve.
+    lia. }
+  assert (sigma = [Znth 0 sigma] ++ sublist 1 (Zlength sigma - 1) sigma ++ [Znth (Zlength sigma - 1) sigma]) as K by list_solve.
+  rewrite K at 9.
+  repeat rewrite map_app.
+  repeat rewrite map_cons.
+  repeat rewrite map_nil.
+  repeat rewrite list_max_app.
+  repeat rewrite list_max_cons.
+  repeat rewrite list_max_nil.
+  lia.
+Qed.
+
+Lemma list_max_impl_forall (l : list (Z * list byte)) (w : Z):
+  0 <= 8 * w <= Int.max_unsigned - 1 ->
+  list_mp l ->
+  (list_max (map (fun x => Z.to_nat (fst x + Zlength (snd x))) l) <= Z.to_nat w)%nat ->
+  Forall (fun x => 0 <= fst x + Zlength (snd x) <= w) l.
+Proof.
+  ins.
+  revert dependent w.
+  induction l; ins.
+  inv H0.
+  apply Forall_cons_iff in list_mp_forall_fst.
+  apply Forall_cons_iff in list_mp_forall_snd.
+  desf.
+  apply Forall_cons_iff; split.
+  { lia. }
+  remember  ((list_max (map (fun x : Z * list byte => Z.to_nat (fst x + Zlength (snd x))) l))) as local_max.
+  enough (
+    Forall (fun x => 0 <= fst x + Zlength (snd x) <= Z.of_nat local_max) l
+  ) as FF.
+  { assert (Z.of_nat local_max <= w) as K by lia.
+    list_solve. }
+  apply IHl.
+  { apply mk_list_mp; list_solve. }
+  { lia. }
   lia.
 Qed.
 
@@ -821,14 +786,28 @@ forward_call(Znth j fs1, Znth i fs2,
 { getnw; inv FMT_MP; inv GOOD_FORMAT.
   getnw; inv FMT_MP; inv GOOD_FORMAT.
   getnw; inv FMT_MP; inv GOOD_FORMAT.  
-  desf.
   split.
-  { apply mk_format_comb; try lia. }
+  { destruct (Znth j fs1); ins.
+    destruct (Znth i fs2); ins.
+    apply mk_format_comb; ins.
+    all: unfold Int.max_unsigned in *.
+    all: ins.
+    all: lia. }
+  assert (Forall (fun x => 0 <= fst x + Zlength (snd x) <= w) fs2_sigma) as FORALL2.
+      { enough (list_max (map (fun x => Z.to_nat (fst x + Zlength (snd x))) fs2_sigma) <= Z.to_nat w)%nat.
+        { apply list_max_impl_forall; vauto. }
+        rewrite <- (total_width_eq (Znth i fs2)); vauto. }
+  assert (Forall (fun x => 0 <= fst x + Zlength (snd x) <= w) fs1_sigma) as FORALL1.
+      { enough (list_max (map (fun x => Z.to_nat (fst x + Zlength (snd x))) fs1_sigma) <= Z.to_nat w)%nat.
+        { apply list_max_impl_forall; vauto. }
+        rewrite <- (total_width_eq (Znth j fs1)); vauto. }
   split.
   { eapply beside_doc_llw_add.
     4: eauto.
     { lia. }
-    3: lia.
+    3: {
+      unfold total_width in *.
+      desf; ins; lia. }
     all: inv format_mp_list_mp0.
     all: vauto. }
   eapply beside_doc_ab_pred.
@@ -861,13 +840,18 @@ forward_if(
       lsegf (sublist 0 i fs2) p2 head_ptr w h; 
       listrepf (sublist i (Zlength fs2) fs2) head_ptr w h; 
       lsegf res_part_new result_ptr result_tail_ptr_new w h;
-      listrepf [empty] result_tail_ptr_new w h;
-      concrete_mformat (add_beside (Znth j fs1) (Znth i fs2)) result_format_ptr result_sigma result_sigma_pt)).
-2: { forward; entailer!.
+      listrepf [empty] result_tail_ptr_new w h)).
+2: { forward.
+     { entailer!; unnw; desf. }
+     forward_call(result_sigma, result_sigma_pt, gv).
+     forward_call(t_format, result_format_ptr, gv).
+     { prove_ptr.
+       entailer!. }
      Exists ((filter (fun G : t => (height G <=? Z.to_nat h)%nat)
               (besideDoc (Z.to_nat w) fs1 (sublist 0 i fs2)) ++
               filter (fun G : t => (height G <=? Z.to_nat h)%nat)
-              (besideDoc (Z.to_nat w) (sublist 0 j fs1) [Znth i fs2]))) result_tail_ptr_new; entailer!.
+              (besideDoc (Z.to_nat w) (sublist 0 j fs1) [Znth i fs2]))) result_tail_ptr_new.
+    entailer!.
      2: {
         unff listrepf.
         Exists nullval empty_ptr empty_sigma empty_sigma_pt.
@@ -901,13 +885,181 @@ forward_if(
     rewrite map_nil.
     rewrite concat_nil.
     autorewrite with sublist norm.
-    
-}
+    unfold filter.
+    desf; vauto.
+    lia. }
 2: {
+  Intros res_part_new0 result_tail_ptr_new0.
+  replace (sublist j (Zlength fs1) fs1) with 
+    (Znth j fs1 :: sublist (j + 1) (Zlength fs1) fs1) by list_solve.  
+  unff listrepf.
+  Intros ith_tail_fs1_ptr_new ith_format_fs1_ptr_new fs1_sigma_new fs1_sigma_pt_new.
+  Intros empty_ptr_new empty_format_ptr_new empty_sigma_new empty_sigma_pt_new.
   forward.
   { entailer!; unnw; desf. }
   rewrite eqn_loop.
-  Exists (j + 1) ith_tail_fs1_ptr result_tail_ptr_new 
-}
-
-Admitted.
+  Exists (j + 1) ith_tail_fs1_ptr_new result_tail_ptr_new0 res_part_new0.
+  entailer!.
+  unff listrepf.
+  Exists empty_ptr_new empty_format_ptr_new empty_sigma_new empty_sigma_pt_new.
+  unfold concrete_mformat.
+  entailer!.
+  assert (
+    lsegf (sublist 0 j fs1) p1 head_ptr2 w h *
+    lsegf [Znth j fs1] head_ptr2 ith_tail_fs1_ptr_new w h |--
+    lsegf (sublist 0 (j + 1) fs1) p1 ith_tail_fs1_ptr_new w h
+  ) as K.
+  { replace (sublist 0 (j + 1) fs1) with
+      (sublist 0 j fs1 ++ [Znth j fs1]) by list_solve.
+    apply lsegf_lsegf. }
+  eapply derives_trans.
+  2: eauto.
+  entailer!.
+  unff lsegf.
+  Exists ith_tail_fs1_ptr_new ith_format_fs1_ptr_new fs1_sigma_new fs1_sigma_pt_new.
+  entailer!.
+  unfold concrete_mformat.
+  entailer!. } 
+do 2 forward.
+{ entailer!; unnw; desf. }
+forward_call(empty_sigma, empty_sigma_pt, gv).
+forward.
+forward_call(t_format, empty_ptr, gv).
+{ prove_ptr; entailer!. }
+forward.
+forward_call(t_flist, gv).
+Intros new_result_tail_ptr.
+do 2 forward.
+dest_ptr new_result_tail_ptr.
+forward_call(gv).
+Intros new_empty_ptr.
+do 6 forward.
+Exists (filter (fun G : t => (height G <=? Z.to_nat h)%nat)
+        (besideDoc (Z.to_nat w) fs1 (sublist 0 i fs2)) ++
+        filter (fun G : t => (height G <=? Z.to_nat h)%nat)
+        (besideDoc (Z.to_nat w) (sublist 0 (j + 1) fs1) [Znth i fs2])) new_result_tail_ptr.
+entailer!.
+2: { 
+  unfold mformat.
+  Intros sigma0 sigma_pt0.
+  unff listrepf.
+  Exists nullval new_empty_ptr sigma0 sigma_pt0.
+  unfold concrete_mformat.
+  entailer!.
+  remember ((filter (fun G : t => (height G <=? Z.to_nat h)%nat) (besideDoc (Z.to_nat w) fs1 (sublist 0 i fs2)))) as part1.
+  remember (filter (fun G : t => (height G <=? Z.to_nat h)%nat) (besideDoc (Z.to_nat w) (sublist 0 j fs1) [Znth i fs2])) as part2.
+  remember (filter (fun G : t => (height G <=? Z.to_nat h)%nat) (besideDoc (Z.to_nat w) (sublist 0 (j + 1) fs1) [Znth i fs2])) as part3.
+  remember (filter (fun G : t => (height G <=? Z.to_nat h)%nat) (besideDoc (Z.to_nat w) [Znth j fs1] [Znth i fs2])) as part4.
+  assert (part1 ++ part3 = (part1 ++ part2) ++ part4) as K.
+  { rewrite <- app_assoc.
+    apply app_inv_head_iff.
+    vauto.
+    replace (sublist 0 (j + 1) fs1) with (sublist 0 j fs1 ++ [Znth j fs1]) by list_solve.
+    rewrite <- beside_doc_app_l.
+    rewrite filter_app; vauto. }
+  rewrite K.
+  assert(
+    listrepf (sublist j (Zlength fs1) fs1) head_ptr2 w h
+    * listrepf (sublist i (Zlength fs2) fs2) head_ptr w h
+    * lsegf (part1 ++ part2) result_ptr result_tail_ptr_new w h
+    * lsegf part4 result_tail_ptr_new new_result_tail_ptr w h |--
+    listrepf (sublist j (Zlength fs1) fs1) head_ptr2 w h
+      * listrepf (sublist i (Zlength fs2) fs2) head_ptr w h
+      * lsegf ((part1 ++ part2) ++ part4) result_ptr new_result_tail_ptr w h
+  ) as FF.
+  { entailer!.
+    apply lsegf_lsegf. }
+  eapply derives_trans.
+  2: eauto.
+  entailer!.
+  unfold FormatTrivial.besideDoc.
+  unfold FormatTrivial.cross_general.
+  rewrite map_cons.
+  rewrite map_nil.
+  rewrite map_cons.
+  rewrite map_nil.
+  rewrite concat_cons.
+  rewrite concat_nil.
+  autorewrite with sublist.
+  unfold filter.
+  desf;
+  assert (
+    (total_width (add_beside (Znth j fs1) (Znth i fs2)) <= Z.to_nat w)%nat /\
+      (height (add_beside (Znth j fs1) (Znth i fs2)) <= Z.to_nat h)%nat
+  ) as GG by auto; desf.
+  unff lsegf.
+  Exists new_result_tail_ptr result_format_ptr result_sigma result_sigma_pt.
+  entailer!.
+  { unfold good_format; split; vauto. }
+  unfold concrete_mformat; entailer!.
+  assert (
+    listrepf (sublist j (Zlength fs1) fs1) head_ptr2 w h
+    * lsegf [Znth i fs2] head_ptr ith_tail_fs2_ptr w h
+    * listrepf (sublist (i + 1) (Zlength fs2) fs2) ith_tail_fs2_ptr w h |--
+    listrepf (sublist j (Zlength fs1) fs1) head_ptr2 w h
+    * listrepf (sublist i (Zlength fs2) fs2) head_ptr w h
+  ) as KK.
+  { entailer!.
+    replace (sublist i (Zlength fs2) fs2) 
+      with ([Znth i fs2] ++ sublist (i + 1) (Zlength fs2) fs2) by list_solve.
+    apply lsegf_listf. }
+  eapply derives_trans.
+  2: eauto.
+  entailer!.
+  unff lsegf.
+  Exists ith_tail_fs2_ptr ith_format_fs2_ptr fs2_sigma fs2_sigma_pt.
+  unfold concrete_mformat.
+  entailer!.
+  assert(
+    lsegf [Znth j fs1] head_ptr2 ith_tail_fs1_ptr w h
+    * listrepf (sublist (j + 1) (Zlength fs1) fs1) ith_tail_fs1_ptr w h |--
+    listrepf (sublist j (Zlength fs1) fs1) head_ptr2 w h
+  ) as KKK.
+  { replace (sublist j (Zlength fs1) fs1) with
+      ([Znth j fs1] ++ sublist (j + 1) (Zlength fs1) fs1) by list_solve.
+    apply lsegf_listf. }
+  eapply derives_trans.
+  2: eauto.
+  entailer!.
+  unff lsegf.
+  Exists ith_tail_fs1_ptr ith_format_fs1_ptr fs1_sigma fs1_sigma_pt.
+  unfold concrete_mformat.
+  entailer!. }
+autorewrite with sublist norm.
+desf.
+remember (filter (fun G : t => (height G <=? Z.to_nat h)%nat) (besideDoc (Z.to_nat w) (sublist 0 j fs1) [Znth i fs2])) as part2.
+remember ((filter (fun G : t => (height G <=? Z.to_nat h)%nat) (besideDoc (Z.to_nat w) fs1 (sublist 0 i fs2)))) as part1.
+remember (filter (fun G : t => (height G <=? Z.to_nat h)%nat) (besideDoc (Z.to_nat w) (sublist 0 (j + 1) fs1) [Znth i fs2])) as part3.
+remember (filter (fun G : t => (height G <=? Z.to_nat h)%nat) (besideDoc (Z.to_nat w) [Znth j fs1] [Znth i fs2])) as part4.
+assert (part3 = part2 ++ part4) as K.
+{ vauto.
+  replace (sublist 0 (j + 1) fs1) with (sublist 0 j fs1 ++ [Znth j fs1]) by list_solve.
+  rewrite <- beside_doc_app_l.
+  rewrite filter_app; vauto. }
+rewrite K.
+rewrite Zlength_app.
+enough (Zlength part4 = 1) as KK. 
+{ rewrite KK.
+  assert(Zlength part1 + Zlength part2 + 1 > 0) as FF.
+  { list_solve. }
+  assert (0 <? Zlength part1 + (Zlength part2 + 1) = true) as GG.
+  { lia. }
+  rewrite GG.
+  list_solve. }
+vauto.
+unfold besideDoc.
+unfold cross_general.
+rewrite map_cons.
+rewrite map_nil.
+rewrite map_cons.
+rewrite map_nil.
+rewrite concat_cons.
+rewrite concat_nil.
+autorewrite with sublist.
+unfold filter.
+desf;
+assert (
+  (total_width (add_beside (Znth j fs1) (Znth i fs2)) <= Z.to_nat w)%nat /\
+    (height (add_beside (Znth j fs1) (Znth i fs2)) <= Z.to_nat h)%nat
+) as GG by auto; desf.
+Qed.

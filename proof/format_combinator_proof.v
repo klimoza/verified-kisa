@@ -6,8 +6,8 @@ Require Import printer.printer_files.compiled_format.
 Require Import printer.verified_printer.Format.
 Require Import Coq.Strings.Ascii.
 Require Import format_specs.
-Require Import format_std_proof.
 Require Import format_proof.
+Require Import format_std_proof.
 Require Import list_specs.
 
 Lemma eq_and_true_impl (n a m b : nat):
@@ -458,6 +458,163 @@ Proof.
   apply IHsigma; auto.
 Qed.
 
+Lemma add_above_width_preds (G F : t) (sigmaG sigmaF : list (Z * list byte)):
+  << FMT_MPG : format_mp G sigmaG >> ->
+  << FMT_MPF : format_mp F sigmaF >> ->
+  first_line_width_pred (add_above G F) (sigmaG ++ sigmaF) /\
+  middle_width_pred (add_above G F) (sigmaG ++ sigmaF) /\
+  last_line_width_pred (add_above G F) (sigmaG ++ sigmaF).
+Proof.
+  ins; getnw.
+  inv FMT_MPG; inv FMT_MPF.
+  split.
+  { unfold first_line_width_pred in *.
+    unfold add_above.
+    desf; ins.
+    all: try replace (sigmaG) with ([] : list (Z * list byte)) by list_solve.
+    all: try replace (sigmaF) with ([] : list (Z * list byte)) by list_solve.
+    all: try autorewrite with sublist norm in *.
+    all: try lia. }
+  split.
+  { unfold first_line_width_pred in *.
+    unfold middle_width_pred in *.
+    unfold last_line_width_pred in *.
+    unfold add_above.
+    desf; ins.
+    all: try replace (sigmaG) with ([] : list (Z * list byte)) by list_solve.
+    all: try replace (sigmaF) with ([] : list (Z * list byte)) by list_solve.
+    all: try autorewrite with sublist norm in *.
+    all: try lia.
+    { replace (Zlength sigmaG) with 1%Z by lia.
+      replace (Zlength sigmaF) with 2%Z by lia.
+      autorewrite with sublist norm.
+      replace (sublist 0 (2 - 1) sigmaF) with [Znth 0 sigmaF] by list_solve.
+      rewrite map_cons.
+      rewrite map_nil.
+      unfold list_max.
+      unfold fold_right.
+      rewrite format_mp_flw_eq0.
+      rewrite format_mp_mw_eq0.
+      lia. }
+    { replace (Zlength sigmaG) with 1%Z by lia.
+      autorewrite with sublist norm.
+      rewrite format_mp_flw_eq0.
+      rewrite format_mp_mw_eq0.
+      replace (sublist 0 (Zlength sigmaF - 1) sigmaF) with
+        ([Znth 0 sigmaF] ++ sublist 1 (Zlength sigmaF - 1) sigmaF) by list_solve.
+      rewrite map_app.
+      rewrite list_max_app.
+      rewrite map_cons.
+      rewrite map_nil.
+      unfold list_max.
+      unfold fold_right.
+      lia. }
+    { replace (Zlength sigmaF) with 1%Z by lia.
+      replace (Zlength sigmaG) with 2%Z by lia.
+      autorewrite with sublist norm.
+      replace (sublist 1 2 sigmaG) with [Znth 1 sigmaG] by list_solve.
+      rewrite format_mp_llw_eq.
+      replace (Zlength sigmaG) with 2%Z by lia.
+      unfold list_max.
+      rewrite map_cons.
+      rewrite map_nil.
+      unfold fold_right.
+      replace (2 - 1) with 1 by lia.
+      lia. }
+    { replace (Zlength sigmaF) with 2%Z by lia.
+      replace (Zlength sigmaG) with 2%Z by lia.
+      replace (2 + 2 - 1) with 3 by lia.
+      rewrite format_mp_llw_eq.
+      rewrite format_mp_flw_eq0.
+      rewrite format_mp_mw_eq0.
+      replace (Zlength sigmaG - 1) with 1%Z by lia.
+      replace (sublist 1 3 (sigmaG ++ sigmaF)) with
+        (sublist 1 2 sigmaG ++ sublist 0 1 sigmaF) by list_solve.
+      rewrite map_app.
+      replace (sublist 1 2 sigmaG) with [Znth 1 sigmaG] by list_solve.
+      replace (sublist 0 1 sigmaF) with [Znth 0 sigmaF] by list_solve.
+      unfold list_max.
+      unfold fold_right; ins.
+      lia. }
+    { rewrite format_mp_llw_eq.
+      rewrite format_mp_flw_eq0.
+      rewrite format_mp_mw_eq0.
+      replace (Zlength sigmaG) with 2%Z by lia.
+      replace (2 + Zlength sigmaF - 1) with (Zlength sigmaF + 1) by lia.
+      replace (sublist 1 (Zlength sigmaF + 1) (sigmaG ++ sigmaF)) with
+        (sublist 1 2 sigmaG ++ sublist 0 (Zlength sigmaF - 1) sigmaF) by list_solve.
+      rewrite map_app.
+      replace (sublist 0 (Zlength sigmaF - 1) sigmaF) with
+        (Znth 0 sigmaF :: sublist 1 (Zlength sigmaF - 1) sigmaF) by list_solve.
+      replace (sublist 1 2 sigmaG) with [Znth 1 sigmaG] by list_solve.
+      repeat rewrite map_cons.
+      repeat rewrite map_nil.
+      repeat rewrite list_max_app.
+      repeat rewrite list_max_cons.
+      rewrite list_max_nil.
+      replace (2 - 1) with 1%Z by lia.
+      lia. }
+    { rewrite format_mp_llw_eq.
+      rewrite format_mp_mw_eq.
+      replace (Zlength sigmaF) with 1%Z by lia.
+      replace (sublist 1 (Zlength sigmaG + 1 - 1) sigmaG) with
+        ((sublist 1 (Zlength sigmaG - 1) sigmaG) ++ [Znth (Zlength sigmaG - 1) sigmaG]) by list_solve.
+      rewrite map_app.
+      rewrite list_max_app.
+      rewrite map_cons.
+      rewrite map_nil.
+      rewrite list_max_cons.
+      rewrite list_max_nil.
+      lia. }
+    { rewrite format_mp_mw_eq.
+      rewrite format_mp_llw_eq.
+      rewrite format_mp_flw_eq0.
+      rewrite format_mp_mw_eq0.
+      replace (Zlength sigmaF) with 2%Z by lia.
+      replace (sublist 1 (Zlength sigmaG + 2 - 1) (sigmaG ++ sigmaF)) with
+        (sublist 1 (Zlength sigmaG) sigmaG ++ sublist 0 1 sigmaF) by list_solve.
+      rewrite map_app.
+      replace (sublist 0 1 sigmaF) with [Znth 0 sigmaF] by list_solve.
+      replace (sublist 1 (Zlength sigmaG) sigmaG) with
+        (sublist 1 (Zlength sigmaG - 1) sigmaG ++ [Znth (Zlength sigmaG - 1) sigmaG]) by list_solve.
+      repeat rewrite map_app.
+      repeat rewrite list_max_app.
+      repeat rewrite map_cons.
+      repeat rewrite map_nil.
+      repeat rewrite list_max_cons.
+      repeat rewrite list_max_nil.
+      lia. }
+    rewrite format_mp_mw_eq.
+    rewrite format_mp_llw_eq.
+    rewrite format_mp_flw_eq0.
+    rewrite format_mp_mw_eq0.
+    replace (sublist 1 (Zlength sigmaG + Zlength sigmaF - 1) (sigmaG ++ sigmaF)) with
+      (sublist 1 (Zlength sigmaG) sigmaG ++ sublist 0 (Zlength sigmaF - 1) sigmaF) by list_solve.
+    replace (sublist 1 (Zlength sigmaG) sigmaG) with
+      (sublist 1 (Zlength sigmaG - 1) sigmaG ++ [Znth (Zlength sigmaG - 1) sigmaG]) by list_solve.
+    replace (sublist 0 (Zlength sigmaF - 1) sigmaF) with
+      (Znth 0 sigmaF :: sublist 1 (Zlength sigmaF - 1) sigmaF) by list_solve.
+    repeat rewrite map_app.
+    repeat rewrite list_max_app.
+    repeat rewrite map_cons.
+    repeat rewrite map_nil.
+    repeat rewrite list_max_cons.
+    repeat rewrite list_max_nil.
+    lia. }
+  unfold first_line_width_pred in *.
+  unfold middle_width_pred in *.
+  unfold last_line_width_pred in *.
+  unfold add_above.
+  desf; ins.
+  all: try replace (sigmaG) with ([] : list (Z * list byte)) by list_solve.
+  all: try replace (sigmaF) with ([] : list (Z * list byte)) by list_solve.
+  all: try autorewrite with sublist norm in *.
+  all: try lia.
+  all: rewrite format_mp_llw_eq0.
+  all: replace (Zlength sigmaG + Zlength sigmaF - 1 - Zlength sigmaG) with (Zlength sigmaF - 1) by lia.
+  all: lia.
+Qed.
+
 Lemma body_add_above: semax_body Vprog Gprog f_add_above add_above_spec.
 Proof.
   start_function.
@@ -559,12 +716,19 @@ Proof.
     split.
     { apply shift_line_sum; auto. }
     apply shift_line_sum; auto. }
+  assert(
+    first_line_width_pred (add_above G F) to_text /\
+    middle_width_pred (add_above G F) to_text /\
+    last_line_width_pred (add_above G F) to_text
+  ) as preds.
+  { replace to_text with (sigmaG ++ sigmaF) by vauto.
+    apply add_above_width_preds; vauto. }
+  desf.
   apply mk_format_mp; auto.
   { rewrite <- K1; lia. }
   { rewrite <- K2; lia. }
   { rewrite <- K3; lia. }
   rewrite <- K1.
-  replace to_text with (sigmaG ++ sigmaF) by list_solve.
   replace (Z.of_nat (height G)) with (Zlength sigmaG) by list_solve.
   getnw; destruct FMT_MP.
   replace (Z.of_nat (height F)) with (Zlength sigmaF) by list_solve.
@@ -1380,6 +1544,9 @@ Proof.
       inv K.
       eapply shift_line_sum; eauto. }
     apply mk_format_mp; vauto.
+    4: admit.
+    4: admit.
+    4: admit.
     { rewrite K1; lia. }
     { rewrite K2; lia. }
     rewrite K1; ins.
@@ -2104,6 +2271,9 @@ Proof.
       inv K.
       eapply shift_line_sum; eauto. }
     apply mk_format_mp; vauto.
+    4: admit.
+    4: admit.
+    4: admit.
     { rewrite K1; lia. }
     rewrite K1; ins.
     replace (Zlength to_text_list) with (list_add_beside_length sigmaG sigmaF) by vauto.

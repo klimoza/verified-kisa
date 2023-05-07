@@ -370,6 +370,12 @@ Proof.
     all: unfold line; simpl.
     { unfold Int.max_unsigned. simpl. lia. }
     4: ins.
+    4: { unfold first_line_width_pred; ins.
+          rewrite <- list_byte_to_string_length; lia. }
+    4: { unfold middle_width_pred; ins.
+          rewrite <- list_byte_to_string_length; lia. }
+    4: { unfold last_line_width_pred; ins.
+          rewrite <- list_byte_to_string_length; lia. }
     all: rewrite list_byte_to_string_length; list_solve. }
   unfold listrep.
   unfold cstring.
