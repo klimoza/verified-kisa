@@ -566,6 +566,120 @@ bool max_width_check(t *G, unsigned int width, unsigned int height) {
 //   return result;
 // }
 
+format_list* above_doc(unsigned int width, unsigned int height, format_list *fs1, format_list *fs2) {
+  if (fs1 == NULL) {
+    if (fs2 != NULL)
+      clear_format_list(fs2);
+    return NULL;
+  }
+  if (fs2 == NULL) {
+    clear_format_list(fs1);
+    return NULL;
+  }
+
+  format_list *result = malloc(sizeof(format_list));
+  if(result == NULL) exit(1);
+  result->G = empty();
+  result->tail = NULL;
+  format_list *result_tail = result;
+  bool has_item = false;
+
+  format_list *fs2_tail = fs2;
+  while(fs2_tail != NULL) {
+    format_list *fs1_tail = fs1;
+    while(fs1_tail != NULL) {
+      t* G = add_above(fs1_tail->G, fs2_tail->G);
+      if(max_width_check(G, width, height)) {
+        clear_to_text(result_tail->G->to_text);
+        free(result_tail->G);
+        result_tail->G = G;
+        result_tail->tail = malloc(sizeof(format_list));
+        if(result_tail->tail == NULL) exit(1);
+        result_tail->tail->G = empty();
+        result_tail->tail->tail = NULL;
+        result_tail = result_tail->tail;
+        has_item = true;
+      } else {
+        clear_to_text(G->to_text);
+        free(G);
+      }
+      fs1_tail = fs1_tail->tail;
+    }
+    fs2_tail = fs2_tail->tail;
+  }
+  
+  clear_format_list(fs1);
+  clear_format_list(fs2);
+  if(!has_item) {
+    clear_format_list(result);
+    return NULL;
+  }
+  format_list *new_result_tail = result;
+  while(new_result_tail->tail->tail != NULL) {
+    new_result_tail = new_result_tail->tail;
+  }
+  clear_format_list(new_result_tail->tail);
+  new_result_tail->tail = NULL;
+  return result;
+}
+
+format_list* fill_doc(unsigned int width, unsigned int height, format_list *fs1, format_list *fs2, size_t shift) {
+  if (fs1 == NULL) {
+    if (fs2 != NULL)
+      clear_format_list(fs2);
+    return NULL;
+  }
+  if (fs2 == NULL) {
+    clear_format_list(fs1);
+    return NULL;
+  }
+
+  format_list *result = malloc(sizeof(format_list));
+  if(result == NULL) exit(1);
+  result->G = empty();
+  result->tail = NULL;
+  format_list *result_tail = result;
+  bool has_item = false;
+
+  format_list *fs2_tail = fs2;
+  while(fs2_tail != NULL) {
+    format_list *fs1_tail = fs1;
+    while(fs1_tail != NULL) {
+      t* G = add_fill(fs1_tail->G, fs2_tail->G, shift);
+      if(max_width_check(G, width, height)) {
+        clear_to_text(result_tail->G->to_text);
+        free(result_tail->G);
+        result_tail->G = G;
+        result_tail->tail = malloc(sizeof(format_list));
+        if(result_tail->tail == NULL) exit(1);
+        result_tail->tail->G = empty();
+        result_tail->tail->tail = NULL;
+        result_tail = result_tail->tail;
+        has_item = true;
+      } else {
+        clear_to_text(G->to_text);
+        free(G);
+      }
+      fs1_tail = fs1_tail->tail;
+    }
+    fs2_tail = fs2_tail->tail;
+  }
+  
+  clear_format_list(fs1);
+  clear_format_list(fs2);
+  if(!has_item) {
+    clear_format_list(result);
+    return NULL;
+  }
+  format_list *new_result_tail = result;
+  while(new_result_tail->tail->tail != NULL) {
+    new_result_tail = new_result_tail->tail;
+  }
+  clear_format_list(new_result_tail->tail);
+  new_result_tail->tail = NULL;
+  return result;
+}
+
 format_list* beside_doc(unsigned int width, unsigned int height, format_list *fs1, format_list *fs2) {
   if (fs1 == NULL) {
     if (fs2 != NULL)

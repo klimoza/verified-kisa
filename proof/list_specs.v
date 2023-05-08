@@ -130,6 +130,20 @@ DECLARE _clear_format_list
    POST [ tvoid ]
       PROP() RETURN() SEP(mem_mgr gv).
 
+Definition above_doc_spec : ident * funspec :=
+DECLARE _above_doc
+   WITH fs1 : list t, fs2 : list t, p1 : val, p2 : val, w : Z, h : Z, gv : globals
+   PRE [ tuint, tuint, tptr t_flist, tptr t_flist ]
+      PROP (0 <= 8 * w <= Int.max_unsigned - 1;
+            0 <= 8 * h <= Int.max_unsigned)
+      PARAMS(Vint (Int.repr w); Vint (Int.repr h); p1; p2) GLOBALS(gv)
+      SEP (listrepf fs1 p1 w h; listrepf fs2 p2 w h; mem_mgr gv)
+   POST [ tptr t_flist ]
+      EX p: val, EX sigma: list t,
+      PROP (sigma = filter (fun G => (G.(height) <=? (Z.to_nat h))%nat) (aboveDoc (Z.to_nat w) fs1 fs2))
+      RETURN(p)
+      SEP (listrepf sigma p w h; mem_mgr gv).
+
 Definition beside_doc_spec : ident * funspec :=
 DECLARE _beside_doc
    WITH fs1 : list t, fs2 : list t, p1 : val, p2 : val, w : Z, h : Z, gv : globals
@@ -141,6 +155,21 @@ DECLARE _beside_doc
    POST [ tptr t_flist ]
       EX p: val, EX sigma: list t,
       PROP (sigma = filter (fun G => (G.(height) <=? (Z.to_nat h))%nat) (besideDoc (Z.to_nat w) fs1 fs2))
+      RETURN(p)
+      SEP (listrepf sigma p w h; mem_mgr gv).
+
+Definition fill_doc_spec : ident * funspec :=
+DECLARE _fill_doc
+   WITH fs1 : list t, fs2 : list t, p1 : val, p2 : val, w : Z, h : Z, shift : Z, gv : globals
+   PRE [ tuint, tuint, tptr t_flist, tptr t_flist, size_t ]
+      PROP (0 <= 8 * w <= Int.max_unsigned - 1;
+            0 <= 8 * h <= Int.max_unsigned;
+            0 <= shift <= w)
+      PARAMS(Vint (Int.repr w); Vint (Int.repr h); p1; p2; Vptrofs (Ptrofs.repr shift)) GLOBALS(gv)
+      SEP (listrepf fs1 p1 w h; listrepf fs2 p2 w h; mem_mgr gv)
+   POST [ tptr t_flist ]
+      EX p: val, EX sigma: list t,
+      PROP (sigma = filter (fun G => (G.(height) <=? (Z.to_nat h))%nat) (fillDoc (Z.to_nat w) fs1 fs2 (Z.to_nat shift)))
       RETURN(p)
       SEP (listrepf sigma p w h; mem_mgr gv).
 
@@ -198,5 +227,5 @@ Definition Gprog : funspecs :=
                    mdw_add_fill_spec; flw_add_fill_spec; to_text_add_fill_spec;
                    llw_add_fill_spec; add_fill_spec; clear_format_list_spec; clear_to_text_spec;
                    max_width_check_spec; total_width_spec; get_format_list_tail_spec; format_list_copy_spec;
-                   choice_doc_spec; beside_doc_spec
+                   choice_doc_spec; beside_doc_spec; above_doc_spec; fill_doc_spec
  ]).
