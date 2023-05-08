@@ -30,6 +30,9 @@ Definition good_format (G : t) (w h : Z) : Prop :=
    (total_width G <= Z.to_nat w)%nat /\
    (G.(height) <= Z.to_nat h)%nat.
 
+Definition good_format_list (fs : list t) (w h : Z) : Prop :=
+  Forall (fun G => good_format G w h) fs.
+
 Fixpoint listrepf (sigma: list t) (p: val) (wd ht : Z) : mpred :=
  match sigma with
  | G::hs =>
@@ -141,6 +144,47 @@ DECLARE _beside_doc
       RETURN(p)
       SEP (listrepf sigma p w h; mem_mgr gv).
 
+Definition get_format_list_tail_spec : ident * funspec :=
+DECLARE _get_format_list_tail
+   WITH fs : list t, w : Z, h : Z, p : val
+   PRE [ tptr t_flist ]
+      PROP(fs <> nil) PARAMS(p) SEP (listrepf fs p w h)
+   POST [ tptr t_flist ]
+      EX q : val,
+      PROP()
+      RETURN(q)
+      SEP(listrepf (sublist (Zlength fs - 1) (Zlength fs) fs) q w h; 
+          lsegf (sublist 0 (Zlength fs - 1) fs) p q w h).
+
+Definition format_list_copy_spec : ident * funspec :=
+DECLARE _format_list_copy
+  WITH fs : list t, p : val, w : Z, h : Z, gv: globals
+  PRE [ tptr t_flist ]
+    PROP()
+    PARAMS(p) GLOBALS(gv)
+    SEP(listrepf fs p w h; mem_mgr gv)
+  POST [ tptr t_flist ] 
+    EX q: val,
+    PROP()
+    RETURN(q)
+    SEP(listrepf fs p w h; listrepf fs q w h; mem_mgr gv).
+
+Definition choice_doc_spec : ident * funspec :=
+DECLARE _choice_doc
+   WITH fs1 : list t, fs2 : list t, p1 : val, p2 : val, w : Z, h : Z, gv : globals
+   PRE [ tptr t_flist, tptr t_flist ]
+      PROP (0 <= 8 * w <= Int.max_unsigned - 1;
+            0 <= 8 * h <= Int.max_unsigned;
+            << GOOD_FMT1 : good_format_list fs1 w h >> ;
+            << GOOD_FMT2 : good_format_list fs2 w h >>)
+      PARAMS(p1; p2) GLOBALS(gv)
+      SEP (listrepf fs1 p1 w h; listrepf fs2 p2 w h; mem_mgr gv)
+   POST [ tptr t_flist ]
+      EX p: val, EX sigma: list t,
+      PROP (sigma = filter (fun G => (G.(height) <=? (Z.to_nat h))%nat) (choiceDoc fs1 fs2))
+      RETURN(p)
+      SEP (listrepf sigma p w h; mem_mgr gv).
+
 Definition Gprog : funspecs :=
         ltac:(with_library prog [
                    max_spec; strlen_spec; strcpy_spec; strcat_spec;
@@ -152,6 +196,7 @@ Definition Gprog : funspecs :=
                    flw_add_beside_spec; shift_list_spec; add_beside_spec; line_concats_spec;
                    mdw_add_beside_spec; to_text_add_beside_spec;
                    mdw_add_fill_spec; flw_add_fill_spec; to_text_add_fill_spec;
-                   llw_add_fill_spec; add_fill_spec; beside_doc_spec; clear_format_list_spec; clear_to_text_spec;
-                   max_width_check_spec; total_width_spec
+                   llw_add_fill_spec; add_fill_spec; clear_format_list_spec; clear_to_text_spec;
+                   max_width_check_spec; total_width_spec; get_format_list_tail_spec; format_list_copy_spec;
+                   choice_doc_spec; beside_doc_spec
  ]).

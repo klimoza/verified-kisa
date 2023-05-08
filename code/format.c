@@ -526,6 +526,46 @@ bool max_width_check(t *G, unsigned int width, unsigned int height) {
   return true;
 }
 
+// format_list* ident_doc(unsigned width, unsigned int height, unsigned shift, format_list *fs) {
+//   if (fs == NULL)
+//     return NULL;
+
+//   format_list *result = malloc(sizeof(format_list));
+//   if(result == NULL) exit(1);
+//   result->G = empty();
+//   result->tail = NULL;
+
+//   format_list *result_tail = result;
+//   format_list *fs_tail = fs;
+//   bool has_item = false;
+//   while(fs_tail != NULL) {
+//     t *G = indent(fs_tail->G, shift);
+//     if(max_width_check(G, width, height)) {
+//       clear_to_text(result_tail->G->to_text);
+//       free(result_tail->G);
+//       result_tail->G = G;
+//       result_tail->tail = malloc(sizeof(format_list));
+//       if(result_tail->tail == NULL) exit(1);
+//       result_tail->tail->G = empty();
+//       result_tail->tail->tail = NULL;
+//       result_tail = result_tail->tail;
+//       has_item = true;
+//     } else {
+//       clear_to_text(G->to_text);
+//       free(G);
+//     }
+//     fs_tail = fs_tail->tail;
+//   }
+
+//   clear_format_list(fs);
+//   if(!has_item) {
+//     clear_format_list(result);
+//     return NULL;
+//   }
+//   clear_last_format_element(result);
+//   return result;
+// }
+
 format_list* beside_doc(unsigned int width, unsigned int height, format_list *fs1, format_list *fs2) {
   if (fs1 == NULL) {
     if (fs2 != NULL)
@@ -580,5 +620,42 @@ format_list* beside_doc(unsigned int width, unsigned int height, format_list *fs
   }
   clear_format_list(new_result_tail->tail);
   new_result_tail->tail = NULL;
+  return result;
+}
+
+format_list* format_list_copy(format_list *fs) {
+  if(fs == NULL)
+    return NULL;
+  format_list *result = malloc(sizeof(format_list));
+  if(result == NULL) exit(1);
+  result->G = format_copy(fs->G);
+  result->tail = format_list_copy(fs->tail);
+  return result;
+}
+
+format_list* get_format_list_tail(format_list *fs) {
+  format_list* cur = fs;
+  while(cur->tail != NULL) {
+    cur = cur->tail;
+  }
+  return cur;
+}
+
+format_list* choice_doc(format_list *fs1, format_list *fs2) {
+  if(fs1 == NULL) {
+    format_list* result = format_list_copy(fs2);
+    clear_format_list(fs2);
+    return result;
+  }
+  if(fs2 == NULL) {
+    format_list *result = format_list_copy(fs1);
+    clear_format_list(fs1);
+    return result;
+  }
+  format_list *result = format_list_copy(fs1);
+  format_list *format_tail = get_format_list_tail(result);
+  format_tail->tail = format_list_copy(fs2);
+  clear_format_list(fs1);
+  clear_format_list(fs2);
   return result;
 }

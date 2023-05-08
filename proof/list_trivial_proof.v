@@ -382,6 +382,240 @@ Proof.
   lia.
 Qed.
 
+Lemma body_format_list_copy : semax_body Vprog Gprog f_format_list_copy format_list_copy_spec.
+Proof.
+  start_function.
+  forward_if.
+  { forward.
+    Exists nullval.
+    entailer!.
+    unnw; desf.
+    assert (fs = []) by auto; subst.
+    unff listrepf.
+    entailer!. }
+  forward_call(t_flist, gv).
+  Intros result_ptr.
+  dest_ptr result_ptr.
+  destruct fs.
+  { unff listrepf.
+    Intros; ins. }
+  unff listrepf.
+  Intros x y format_sigma sigma_pt.
+  forward.
+  { unfold concrete_mformat.
+    do 2 entailer. }
+  forward_call(t, y, format_sigma, sigma_pt, gv).
+  Intros new_format_pt.
+  do 2 forward.
+  { entailer!; unnw; desf. }
+  forward_call(fs, x, w, h, gv).
+  Intros tail_ptr.
+  do 2 forward.
+  Exists result_ptr.
+  entailer!.
+  unff listrepf.
+  Exists x y format_sigma sigma_pt.
+  unfold mformat.
+  Intros new_sigma new_pt.
+  Exists tail_ptr new_format_pt new_sigma new_pt.
+  entailer!.
+Qed.
+
+Lemma body_get_format_list_tail : semax_body Vprog Gprog f_get_format_list_tail get_format_list_tail_spec.
+Proof.
+  start_function.
+  forward.
+  forward_loop(
+    EX i : Z, EX cur_tail : val,
+    PROP(0 <= i < Zlength fs)
+    LOCAL(temp _cur cur_tail; temp _fs p)
+    SEP(
+      lsegf (sublist 0 i fs) p cur_tail w h;
+      listrepf (sublist i (Zlength fs) fs) cur_tail w h
+    )
+  ) break: (
+    EX cur_tail : val,
+    PROP()
+    LOCAL(temp _cur cur_tail; temp _fs p)
+    SEP(
+      lsegf (sublist 0 (Zlength fs - 1) fs) p cur_tail w h;
+      listrepf (sublist (Zlength fs - 1) (Zlength fs) fs) cur_tail w h
+    )
+  ).
+  { Exists 0 p.
+    entailer!.
+    { destruct fs; list_solve. }
+    autorewrite with sublist norm.
+    unff lsegf.
+    entailer!. }
+  2: { 
+    Intros cur_tail.
+    forward.
+    Exists cur_tail.
+    entailer!. }
+  Intros i cur_tail.
+  replace (sublist i (Zlength fs) fs) with
+    (Znth i fs :: sublist (i + 1) (Zlength fs) fs) by list_solve.
+  unff listrepf.
+  Intros x y format_sigma sigma_pt.
+  forward.
+  { entailer!; unnw; desf. }
+  forward_if.
+  2: {
+    forward.
+    Exists cur_tail.
+    entailer!.
+    unnw; desf.
+    assert (sublist (i + 1) (Zlength fs) fs = []) as K by auto.
+    assert (i = Zlength fs - 1) as F by list_solve.
+    subst.
+    replace (sublist (Zlength fs - 1) (Zlength fs) fs) with
+      [Znth (Zlength fs - 1) fs] by list_solve.
+    unff listrepf.
+    Exists nullval y format_sigma sigma_pt.
+    entailer!.
+    replace (Zlength fs - 1 + 1) with (Zlength fs) by lia.
+    autorewrite with sublist.
+    unff listrepf; entailer!. }
+  forward.
+  Exists (i + 1) x.
+  entailer!.
+  { assert (i + 1 = Zlength fs \/ i + 1 < Zlength fs) as K by lia; desf.
+    2: { lia. }
+    unnw; desf.
+    replace (i + 1) with (Zlength fs) in *.
+    autorewrite with sublist in *.
+    assert (x = nullval) by auto; ins. }
+  assert(
+    lsegf (sublist 0 i fs) p cur_tail w h *
+    lsegf [Znth i fs] cur_tail x w h |--
+    lsegf (sublist 0 (i + 1) fs) p x w h
+  ) as K.
+  { replace (sublist 0 (i + 1) fs) 
+      with (sublist 0 i fs ++ [Znth i fs]) by list_solve.
+    apply lsegf_lsegf. }
+  eapply derives_trans.
+  2: eauto.
+  entailer!.
+  unff lsegf.
+  Exists x y format_sigma sigma_pt.
+  entailer!.
+Qed.
+
+Lemma filter_good_format (fs : list t) (w h : Z):
+  good_format_list fs w h ->
+  filter (fun G => (height G <=? Z.to_nat h)%nat) fs = fs.
+Proof.
+  ins.
+  revert dependent w.
+  revert dependent h.
+  induction fs; ins.
+  desf.
+  { f_equal.
+    unfold good_format_list in H.
+    apply (IHfs h w).
+    apply Forall_cons_iff in H; desf. }
+  unfold good_format_list in H.
+  apply Forall_cons_iff in H.
+  desf.
+  unfold good_format in H.
+  desf.
+Qed.
+
+Lemma good_format_app (fs1 fs2 : list t) (w h : Z):
+  good_format_list fs1 w h ->
+  good_format_list fs2 w h ->
+  good_format_list (fs1 ++ fs2) w h.
+Proof.
+  ins.
+  unfold good_format_list in *.
+  apply Forall_app; auto.
+Qed.
+
+Lemma choice_doc_spec : semax_body Vprog Gprog f_choice_doc choice_doc_spec.
+Proof.
+  start_function.
+  getnw.
+  forward_if.
+  { forward_call(fs2, p2, w, h, gv).
+    Intros result_ptr.
+    forward_call(fs2, p2, w, h, gv).
+    forward.
+    Exists result_ptr fs2.
+    entailer!; unnw; desf.
+    all: assert (fs1 = []) by auto.
+    all: subst.
+    2: { unff listrepf; entailer!. }
+    unfold choiceDoc.
+    autorewrite with sublist.
+    rewrite (filter_good_format fs2 w h); vauto. }
+  forward_if.
+  { forward_call(fs1, p1, w, h, gv).
+    Intros result_ptr.
+    forward_call(fs1, p1, w, h, gv).
+    forward.
+    Exists result_ptr fs1.
+    entailer!; unnw; desf.
+    all: assert (fs2 = []) by auto.
+    all: subst.
+    2: { unff listrepf; entailer!. }
+    unfold choiceDoc.
+    autorewrite with sublist.
+    rewrite (filter_good_format fs1 w h); vauto. }
+  forward_call(fs1, p1, w, h, gv).
+  Intros result_ptr.
+  destruct fs1.
+  { unff listrepf.
+    Intros; desf. }
+  forward_call((t :: fs1), w, h, result_ptr).
+  remember (t :: fs1) as fs3.
+  assert (0 < Zlength fs3) as K by list_solve.
+  clear Heqfs3.
+  clear fs1.
+  remember fs3 as fs1.
+  clear Heqfs1.
+  clear fs3.
+  Intros result_tail_ptr.
+  forward_call(fs2, p2, w, h, gv).
+  Intros fs2_new_ptr.
+  replace ((sublist (Zlength fs1 - 1) (Zlength fs1) fs1)) 
+    with [Znth (Zlength fs1 - 1) fs1] by list_solve.
+  forward.
+  forward_call(fs1, p1, w, h, gv).
+  forward_call(fs2, p2, w, h, gv).
+  forward.
+  Exists result_ptr (fs1 ++ fs2).
+  entailer!.
+  2: {
+    assert (
+      lsegf fs1 result_ptr fs2_new_ptr w h *
+      listrepf fs2 fs2_new_ptr w h |--
+      listrepf (fs1 ++ fs2) result_ptr w h
+    ) as F.
+    { apply lsegf_listf. }
+    eapply derives_trans.
+    2: eauto.
+    entailer!.
+    assert(
+      lsegf (sublist 0 (Zlength fs1 - 1) fs1) result_ptr result_tail_ptr w h *
+      lsegf [Znth (Zlength fs1 - 1) fs1] result_tail_ptr fs2_new_ptr w h |--
+      lsegf fs1 result_ptr fs2_new_ptr w h
+    ) as G.
+    { assert (fs1 = sublist 0 (Zlength fs1 - 1) fs1 ++ [Znth (Zlength fs1 - 1) fs1]) as GG by list_solve.
+      rewrite GG at 5.
+      apply lsegf_lsegf. }
+    eapply derives_trans.
+    2: eauto.
+    entailer!.
+    unff lsegf.
+    Exists fs2_new_ptr y format_sigma sigma_pt.
+    entailer!. }
+  unfold choiceDoc.
+  rewrite (filter_good_format (fs1 ++ fs2) w h); vauto.
+  apply good_format_app; vauto.
+Qed.
+
+
 Lemma body_beside_doc : semax_body Vprog Gprog f_beside_doc beside_doc_spec.
 Proof.
   start_function.
