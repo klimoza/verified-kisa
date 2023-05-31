@@ -318,14 +318,6 @@ Proof.
   unfold append; fold append. now rewrite IHs.
 Qed.
 
-Lemma string_to_list_byte_app (l1 l2 : string) :
-  string_to_list_byte (l1 ++ l2) =
-    string_to_list_byte l1 ++ string_to_list_byte l2.
-Proof.
-  induction l1; ins.
-  now rewrite IHl1.
-Qed.
-
 Lemma body_line: semax_body Vprog Gprog f_line line_spec.
 Proof.
   start_function.
@@ -891,23 +883,6 @@ Proof.
   desf.
   { autorewrite with sublist; list_solve. }
   list_solve.
-Qed.
-
-Lemma sp_eq_sp_byte (n : nat):
-  string_to_list_byte (sp n) = sp_byte n.
-Proof.
-  induction n.
-  { reflexivity. }
-  unfold sp_byte; ins.
-  rewrite IHn.
-  unfold sp_byte; auto.
-Qed.
-
-Lemma sp_byte_app (n m : nat):
-  sp_byte (n + m) = sp_byte n ++ sp_byte m.
-Proof.
-  unfold sp_byte.
-  apply repeat_app.
 Qed.
 
 Lemma text_from_shifted_text_from_iff (s : list (Z * list byte)) (shift : nat):

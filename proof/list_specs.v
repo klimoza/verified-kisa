@@ -29,7 +29,6 @@ Qed.
 Definition good_format (G : t) (w h : Z) : Prop :=
    (total_width G <= Z.to_nat w)%nat /\
    (G.(height) <= Z.to_nat h)%nat.
-
 Definition good_format_list (fs : list t) (w h : Z) : Prop :=
   Forall (fun G => good_format G w h) fs.
 
@@ -214,6 +213,52 @@ DECLARE _choice_doc
       RETURN(p)
       SEP (listrepf sigma p w h; mem_mgr gv).
 
+Definition indent_spec : ident * funspec :=
+DECLARE _indent
+   WITH G : t, p : val, sigma : list (Z * list byte), sigma_pt : val, shift : Z, w : Z, h : Z, gv : globals
+   PRE [ tptr t_format, size_t ]
+      PROP (
+         0 <= 8 * w <= Int.max_unsigned - 1;
+         0 <= 8 * h <= Int.max_unsigned;
+         0 <= shift <= w;
+         << GOOD_FMT: good_format G w h >>
+      )
+      PARAMS(p; Vptrofs (Ptrofs.repr shift)) GLOBALS(gv)
+      SEP (concrete_mformat G p sigma sigma_pt; mem_mgr gv)
+   POST [ tptr t_format ]
+      EX new_p : val, EX new_sigma : list (Z * list byte), EX new_sigma_pt : val,
+      PROP ()
+      RETURN (new_p)
+      SEP (concrete_mformat G p sigma sigma_pt; concrete_mformat (indent' (Z.to_nat shift) G) new_p new_sigma new_sigma_pt; mem_mgr gv).
+
+Definition indent_doc_spec : ident * funspec :=
+DECLARE _indent_doc
+   WITH fs : list t, p : val, w : Z, h : Z, shift : Z, gv : globals
+   PRE [ tuint, tuint, tptr t_flist, size_t ]
+      PROP (0 <= 8 * w <= Int.max_unsigned - 1;
+            0 <= 8 * h <= Int.max_unsigned;
+            0 <= shift <= w)
+      PARAMS(Vint (Int.repr w); Vint (Int.repr h); p; Vptrofs (Ptrofs.repr shift)) GLOBALS(gv)
+      SEP (listrepf fs p w h; mem_mgr gv)
+   POST [ tptr t_flist ]
+      EX p: val, EX sigma: list t,
+      PROP (sigma = filter (fun G => (G.(height) <=? (Z.to_nat h))%nat) (indentDoc (Z.to_nat w) (Z.to_nat shift) fs))
+      RETURN(p)
+      SEP (listrepf sigma p w h; mem_mgr gv).
+
+Definition clear_last_format_element_spec : ident * funspec :=
+DECLARE _clear_last_format_element
+   WITH fs : list t, p : val, w : Z, h : Z, gv : globals
+   PRE [ tptr t_flist ]
+      PROP (Zlength fs >= 2)
+      PARAMS(p) GLOBALS(gv)
+      SEP (listrepf fs p w h; mem_mgr gv)
+   POST [ tptr t_flist ]
+      PROP()
+      RETURN(p)
+      SEP(listrepf (sublist 0 (Zlength fs - 1) fs) p w h; mem_mgr gv).
+
+
 Definition Gprog : funspecs :=
         ltac:(with_library prog [
                    max_spec; strlen_spec; strcpy_spec; strcat_spec;
@@ -227,5 +272,6 @@ Definition Gprog : funspecs :=
                    mdw_add_fill_spec; flw_add_fill_spec; to_text_add_fill_spec;
                    llw_add_fill_spec; add_fill_spec; clear_format_list_spec; clear_to_text_spec;
                    max_width_check_spec; total_width_spec; get_format_list_tail_spec; format_list_copy_spec;
-                   choice_doc_spec; beside_doc_spec; above_doc_spec; fill_doc_spec
+                   choice_doc_spec; beside_doc_spec; above_doc_spec; fill_doc_spec; indent_spec;
+                   clear_last_format_element_spec; indent_doc_spec
  ]).

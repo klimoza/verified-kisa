@@ -22,7 +22,8 @@ DECLARE _max
     )
     PARAMS (Vint (Int.repr a); Vint (Int.repr b))
     SEP ()
-  POST [ tuint ] EX q : Z,
+  POST [ tuint ] 
+    EX q : Z,
     PROP (q = Z.max a b; 0 <= q <= a \/ 0 <= q <= b) 
     RETURN (Vint (Int.repr q)) 
     SEP().
@@ -740,6 +741,32 @@ DECLARE _add_fill
         concrete_mformat G pointer_G sigmaG pG; 
         concrete_mformat F pointer_F sigmaF pF; 
         concrete_mformat (add_fill G F (Z.to_nat shift)) p sigma sigma_pt; mem_mgr gv).
+
+Lemma string_to_list_byte_app (l1 l2 : string) :
+  string_to_list_byte (l1 ++ l2) =
+    string_to_list_byte l1 ++ string_to_list_byte l2.
+Proof.
+  induction l1; ins.
+  now rewrite IHl1.
+Qed.
+
+Lemma sp_eq_sp_byte (n : nat):
+  string_to_list_byte (sp n) = sp_byte n.
+Proof.
+  induction n.
+  { reflexivity. }
+  unfold sp_byte; ins.
+  rewrite IHn.
+  unfold sp_byte; auto.
+Qed.
+
+Lemma sp_byte_app (n m : nat):
+  sp_byte (n + m) = sp_byte n ++ sp_byte m.
+Proof.
+  unfold sp_byte.
+  apply repeat_app.
+Qed.
+
 
 Ltac dest_ptr ptr := 
   destruct (eq_dec ptr nullval);

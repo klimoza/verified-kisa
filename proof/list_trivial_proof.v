@@ -334,6 +334,19 @@ Proof.
   vauto.
 Qed.
 
+Lemma indent_doc_app (l1 l2: list t) (w shift : Z):
+  FormatTrivial.indentDoc (Z.to_nat w) (Z.to_nat shift) l1 ++
+    FormatTrivial.indentDoc (Z.to_nat w) (Z.to_nat shift) l2 =
+      FormatTrivial.indentDoc (Z.to_nat w) (Z.to_nat shift) (l1 ++ l2).
+Proof.
+  unfold FormatTrivial.indentDoc.
+  unfold FormatTrivial.cross_general.
+  repeat rewrite <- filter_app.
+  repeat rewrite <- concat_app.
+  repeat rewrite <- map_app.
+  vauto.
+Qed.
+
 Lemma beside_doc_llw_add (fs : list (Z * list byte)) (llw w : Z):
   0 <= 8 * w <= Int.max_unsigned - 1 ->
   Forall (fun x => 0 <= 4 * (fst x) <= Int.max_unsigned - 1) fs ->
@@ -2713,4 +2726,753 @@ assert (
   (total_width (add_above (Znth j fs1) (Znth i fs2)) <= Z.to_nat w)%nat /\
     (height (add_above (Znth j fs1) (Znth i fs2)) <= Z.to_nat h)%nat
 ) as GG by auto; desf.
+Qed.
+
+Lemma total_impl_widt (G : t) (w : Z):
+  (total_width G <= Z.to_nat w)%nat -> 
+  (first_line_width G <= Z.to_nat w)%nat /\
+  (middle_width G <= Z.to_nat w)%nat /\
+  (last_line_width G <= Z.to_nat w)%nat.
+Proof.
+  ins.
+  unfold total_width in *.
+  desf; ins; lia.
+Qed.
+
+Lemma shifted_text_eq (sigma sigma0 : list (Z * list byte)) (shift shift0 : nat):
+  (0 <= shift)%nat ->
+  (0 <= shift0)%nat ->
+  << LIST_FACT: Forall (fun x => 0 <= 4 * fst x <= Int.max_unsigned - 1) sigma >> ->
+  sigma0 = map (fun x : Z * list byte => (fst x + Z.of_nat shift, snd x)) sigma ->
+  shifted_text_from sigma0 shift0 = shifted_text_from sigma (shift + shift0).
+Proof.
+  revert dependent sigma0.
+  revert dependent shift.
+  revert dependent shift0.
+  induction sigma.
+  { ins.
+    unfold shifted_text_from.
+    desf. }
+  ins.
+  getnw.
+  subst.
+  unff shifted_text_from; desf; ins.
+  { rewrite Z2Nat.inj_add; try lia.
+    2: { apply Forall_cons_iff in LIST_FACT; ins; lia. }
+    rewrite Nat2Z.id.
+    repeat rewrite sp_byte_app.
+    list_solve. }
+  rewrite (IHsigma shift0 shift (p :: l)).
+  { rewrite Z2Nat.inj_add; try lia.
+    2: { apply Forall_cons_iff in LIST_FACT; ins; lia. }
+    rewrite Nat2Z.id.
+    repeat rewrite sp_byte_app.
+    list_solve. }
+  { lia. }
+  { lia. }
+  { unnw.
+    apply Forall_cons_iff in LIST_FACT; ins; desf. }
+  auto.
+Qed.
+  
+Lemma to_text_eq_indent (G : t) (shift : Z) (sigma : list (Z * list byte)):
+  << TTEQ: to_text_eq (to_text G) sigma >> ->
+  sigma <> [] ->
+  0 <= shift <= Int.max_unsigned ->
+  << LIST_FACT: Forall (fun x => 0 <= 4 * fst x <= Int.max_unsigned - 1) sigma >> ->
+  to_text_eq (to_text (indent' (Z.to_nat shift) G)) (map (fun x : Z * list byte => (fst x + shift, snd x)) sigma).
+Proof.
+  revert dependent G.
+  revert dependent shift.
+  destruct sigma.
+  { ins. }
+  ins; getnw.
+  unfold indent'; desc; ins.
+  unfold to_text_eq in *.
+  ins; desf; ins.
+  { rewrite string_to_list_byte_app.
+    rewrite (TTEQ (shift0 + Z.to_nat shift)%nat line).
+    rewrite sp_eq_sp_byte.
+    rewrite Z.add_comm.
+    rewrite Z2Nat.inj_add; ins.
+    2: { apply Forall_cons_iff in LIST_FACT; ins; lia. }
+    rewrite sp_byte_app.
+    list_solve. }
+  rewrite string_to_list_byte_app.
+  rewrite (TTEQ(shift0 + Z.to_nat shift)%nat line).
+  rewrite (shifted_text_eq (p :: l1) (p0 :: l) (Z.to_nat shift) shift0).
+  { rewrite Z.add_comm.
+    rewrite Z2Nat.inj_add; ins.
+    2: { apply Forall_cons_iff in LIST_FACT; ins; lia. }
+    rewrite sp_byte_app.
+    rewrite sp_eq_sp_byte.
+    rewrite Nat.add_comm.
+    list_solve. }
+  { lia. }
+  { lia. }
+  { apply Forall_cons_iff in LIST_FACT; ins; desf. }
+  ins.
+  rewrite Z2Nat.id.
+  2: lia.
+  list_solve.
+Qed.
+
+Lemma indent_shift_forall' (sigma : list (Z * list byte)) (shift : Z):
+  Forall (fun x => 0 <= fst x + shift <= Int.max_unsigned - 1) sigma ->
+  Forall (fun x => 0 <= fst x + shift <= Int.max_unsigned) sigma.
+Proof.
+  induction sigma.
+  { intros.
+    apply Forall_nil. }
+  intros.
+  apply Forall_cons_iff in H.
+  desf.
+  apply Forall_cons.
+  { lia. }
+  apply IHsigma; auto.
+Qed.
+    
+Lemma indent_shift_forall (sigma : list (Z * list byte)) (shift : Z) (w : Z):
+  Forall (fun x => 0 <= 4 * fst x <= Int.max_unsigned - 1) sigma ->
+  0 <= 8 * w <= Int.max_unsigned - 1 ->
+  0 <= shift <= w ->
+  Forall (fun x => 0 <= fst x + shift <= Int.max_unsigned - 1) sigma.
+Proof.
+  revert dependent shift.
+  revert dependent w.
+  unfold Int.max_unsigned in *.
+  induction sigma; ins.
+  apply Forall_cons.
+  { apply Forall_cons_iff in H; ins; desf; lia. }
+  apply (IHsigma w shift); try lia.
+  apply Forall_cons_iff in H; ins; desf.
+Qed.
+
+Lemma indent_list_mp_le (sigma : list (Z * list byte)) (shift : Z) (w : Z):
+  0 <= 8 * w <= Int.max_unsigned - 1 ->
+  0 <= shift <= w ->
+  (list_max (map (fun x => Z.to_nat (fst x + Zlength (snd x))) sigma) <= Z.to_nat w)%nat ->
+  Forall (fun x => 0 <= 4 * fst x <= Int.max_unsigned - 1) sigma ->
+  Forall (fun x => 0 <= 4 * (fst x + shift) <= Int.max_unsigned - 1) sigma.
+Proof.
+  induction sigma; ins.
+  apply Forall_cons.
+  { assert (0 <= 8 * fst a <= Int.max_unsigned - 1) as K.
+    { assert (Z.to_nat (fst a + Zlength (snd a)) <= Z.to_nat w)%nat as K by lia.
+      assert (0 <= 4 * fst a <= Int.max_unsigned - 1) as K1.
+      { apply Forall_cons_iff in H2; ins; desf. }
+      assert ((fst a + Zlength (snd a)) <= w) as K2 by lia.
+      assert (fst a <= w) by list_solve.
+      assert (8 * fst a <= Int.max_unsigned - 1).
+      { ins; lia. }
+      lia. }
+    ins; lia. }
+  apply IHsigma; try lia.
+  apply Forall_cons_iff in H2; ins; desf.
+Qed.
+
+Lemma indent_mw_pred (sigma : list (Z * list byte)) (shift w : Z):
+  0 <= 8 * w <= Int.max_unsigned - 1 ->
+  0 <= shift <= w ->
+  sigma <> [] ->
+  Forall (fun x => 0 <= 4 * fst x <= Int.max_unsigned - 1) sigma ->
+  list_max (map (fun x => Z.to_nat (fst x + shift + Zlength (snd x))) sigma) = 
+  (list_max (map (fun x => Z.to_nat (fst x + Zlength (snd x))) sigma) + Z.to_nat shift)%nat.
+Proof.
+  induction sigma; ins.
+  destruct sigma eqn:E.
+  { ins.
+    inv H2.
+    repeat rewrite Nat.max_0_r.
+    repeat rewrite Z2Nat.inj_add; try lia; try list_solve. }
+  rewrite IHsigma; try lia; ins.
+  inv H2; auto.
+Qed.
+
+Lemma body_indent: semax_body Vprog Gprog f_indent indent_spec.
+Proof.
+  start_function.
+  forward.
+  forward_if((height G <> 0)%nat).
+  { forward_call.
+    entailer!. }
+  { forward.
+    entailer!.
+    list_solve. }
+
+  unfold concrete_mformat.
+  Intros.
+  getnw.
+  inv GOOD_FMT.
+  assert (
+    (first_line_width G <= Z.to_nat w)%nat /\
+    (middle_width G <= Z.to_nat w)%nat /\
+    (last_line_width G <= Z.to_nat w)%nat) as K.
+  { apply total_impl_widt; ins. }
+  destruct K as [FLW [MW LLW]].
+  inv FMT_MP.
+  inv format_mp_list_mp.
+
+  forward_call(t_format, gv).
+  Intros vret.
+  dest_ptr vret.
+  do 9 forward.
+  { entailer!; unnw; desf. }
+  forward_call(Ews, sigma_pt, sigma, gv).
+  { list_solve. }
+  Intros new_to_text_ptr.
+  do 2 forward.
+  assert (Forall (fun x => 0 <= fst x + shift <= Int.max_unsigned) sigma) as K.
+  { assert (Forall (fun x => 0 <= 4 * fst x <= Int.max_unsigned - 1) sigma) as K1 by list_solve.
+    assert (0 <= 8 * w <= Int.max_unsigned - 1) as K2 by list_solve.
+    assert (0 <= shift <= w) as K3 by list_solve.
+    apply indent_shift_forall'.
+    eapply indent_shift_forall; eauto. }
+  
+  forward_call(sigma, new_to_text_ptr, shift).
+  forward.
+  Exists vret (map (fun x : Z * list byte => (fst x + shift, snd x)) sigma) new_to_text_ptr.
+  unfold concrete_mformat.
+  entailer!.
+  { split.
+    { apply mk_format_mp; vauto. }
+    apply mk_format_mp.
+    { apply to_text_eq_indent.
+      { vauto. }
+      { destruct sigma.
+        2: vauto.
+        assert (Z.of_nat (height G) = 0) by list_solve; lia. }
+      { lia. }
+      unnw; list_solve. }
+    { apply mk_list_mp.
+      { list_solve. }
+      { apply List.Forall_map; simpl.
+        assert (total_width G = list_max (map (fun x => Z.to_nat (fst x + Zlength (snd x))) sigma)) as K2.
+        { apply total_width_eq. 
+          apply mk_format_mp; vauto. }
+        apply (indent_list_mp_le sigma shift w); try lia.
+        auto. }
+      apply List.Forall_map; simpl; auto. }
+    { unfold indent'; desf. }
+    { unfold indent'; desf; ins.
+      unfold Int.max_unsigned in *; ins; lia. }
+    { unfold indent'; desf; ins.
+      unfold Int.max_unsigned in *; ins; lia. }
+    { unfold indent'; desf; ins.
+      unfold Int.max_unsigned in *; ins; lia. }
+    { unfold indent'; desf; ins.
+      list_solve. }
+    { unfold indent'; unfold first_line_width_pred in *; desf; ins.
+      repeat rewrite Znth_map.
+      2: list_solve.
+      ins.
+      rewrite format_mp_flw_eq.
+      list_solve. }
+    { unfold indent'; unfold middle_width_pred in *; desf; ins.
+      all: repeat rewrite Znth_map.
+      all: ins.
+      all: try rewrite format_mp_mw_eq.
+      all: try list_solve.
+      rewrite Zlength_map.
+      rewrite sublist_map.
+      rewrite map_map; ins.
+      rewrite (indent_mw_pred (sublist 1 (Zlength sigma - 1) sigma) shift w); ins; try lia.
+      { assert (Zlength sigma = Z.of_nat n1 + 3) by lia.
+        replace (sublist 1 (Zlength sigma - 1) sigma) with (Znth 1 sigma :: sublist 2 (Zlength sigma - 1) sigma) by list_solve.
+        vauto. }
+        apply Forall_sublist; auto. }
+    unfold indent'; unfold last_line_width_pred in *; desf; ins.
+    repeat rewrite Znth_map.
+    2: list_solve.
+    ins.
+    rewrite format_mp_llw_eq.
+    list_solve. }
+  unfold indent'; desf; ins.
+  repeat rewrite Nat2Z.inj_add.
+  repeat rewrite Z2Nat.id; try lia.
+  entailer!.
+Qed.
+
+Definition body_clear_last_format_element: semax_body Vprog Gprog f_clear_last_format_element clear_last_format_element_spec.
+Proof.
+  start_function.
+  forward.
+  forward_loop(
+    EX i : Z, EX tail : val,
+    PROP(
+      0 <= i < Zlength fs - 1
+    )
+    LOCAL(temp _new_result_tail tail; gvars gv; temp _fs p)
+    SEP(
+      lsegf (sublist 0 i fs) p tail w h;
+      listrepf (sublist i (Zlength fs) fs) tail w h;
+      mem_mgr gv
+    )
+  ) break: (
+    EX tail : val,
+    PROP()
+    LOCAL(temp _new_result_tail tail; gvars gv; temp _fs p)
+    SEP(
+      lsegf (sublist 0 (Zlength fs - 2) fs) p tail w h;
+      listrepf (sublist (Zlength fs - 2) (Zlength fs) fs) tail w h;
+      mem_mgr gv
+    )
+  ).
+  { Exists 0 p.
+    entailer!.
+    autorewrite with sublist.
+    unff lsegf; entailer!. }
+  2: {
+    Intros tail.
+    replace (sublist (Zlength fs - 2) (Zlength fs) fs) with
+      (Znth (Zlength fs - 2) fs :: sublist (Zlength fs - 1) (Zlength fs) fs) by list_solve.
+    unff listrepf.
+    Intros lst_list_ptr ith_format_ptr ith_sigma ith_sigma_pt.
+    forward.
+    { entailer!; unnw; desf. }
+    forward_call([Znth (Zlength fs - 1) fs], lst_list_ptr, w, h, gv).
+    { replace (sublist (Zlength fs - 1) (Zlength fs) fs) with [Znth (Zlength fs - 1) fs] by list_solve.
+      entailer!. }
+    do 2 forward.
+    entailer!.
+    assert (
+      lsegf (sublist 0 (Zlength fs - 2) fs) p tail w h *
+      listrepf [Znth (Zlength fs - 2) fs] tail w h |--
+      listrepf (sublist 0 (Zlength fs - 1) fs) p w h
+    ) as K.
+    { replace (sublist 0 (Zlength fs - 1) fs) with
+        (sublist 0 (Zlength fs - 2) fs ++ [Znth (Zlength fs - 2) fs]) by list_solve.
+      apply lsegf_listf. }
+    eapply derives_trans.
+    2: eauto.
+    entailer!.
+    unff listrepf.
+    Exists nullval ith_format_ptr ith_sigma ith_sigma_pt.
+    entailer!. }
+  Intros i tail.
+  replace (sublist i (Zlength fs) fs) with
+        (Znth i fs :: sublist (i + 1) (Zlength fs) fs) by list_solve.
+  unff listrepf.
+  Intros ith_tail_ptr ith_format_ptr ith_sigma ith_sigma_ptr.
+  forward.
+  { entailer!; unnw; desf. }
+  replace (sublist (i + 1) (Zlength fs) fs) with
+        (Znth (i + 1) fs :: sublist (i + 2) (Zlength fs) fs) by list_solve.
+  unff listrepf.
+  Intros jth_tail_ptr jth_format_ptr jth_sigma jth_sigma_ptr.
+  forward.
+  { entailer!; unnw; desf. }
+  forward_if.
+  { forward.
+    Exists (i + 1) ith_tail_ptr.
+    assert(i + 1 = Zlength fs - 1 \/ i + 1 < Zlength fs - 1) as K by lia.
+    destruct K.
+    { replace (i + 2) with (Zlength fs) by lia.
+      replace (sublist (Zlength fs) (Zlength fs) fs) with ([] : list t) by list_solve.
+      unff listrepf.
+      Intros; unnw; vauto. }
+    entailer!.
+    assert (
+      lsegf (sublist 0 i fs ) p tail w h *
+      lsegf [Znth i fs] tail ith_tail_ptr w h *
+      listrepf (sublist (i + 1) (Zlength fs) fs) ith_tail_ptr w h
+      |--
+      lsegf (sublist 0 (i + 1) fs ) p ith_tail_ptr w h *
+      listrepf (sublist (i + 1) (Zlength fs) fs) ith_tail_ptr w h
+    ) as K.
+    { entailer!.
+      replace (sublist 0 (i + 1) fs) with (sublist 0 i fs ++ [Znth i fs]) by list_solve.
+      apply lsegf_lsegf. }
+    eapply derives_trans.
+    2: eauto.
+    entailer!.
+    unff lsegf.
+    Exists ith_tail_ptr ith_format_ptr ith_sigma ith_sigma_ptr.
+    entailer!.
+    clear K.
+    assert (
+      lsegf [Znth (i + 1) fs] ith_tail_ptr jth_tail_ptr w h *
+      listrepf (sublist (i + 2) (Zlength fs) fs) jth_tail_ptr w h |--
+      listrepf (sublist (i + 1) (Zlength fs) fs) ith_tail_ptr w h
+    ) as K.
+    { replace (sublist (i + 1) (Zlength fs) fs) with 
+          ([Znth (i + 1) fs] ++ sublist (i + 2) (Zlength fs) fs) by list_solve.
+      apply lsegf_listf. }
+    eapply derives_trans.
+    2: eauto.
+    entailer!.
+    unff lsegf.
+    Exists jth_tail_ptr jth_format_ptr jth_sigma jth_sigma_ptr.
+    entailer!. }
+  forward.
+  assert (i + 1 < Zlength fs - 1 \/ i + 1 = Zlength fs - 1) as K by lia.
+  destruct K.
+  { replace (jth_tail_ptr) with nullval.
+    replace (sublist (i + 2) (Zlength fs) fs) with
+        ((Znth (i + 2) fs) :: sublist (i + 3) (Zlength fs) fs) by list_solve.
+    unff listrepf.
+    Intros x y format_sigma sigma_pt.
+    entailer!. }
+  Exists tail.
+  entailer!.
+  replace (i + 2) with (Zlength fs) in * by lia.
+  getnw.
+  rename GOOD_FORMAT into GOOD_FORMAT1.
+  getnw.
+  replace (i + 1) with (Zlength fs - 1) by lia.
+  replace (i + 1) with (Zlength fs - 1) in GOOD_FORMAT1 by lia.
+  replace i with (Zlength fs - 2) by lia.
+  replace i with (Zlength fs - 2) in GOOD_FORMAT by lia.
+  entailer!.
+  replace (sublist (Zlength fs - 2) (Zlength fs) fs) with
+      [Znth (Zlength fs - 2) fs; Znth (Zlength fs - 1) fs] by list_solve.
+  replace (sublist (Zlength fs) (Zlength fs) fs) with ([] : list t) by list_solve.
+  unff listrepf.
+  Exists ith_tail_ptr ith_format_ptr ith_sigma ith_sigma_ptr.
+  Exists nullval jth_format_ptr jth_sigma jth_sigma_ptr.
+  entailer!.
+Qed.
+
+Lemma body_indent_doc: semax_body Vprog Gprog f_indent_doc indent_doc_spec.
+Proof.
+  start_function.
+  forward_if.
+  { forward.
+    unnw; desf.
+    assert (fs = []) by auto.
+    subst.
+    Exists nullval ([] : list t).
+    entailer!. }
+  forward_call(t_flist, gv).
+  Intros result_ptr.
+  dest_ptr result_ptr.
+  forward_call(gv).
+  Intros empty_ptr.
+  do 5 forward.
+  replace (Int.eq (Int.repr 0) Int.zero) with true by list_solve.
+  remember (
+      EX i : Z, EX head_ptr : val, EX result_tail_ptr : val, EX res_part : list t,
+      PROP(0 <= i <= Zlength fs;
+            res_part = filter (fun G => (G.(height) <=? Z.to_nat h)%nat) (FormatTrivial.indentDoc (Z.to_nat w) (Z.to_nat shift) (sublist 0 i fs)))
+      LOCAL(temp _fs_tail head_ptr;
+            temp _has_item (Val.of_bool (0 <? Zlength res_part)); 
+            temp _result result_ptr; 
+            gvars gv; 
+            temp _shift (Vptrofs (Ptrofs.repr shift));
+            temp _width (Vint (Int.repr w)); temp _height (Vint (Int.repr h));
+            temp _fs p; 
+            temp _result_tail result_tail_ptr)
+      SEP (mem_mgr gv; 
+          lsegf (sublist 0 i fs) p head_ptr w h; 
+          listrepf (sublist i (Zlength fs) fs) head_ptr w h; 
+          lsegf res_part result_ptr result_tail_ptr w h;
+          listrepf [empty] result_tail_ptr w h)) as loop_invariant eqn:eqn_loop.
+  remember (
+      EX result_tail_ptr : val, EX res_part : list t,
+      PROP(res_part = filter (fun G => (G.(height) <=? Z.to_nat h)%nat) (FormatTrivial.indentDoc (Z.to_nat w) (Z.to_nat shift) fs))
+      LOCAL(temp _has_item (Val.of_bool (0 <? Zlength res_part)); 
+            temp _result result_ptr; gvars gv;
+            temp _result_tail result_tail_ptr;
+            temp _shift (Vptrofs (Ptrofs.repr shift));
+            temp _width (Vint (Int.repr w)); temp _height (Vint (Int.repr h));
+            temp _fs p)
+      SEP (mem_mgr gv; 
+          listrepf fs p w h; 
+          lsegf res_part result_ptr result_tail_ptr w h;
+          listrepf [empty] result_tail_ptr w h)) as break_invariant eqn:eqn_break.
+  forward_loop(loop_invariant) break: (break_invariant).
+  { rewrite eqn_loop.
+    Exists 0 p result_ptr ([] : list t).
+    entailer!.
+    unfold mformat.
+    Intros empty_sigma empty_sigma_ptr.
+    unff lsegf.
+    autorewrite with sublist norm.
+    unff lsegf.
+    unff listrepf.
+    Exists nullval empty_ptr empty_sigma empty_sigma_ptr.
+    entailer!.
+    unnw.
+    unfold good_format.
+    unfold empty.
+    ins; lia. }
+  2: { subst.
+      Intros result_tail_ptr res_part.
+      forward_call(fs, p, w, h, gv).
+      forward_if (
+        Zlength res_part <> 0
+      ).
+      { destruct (0 <? Zlength res_part) eqn:E; vauto.
+        forward_call([empty], result_ptr, w, h, gv).
+        { desf; entailer!.
+          replace ((filter (fun G : t => (height G <=? Z.to_nat h)%nat)
+          (FormatTrivial.indentDoc (Z.to_nat w) (Z.to_nat shift) fs))) with ([] : list t) by list_solve.
+          unff lsegf; unff listrepf.
+          entailer!; subst; unnw; entailer!.
+          Exists nullval y format_sigma sigma_pt; entailer!. }
+        forward.
+        Exists nullval ([] : list t); entailer!.
+        2: { unff listrepf; entailer!. }
+        list_solve. }
+      { forward; entailer!; ins.
+        assert (Zlength (filter (fun G : t => (height G <=? Z.to_nat h)%nat)
+           (FormatTrivial.indentDoc (Z.to_nat w) (Z.to_nat shift) fs)) = 0) as K by vauto.
+        rewrite K in *; vauto. }
+      Intros.
+      forward_call(res_part ++ [empty], result_ptr, w, h, gv).
+      { assert(
+        lsegf res_part result_ptr result_tail_ptr w h *
+        listrepf [empty] result_tail_ptr w h |--
+        listrepf (res_part ++ [empty]) result_ptr w h
+      ) as K.
+      { apply lsegf_listf. }
+      eapply derives_trans; eauto.
+      entailer!. }
+      { list_solve. }
+      forward.
+      Exists result_ptr (filter (fun G : t => (height G <=? Z.to_nat h)%nat) (indentDoc (Z.to_nat w) (Z.to_nat shift) fs)).
+      entailer!.
+      remember (filter (fun G : t => (height G <=? Z.to_nat h)%nat) (indentDoc (Z.to_nat w) (Z.to_nat shift) fs)) as res_part.
+      replace ((Zlength (res_part ++ [empty]) - 1)) with (Zlength res_part) by list_solve.
+      replace ((sublist 0 (Zlength res_part) (res_part ++ [empty]))) with res_part by list_solve.
+      entailer!. }
+  rewrite eqn_loop.
+  Intros i head_ptr result_tail_ptr res_part.
+  forward_if.
+  2: {
+    forward.
+    rewrite eqn_break.
+    Exists result_tail_ptr res_part.
+    assert (i < Zlength fs \/ i = Zlength fs) as K by lia.
+    destruct K.
+    { replace (sublist i (Zlength fs) fs)  with
+          (Znth i fs :: sublist (i + 1) (Zlength fs) fs) by list_solve.
+      replace head_ptr with nullval.
+      unff listrepf.
+      Intros x y format_sigma sigma_pt.
+      Intros x0 y0 format_sigma0 sigma_pt0.
+      entailer!. }
+    replace i with (Zlength fs).
+    entailer!.
+    { autorewrite with sublist norm; vauto. }
+    autorewrite with sublist norm.
+    unff listrepf.
+    entailer!.
+    apply lsegf_null_listrepf. }
+  assert (i = Zlength fs \/ i < Zlength fs) as K by lia.
+  destruct K.
+  { replace i with (Zlength fs).
+    autorewrite with sublist norm.
+    unff listrepf.
+    Intros.
+    unnw; vauto. }
+  replace (sublist i (Zlength fs) fs) with
+      (Znth i fs :: sublist (i + 1) (Zlength fs) fs) by list_solve.
+  unff listrepf.
+  Intros ith_tail_ptr ith_format_ptr ith_format_sigma ith_sigma_ptr.
+  Intros empty_new_ptr empty_format_ptr empty_sigma empty_sigma_ptr.
+  forward.
+  { unfold concrete_mformat.
+    do 2 entailer. }
+  forward_call((Znth i fs), ith_format_ptr, ith_format_sigma, ith_sigma_ptr, shift, w, h, gv).
+  Intros vret.
+  destruct vret as (vret, result_sigma_pt).
+  destruct vret as (result_format_ptr, result_sigma).
+  simpl.
+  forward.
+  unfold concrete_mformat.
+  Intros.
+  forward_call((indent' (Z.to_nat shift) (Znth i fs)), result_format_ptr, result_sigma, result_sigma_pt, w, h).
+  { unfold concrete_mformat.
+    entailer!. }
+  Intros width_check_result.
+  forward_if(
+    EX res_part_new : list t, EX result_tail_ptr_new : val,
+    PROP(0 <= i <= Zlength fs;
+        res_part_new = filter (fun G => (G.(height) <=? Z.to_nat h)%nat) (FormatTrivial.indentDoc (Z.to_nat w) (Z.to_nat shift) (sublist 0 (i + 1) fs)))
+    LOCAL(temp _fs_tail head_ptr;
+          temp _has_item (Val.of_bool (0 <? Zlength res_part_new)); 
+          temp _result result_ptr; gvars gv; 
+          temp _width (Vint (Int.repr w)); temp _height (Vint (Int.repr h));
+          temp _shift (Vptrofs (Ptrofs.repr shift));
+          temp _fs p; temp _result_tail result_tail_ptr_new)
+    SEP (mem_mgr gv; 
+        lsegf (sublist 0 i fs) p head_ptr w h; 
+        listrepf (sublist i (Zlength fs) fs) head_ptr w h; 
+        lsegf res_part_new result_ptr result_tail_ptr_new w h;
+        listrepf [empty] result_tail_ptr_new w h)).
+  2: { forward.
+       { entailer!; unnw; desf. }
+       forward_call(result_sigma, result_sigma_pt, gv).
+       forward_call(t_format, result_format_ptr, gv).
+       { prove_ptr.
+         entailer!. }
+      Exists (filter (fun G => (G.(height) <=? Z.to_nat h)%nat) (FormatTrivial.indentDoc (Z.to_nat w) (Z.to_nat shift) (sublist 0 i fs))) result_tail_ptr.
+      entailer!.
+      2: {
+         unff listrepf.
+         Exists nullval empty_format_ptr empty_sigma empty_sigma_ptr.
+         entailer!.  
+         unff concrete_mformat.
+         entailer!.
+         replace (sublist i (Zlength fs) fs) with
+             (Znth i fs :: sublist (i + 1) (Zlength fs) fs) by list_solve.
+         unff listrepf.
+         Exists ith_tail_ptr ith_format_ptr ith_format_sigma ith_sigma_ptr.
+         unfold concrete_mformat.
+         entailer!. }
+      replace (sublist 0 (i + 1) fs) with (sublist 0 i fs ++ [Znth i fs]) by list_solve.
+      rewrite <- indent_doc_app.
+      rewrite filter_app.
+      enough(
+        filter (fun G : t => (height G <=? Z.to_nat h)%nat) (indentDoc (Z.to_nat w) (Z.to_nat shift) [Znth i fs]) = []
+      ) as K.
+      { rewrite K; list_solve. }
+      unfold FormatTrivial.indentDoc.
+      unfold FormatTrivial.cross_general.
+      rewrite map_cons.
+      rewrite concat_cons.
+      rewrite map_nil.
+      rewrite concat_nil.
+      autorewrite with sublist norm.
+      unfold filter.
+      desf; vauto.
+      lia. }
+  2: {
+    Intros res_part_new0 result_tail_ptr_new0.
+    replace (sublist i (Zlength fs) fs) with 
+      (Znth i fs :: sublist (i + 1) (Zlength fs) fs) by list_solve.  
+    unff listrepf.
+    Intros ith_tail_fs1_ptr_new ith_format_fs1_ptr_new fs1_sigma_new fs1_sigma_pt_new.
+    Intros empty_ptr_new empty_format_ptr_new empty_sigma_new empty_sigma_pt_new.
+    forward.
+    { entailer!; unnw; desf. }
+    rewrite eqn_loop.
+    Exists (i + 1) ith_tail_fs1_ptr_new result_tail_ptr_new0 res_part_new0.
+    entailer!.
+    unff listrepf.
+    Exists empty_ptr_new empty_format_ptr_new empty_sigma_new empty_sigma_pt_new.
+    unfold concrete_mformat.
+    entailer!.
+    assert (
+      lsegf (sublist 0 i fs) p head_ptr w h *
+      lsegf [Znth i fs] head_ptr ith_tail_fs1_ptr_new w h |--
+      lsegf (sublist 0 (i + 1) fs) p ith_tail_fs1_ptr_new w h
+    ) as K.
+    { replace (sublist 0 (i + 1) fs) with
+        (sublist 0 i fs ++ [Znth i fs]) by list_solve.
+      apply lsegf_lsegf. }
+    eapply derives_trans.
+    2: eauto.
+    entailer!.
+    unff lsegf.
+    Exists ith_tail_fs1_ptr_new ith_format_fs1_ptr_new fs1_sigma_new fs1_sigma_pt_new.
+    entailer!.
+    unfold concrete_mformat.
+    entailer!. } 
+  do 2 forward.
+  { entailer!; unnw; desf. }
+  forward_call(empty_sigma, empty_sigma_ptr, gv).
+  forward.
+  forward_call(t_format, empty_format_ptr, gv).
+  { prove_ptr; entailer!. }
+  forward.
+  forward_call(t_flist, gv).
+  Intros new_result_tail_ptr.
+  do 2 forward.
+  dest_ptr new_result_tail_ptr.
+  forward_call(gv).
+  Intros new_empty_ptr.
+  do 6 forward.
+  Exists (filter (fun G : t => (height G <=? Z.to_nat h)%nat)
+            (indentDoc (Z.to_nat w) 
+          (Z.to_nat shift) (sublist 0 (i + 1) fs)))   new_result_tail_ptr.
+  entailer!.
+  2: { 
+    unfold mformat.
+    Intros sigma0 sigma_pt0.
+    unff listrepf.
+    Exists nullval new_empty_ptr sigma0 sigma_pt0.
+    unfold concrete_mformat.
+    entailer!.
+    replace (sublist i (Zlength fs) fs) with
+          (Znth i fs :: sublist (i + 1) (Zlength fs) fs) by list_solve.
+    unff listrepf.
+    Exists ith_tail_ptr ith_format_ptr ith_format_sigma ith_sigma_ptr.
+    unfold concrete_mformat.
+    entailer!.
+    remember (filter (fun G : t => (height G <=? Z.to_nat h)%nat) (indentDoc (Z.to_nat w) (Z.to_nat shift) (sublist 0 i fs))) as part1.
+    remember (filter (fun G : t => (height G <=? Z.to_nat h)%nat) (indentDoc (Z.to_nat w) (Z.to_nat shift) [Znth i fs])) as part2.
+    remember (filter (fun G : t => (height G <=? Z.to_nat h)%nat) (indentDoc (Z.to_nat w) (Z.to_nat shift) (sublist 0 (i + 1) fs))) as part3.
+    assert (part1 ++ part2 = part3) as K.
+    { vauto.
+      replace (sublist 0 (i + 1) fs) with (sublist 0 i fs ++ [Znth i fs]) by list_solve.
+      rewrite <- filter_app.
+      rewrite indent_doc_app; vauto. }
+    rewrite <- K.
+    assert(
+      lsegf part1 result_ptr result_tail_ptr w h *
+      lsegf part2 result_tail_ptr new_result_tail_ptr w h |--
+      lsegf (part1 ++ part2) result_ptr new_result_tail_ptr w h
+    ) as FF.
+    { apply lsegf_lsegf. }
+    eapply derives_trans.
+    2: eauto.
+    entailer!.
+    unfold FormatTrivial.indentDoc.
+    unfold FormatTrivial.cross_general.
+    rewrite map_cons.
+    rewrite map_nil.
+    rewrite map_cons.
+    rewrite map_nil.
+    rewrite concat_cons.
+    rewrite concat_nil.
+    autorewrite with sublist.
+    unfold filter.
+    desf;
+    assert (
+      (total_width (indent' (Z.to_nat shift) (Znth i fs)) <= Z.to_nat w)%nat /\
+        (height (indent' (Z.to_nat shift) (Znth i fs)) <= Z.to_nat h)%nat
+    ) as GG by auto; desf.
+    unff lsegf.
+    Exists new_result_tail_ptr result_format_ptr result_sigma result_sigma_pt.
+    entailer!.
+    { unfold good_format; split; vauto. }
+    unfold concrete_mformat; entailer!. }
+  autorewrite with sublist norm.
+  desf.
+  remember (filter (fun G : t => (height G <=? Z.to_nat h)%nat) (indentDoc (Z.to_nat w) (Z.to_nat shift) (sublist 0 i fs))) as part1.
+  remember (filter (fun G : t => (height G <=? Z.to_nat h)%nat) (indentDoc (Z.to_nat w) (Z.to_nat shift) [Znth i fs])) as part2.
+  remember (filter (fun G : t => (height G <=? Z.to_nat h)%nat) (indentDoc (Z.to_nat w) (Z.to_nat shift) (sublist 0 (i + 1) fs))) as part3.
+  assert (part1 ++ part2 = part3) as K.
+  { vauto.
+    replace (sublist 0 (i + 1) fs) with (sublist 0 i fs ++ [Znth i fs]) by list_solve.
+    rewrite <- filter_app.
+    rewrite indent_doc_app; vauto. }
+  rewrite <- K.
+  rewrite Zlength_app.
+  enough (Zlength part2 = 1) as KK. 
+  { rewrite KK.
+    assert(Zlength part1 + 1 > 0) as FF.
+    { list_solve. }
+    assert (0 <? Zlength part1 + 1 = true) as GG.
+    { lia. }
+    rewrite GG.
+    list_solve. }
+  vauto.
+  unfold indentDoc.
+  unfold cross_general.
+  rewrite map_cons.
+  rewrite map_nil.
+  rewrite map_cons.
+  rewrite map_nil.
+  rewrite concat_cons.
+  rewrite concat_nil.
+  autorewrite with sublist.
+  unfold filter.
+  desf;
+  assert (
+    (total_width (indent' (Z.to_nat shift) (Znth i fs)) <= Z.to_nat w)%nat /\
+      (height (indent' (Z.to_nat shift) (Znth i fs)) <= Z.to_nat h)%nat
+  ) as GG by auto; desf.
 Qed.

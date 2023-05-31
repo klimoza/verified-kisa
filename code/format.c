@@ -323,7 +323,7 @@ list *to_text_add_beside(t *G, t *F) {
   return head;
 }
 
-t *add_beside(t *G, t *F) {
+t* add_beside(t *G, t *F) {
   if (G->height == 0) {
     return format_copy(F);
   } 
@@ -420,7 +420,7 @@ list *to_text_add_fill(t *G, t *F, size_t shift) {
   return head;
 }
 
-t *add_fill(t *G, t *F, size_t shift) {
+t* add_fill(t *G, t *F, size_t shift) {
   if (G->height == 0) {
     return format_copy(F);
   } 
@@ -476,20 +476,16 @@ t *of_string(char* s) {
   return NULL;
 }
 
-t *indent(t *f, unsigned int shift) {
+t *indent(t *f, size_t n) {
+  if(f->height == 0) exit(1);
   t *result = malloc(sizeof(t));
   if(!result) exit(1);
   result->height = f->height;
-  result->first_line_width = f->first_line_width + shift;
-  result->middle_width = f->middle_width + shift;
-  result->last_line_width = f->last_line_width + shift;
-
-  list *to_text = f->to_text;
-  while(to_text != NULL) {
-    to_text->shift += shift;
-    to_text = to_text->tail;
-  }
-
+  result->first_line_width = f->first_line_width + n;
+  result->middle_width = f->middle_width + n;
+  result->last_line_width = f->last_line_width + n;
+  result->to_text = list_copy(f->to_text);
+  shift_list(result->to_text, n);
   return result;
 }
 
@@ -526,45 +522,55 @@ bool max_width_check(t *G, unsigned int width, unsigned int height) {
   return true;
 }
 
-// format_list* ident_doc(unsigned width, unsigned int height, unsigned shift, format_list *fs) {
-//   if (fs == NULL)
-//     return NULL;
+format_list* clear_last_format_element(format_list *fs) {
+  format_list *new_result_tail = fs;
+  while(new_result_tail->tail->tail != NULL) {
+    new_result_tail = new_result_tail->tail;
+  }
+  clear_format_list(new_result_tail->tail);
+  new_result_tail->tail = NULL;
+  return fs;
+}
 
-//   format_list *result = malloc(sizeof(format_list));
-//   if(result == NULL) exit(1);
-//   result->G = empty();
-//   result->tail = NULL;
+format_list* indent_doc(unsigned width, unsigned int height, format_list *fs, size_t shift) {
+  if (fs == NULL)
+    return NULL;
 
-//   format_list *result_tail = result;
-//   format_list *fs_tail = fs;
-//   bool has_item = false;
-//   while(fs_tail != NULL) {
-//     t *G = indent(fs_tail->G, shift);
-//     if(max_width_check(G, width, height)) {
-//       clear_to_text(result_tail->G->to_text);
-//       free(result_tail->G);
-//       result_tail->G = G;
-//       result_tail->tail = malloc(sizeof(format_list));
-//       if(result_tail->tail == NULL) exit(1);
-//       result_tail->tail->G = empty();
-//       result_tail->tail->tail = NULL;
-//       result_tail = result_tail->tail;
-//       has_item = true;
-//     } else {
-//       clear_to_text(G->to_text);
-//       free(G);
-//     }
-//     fs_tail = fs_tail->tail;
-//   }
+  format_list *result = malloc(sizeof(format_list));
+  if(result == NULL) exit(1);
+  result->G = empty();
+  result->tail = NULL;
 
-//   clear_format_list(fs);
-//   if(!has_item) {
-//     clear_format_list(result);
-//     return NULL;
-//   }
-//   clear_last_format_element(result);
-//   return result;
-// }
+  format_list *result_tail = result;
+  format_list *fs_tail = fs;
+  bool has_item = false;
+  while(fs_tail != NULL) {
+    t *G = indent(fs_tail->G, shift);
+    if(max_width_check(G, width, height)) {
+      clear_to_text(result_tail->G->to_text);
+      free(result_tail->G);
+      result_tail->G = G;
+      result_tail->tail = malloc(sizeof(format_list));
+      if(result_tail->tail == NULL) exit(1);
+      result_tail->tail->G = empty();
+      result_tail->tail->tail = NULL;
+      result_tail = result_tail->tail;
+      has_item = true;
+    } else {
+      clear_to_text(G->to_text);
+      free(G);
+    }
+    fs_tail = fs_tail->tail;
+  }
+
+  clear_format_list(fs);
+  if(!has_item) {
+    clear_format_list(result);
+    return NULL;
+  }
+  clear_last_format_element(result);
+  return result;
+}
 
 format_list* above_doc(unsigned int width, unsigned int height, format_list *fs1, format_list *fs2) {
   if (fs1 == NULL) {
