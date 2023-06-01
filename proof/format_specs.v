@@ -741,6 +741,26 @@ DECLARE _add_fill
         concrete_mformat G pointer_G sigmaG pG; 
         concrete_mformat F pointer_F sigmaF pF; 
         concrete_mformat (add_fill G F (Z.to_nat shift)) p sigma sigma_pt; mem_mgr gv).
+      
+(* ----------------------- *)
+(* ----------------------- *)
+(* ----------------------- *)
+
+Ltac dest_ptr ptr := 
+  destruct (eq_dec ptr nullval);
+  [ forward_if(ptr <> nullval);
+    [ forward_call; entailer | forward; entailer! | now Intros] |
+    forward_if(ptr <> nullval);
+    [ forward_call; entailer | forward; entailer! | ]
+  ]; Intros.
+
+Ltac unff def := unfold def; fold def.
+
+Ltac prove_ptr := entailer!; unnw; desf.
+
+(* ----------------------- *)
+(* ----------------------- *)
+(* ----------------------- *)
 
 Lemma string_to_list_byte_app (l1 l2 : string) :
   string_to_list_byte (l1 ++ l2) =
@@ -767,15 +787,55 @@ Proof.
   apply repeat_app.
 Qed.
 
+Lemma list_byte_to_string_length:
+  forall (s : list byte),
+    Z.of_nat (String.length (list_byte_to_string s)) = Zlength s.
+Proof.
+  ins.
+  induction s.
+  { list_solve. }
+  unff list_byte_to_string.
+  ins. list_solve.
+Qed.
 
-Ltac dest_ptr ptr := 
-  destruct (eq_dec ptr nullval);
-  [ forward_if(ptr <> nullval);
-    [ forward_call; entailer | forward; entailer! | now Intros] |
-    forward_if(ptr <> nullval);
-    [ forward_call; entailer | forward; entailer! | ]
-  ]; Intros.
+Lemma list_byte_to_list_byte_eq:
+  forall (s : list byte),
+    string_to_list_byte (list_byte_to_string s) = s.
+Proof.
+  intros.
+  induction s.
+  { list_solve. }
+  unfold list_byte_to_string; fold list_byte_to_string.
+  unfold string_to_list_byte; fold string_to_list_byte.
+  rewrite IHs.
+  assert (Byte.unsigned a < 256).
+  { remember (Byte.unsigned_range a).
+    unfold Byte.modulus in a0.
+    assert(two_power_nat Byte.wordsize = 256 ). list_solve.
+    lia. }
+  assert ((Z.to_N (Byte.unsigned a) < 256)%N) by list_solve.
+  assert ((N_of_ascii (ascii_of_N (Z.to_N (Byte.unsigned a)))) = Z.to_N (Byte.unsigned a)) as AA.
+  { now apply N_ascii_embedding. }
+  rewrite AA.
+  rewrite Z2N.id.
+  rewrite Byte.repr_unsigned; auto.
+  apply Byte.unsigned_range.
+Qed.
 
-Ltac unff def := unfold def; fold def.
-
-Ltac prove_ptr := entailer!; unnw; desf.
+Lemma string_to_string_eq (s : string):
+  list_byte_to_string (string_to_list_byte s) = s.
+Proof.
+  induction s.
+  { list_solve. }
+  unff string_to_list_byte.
+  unff list_byte_to_string.
+  rewrite IHs.
+  rewrite Byte.unsigned_repr.
+  2: { 
+    assert (N_of_ascii a < 256)%N as K.
+    { apply N_ascii_bounded. }
+    unfold Byte.max_unsigned.
+    ins; lia. }
+  rewrite N2Z.id.
+  rewrite ascii_N_embedding; ins.
+Qed.

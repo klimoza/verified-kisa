@@ -5,6 +5,7 @@ Require Import VST.floyd.library.
 Require Import printer.printer_files.compiled_format.
 Require Import printer.verified_printer.Format.
 Require Import printer.verified_printer.FormatTrivial.
+Require Import printer.verified_printer.Doc.
 Require Import Coq.Strings.Ascii.
 Require Import format_specs.
 
@@ -49,15 +50,19 @@ Arguments listrepf sigma p wd ht : simpl never.
 
 Lemma listrepf_local_facts sigma p w h:
    listrepf sigma p w h |--
-   !! (<< LIST_PTR_FACT : is_pointer_or_null p /\ (p=nullval <-> sigma=nil) >>).
+   !! (<< LIST_PTR_FACT : is_pointer_or_null p /\ (p=nullval <-> sigma=nil) /\ good_format_list sigma w h >>).
 Proof.
   intros.
   revert p; induction sigma; intros p.
-  { unfold listrepf. unnw. entailer!. split; auto. }
+  { unfold listrepf; unnw.
+    entailer!.
+    repeat split; unnw; auto; ins. }
   unff listrepf.
   destruct a. entailer. unnw. entailer!.
-  split; ins.
-  subst. eapply field_compatible_nullval; eauto.
+  repeat split; ins.
+  { subst. eapply field_compatible_nullval; eauto. }
+   unfold good_format_list in *.
+   apply Forall_cons; auto.
 Qed.
 #[export] Hint Resolve listrepf_local_facts : saturate_local.
 
@@ -83,6 +88,21 @@ Fixpoint lsegf (sigma: list t) (x z: val) (wd ht : Z) : mpred :=
   end.
 
 Arguments lsegf sigma x z wd ht : simpl never.
+
+Lemma lsegf_local_facts sigma p q w h :
+   lsegf sigma p q w h |-- !! (<< LSEG_PTR_FACT : good_format_list sigma w h >>).
+Proof.
+   revert dependent p.
+   induction sigma.
+   { unff lsegf; entailer!; unnw; ins. }
+   unff lsegf; ins.
+   Intros h0 y format_sigma sigma_pt.
+   unfold good_format_list in *.
+   unnw.
+   rewrite Forall_cons_iff.
+   entailer.
+Qed.
+#[export] Hint Resolve lsegf_local_facts : saturate_local.
 
 Definition total_width_spec : ident * funspec :=
 DECLARE _total_width
@@ -202,9 +222,7 @@ DECLARE _choice_doc
    WITH fs1 : list t, fs2 : list t, p1 : val, p2 : val, w : Z, h : Z, gv : globals
    PRE [ tptr t_flist, tptr t_flist ]
       PROP (0 <= 8 * w <= Int.max_unsigned - 1;
-            0 <= 8 * h <= Int.max_unsigned;
-            << GOOD_FMT1 : good_format_list fs1 w h >> ;
-            << GOOD_FMT2 : good_format_list fs2 w h >>)
+            0 <= 8 * h <= Int.max_unsigned)
       PARAMS(p1; p2) GLOBALS(gv)
       SEP (listrepf fs1 p1 w h; listrepf fs2 p2 w h; mem_mgr gv)
    POST [ tptr t_flist ]
@@ -258,6 +276,83 @@ DECLARE _clear_last_format_element
       RETURN(p)
       SEP(listrepf (sublist 0 (Zlength fs - 1) fs) p w h; mem_mgr gv).
 
+Definition construct_doc_spec : ident * funspec :=
+DECLARE _construct_doc
+   WITH sigma : list byte, p : val, w : Z, h : Z, gv : globals
+   PRE [ tuint, tuint, tptr tschar]
+      PROP (0 <= 8 * w <= Int.max_unsigned - 1;
+            0 <= 8 * h <= Int.max_unsigned)
+      PARAMS(Vint (Int.repr w); Vint (Int.repr h); p) GLOBALS(gv)
+      SEP (cstring Ews sigma p; mem_mgr gv)
+   POST [ tptr t_flist ]
+      EX q: val, EX res: list t,
+      PROP (res = filter (fun G => (G.(height) <=? (Z.to_nat h))%nat) (constructDoc (list_byte_to_string sigma)))
+      RETURN(q)
+      SEP (listrepf res q w h; cstring Ews sigma p; mem_mgr gv).
+
+Definition t_doc := Tstruct _doc noattr.
+
+Fixpoint mdoc (doc : Doc) (x : val) (w h : Z) : mpred :=
+  match doc with
+  | Text s     => 
+      EX p : val,
+      data_at Ews t_doc (Vint (Int.repr 0), (Vptrofs (Ptrofs.repr 0), (p, nullval))) x *
+      cstring Ews (string_to_list_byte s) p
+  | Indent n d => 
+      EX p : val,
+      !! (<< SHIFT_RANGE: 0 <= Z.of_nat n <= w >>) &&
+      data_at Ews t_doc (Vint (Int.repr 1), (Vptrofs (Ptrofs.repr (Z.of_nat n)), (p, nullval))) x *
+      mdoc d p w h
+  | Beside a b => 
+      EX p, EX q : val,
+      data_at Ews t_doc (Vint (Int.repr 2), (Vptrofs (Ptrofs.repr 0), (p, q))) x *
+      mdoc a p w h *
+      mdoc b q w h
+  | Above a b  => 
+      EX p, EX q : val,
+      data_at Ews t_doc (Vint (Int.repr 3), (Vptrofs (Ptrofs.repr 0), (p, q))) x *
+      mdoc a p w h *
+      mdoc b q w h
+  | Choice a b =>
+      EX p, EX q : val,
+      data_at Ews t_doc (Vint (Int.repr 4), (Vptrofs (Ptrofs.repr 0), (p, q))) x *
+      mdoc a p w h *
+      mdoc b q w h
+  | Fill a b n =>
+      EX p, EX q : val,
+      !! (<< SHIFT_RANGE: 0 <= Z.of_nat n <= w >>) &&
+      data_at Ews t_doc (Vint (Int.repr 5), (Vptrofs (Ptrofs.repr (Z.of_nat n)), (p, q))) x *
+      mdoc a p w h *
+      mdoc b q w h
+  end.
+
+Lemma doc_local_facts d x w h :
+   mdoc d x w h |-- !! (<< DOC_PTR_FACT : is_pointer_or_null x >>).
+Proof.
+  revert x; induction d; ins.
+  { Intros p; entailer!. }
+  { Intros p; entailer!. }
+  { Intros p q; entailer!. }
+  { Intros p q; entailer!. }
+  { Intros p q; entailer!. }
+  Intros p q; entailer!.
+Qed.
+#[export] Hint Resolve doc_local_facts : saturate_local.
+
+Definition evaluator_trivial_spec : ident * funspec :=
+DECLARE _evaluator_trivial
+   WITH d : Doc, p : val, w : Z, h : Z, gv : globals
+   PRE [ tuint, tuint, tptr t_doc ]
+      PROP (0 <= 8 * w <= Int.max_unsigned - 1;
+            0 <= 8 * h <= Int.max_unsigned)
+      PARAMS(Vint (Int.repr w); Vint (Int.repr h); p) GLOBALS(gv)
+      SEP(mdoc d p w h; mem_mgr gv)
+   POST [ tptr t_flist ]
+      EX q: val, EX res: list t,
+      PROP (res = filter (fun G => (G.(height) <=? (Z.to_nat h))%nat) (evaluatorTrivial (Z.to_nat w) d))
+      RETURN(q)
+      SEP (mdoc d p w h; listrepf res q w h; mem_mgr gv).
+
 
 Definition Gprog : funspecs :=
         ltac:(with_library prog [
@@ -273,5 +368,6 @@ Definition Gprog : funspecs :=
                    llw_add_fill_spec; add_fill_spec; clear_format_list_spec; clear_to_text_spec;
                    max_width_check_spec; total_width_spec; get_format_list_tail_spec; format_list_copy_spec;
                    choice_doc_spec; beside_doc_spec; above_doc_spec; fill_doc_spec; indent_spec;
-                   clear_last_format_element_spec; indent_doc_spec
+                   clear_last_format_element_spec; indent_doc_spec; construct_doc_spec;
+                   evaluator_trivial_spec
  ]).

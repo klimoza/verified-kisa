@@ -779,3 +779,31 @@ format_list* choice_doc(format_list *fs1, format_list *fs2) {
   clear_format_list(fs2);
   return result;
 }
+
+format_list* construct_doc(unsigned int width, unsigned int height, char *s) {
+  return NULL;
+}
+
+struct doc {
+  unsigned int type;
+  size_t shift;
+  void *child1;
+  void *child2;
+} typedef doc;
+
+format_list* evaluator_trivial(unsigned int width, unsigned int height, doc* d) {
+  if(d->type == 0)
+    return construct_doc(width, height, d->child1);
+  else if(d->type == 1)
+    return indent_doc(width, height, evaluator_trivial(width, height, d->child1), d->shift);
+  else if(d->type == 2)
+    return beside_doc(width, height, evaluator_trivial(width, height, d->child1), evaluator_trivial(width, height, d->child2));
+  else if(d->type == 3)
+    return above_doc(width, height, evaluator_trivial(width, height, d->child1), evaluator_trivial(width, height, d->child2));
+  else if(d->type == 4)
+    return choice_doc(evaluator_trivial(width, height, d->child1), evaluator_trivial(width, height, d->child2));
+  else if(d->type == 5)
+    return fill_doc(width, height, evaluator_trivial(width, height, d->child1), evaluator_trivial(width, height, d->child2), d->shift);
+  else
+    return NULL;
+}

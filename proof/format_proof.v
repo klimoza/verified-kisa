@@ -275,41 +275,6 @@ Proof.
   unfold listrep. entailer!.
 Qed.
 
-Lemma list_byte_to_string_length:
-  forall (s : list byte),
-    Z.of_nat (String.length (list_byte_to_string s)) = Zlength s.
-Proof.
-  ins.
-  induction s.
-  { list_solve. }
-  unff list_byte_to_string.
-  ins. list_solve.
-Qed.
-
-Lemma list_byte_to_list_byte_eq:
-  forall (s : list byte),
-    string_to_list_byte (list_byte_to_string s) = s.
-Proof.
-  intros.
-  induction s.
-  { list_solve. }
-  unfold list_byte_to_string; fold list_byte_to_string.
-  unfold string_to_list_byte; fold string_to_list_byte.
-  rewrite IHs.
-  assert (Byte.unsigned a < 256).
-  { remember (Byte.unsigned_range a).
-    unfold Byte.modulus in a0.
-    assert(two_power_nat Byte.wordsize = 256 ). list_solve.
-    lia. }
-  assert ((Z.to_N (Byte.unsigned a) < 256)%N) by list_solve.
-  assert ((N_of_ascii (ascii_of_N (Z.to_N (Byte.unsigned a)))) = Z.to_N (Byte.unsigned a)) as AA.
-  { now apply N_ascii_embedding. }
-  rewrite AA.
-  rewrite Z2N.id.
-  rewrite Byte.repr_unsigned; auto.
-  apply Byte.unsigned_range.
-Qed.
-
 Lemma empty_string_app:
   forall (s : string),
     (s ++ "")%string = s.

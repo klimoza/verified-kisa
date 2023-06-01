@@ -84,17 +84,22 @@ Definition _add_beside : ident := $"add_beside".
 Definition _add_fill : ident := $"add_fill".
 Definition _b : ident := $"b".
 Definition _beside_doc : ident := $"beside_doc".
+Definition _child1 : ident := $"child1".
+Definition _child2 : ident := $"child2".
 Definition _choice_doc : ident := $"choice_doc".
 Definition _clear_format_list : ident := $"clear_format_list".
 Definition _clear_last_format_element : ident := $"clear_last_format_element".
 Definition _clear_to_text : ident := $"clear_to_text".
+Definition _construct_doc : ident := $"construct_doc".
 Definition _copy_F : ident := $"copy_F".
 Definition _cur : ident := $"cur".
 Definition _cur_sigma : ident := $"cur_sigma".
 Definition _d : ident := $"d".
 Definition _d__1 : ident := $"d__1".
 Definition _dest : ident := $"dest".
+Definition _doc : ident := $"doc".
 Definition _empty : ident := $"empty".
+Definition _evaluator_trivial : ident := $"evaluator_trivial".
 Definition _exit : ident := $"exit".
 Definition _f : ident := $"f".
 Definition _fill_doc : ident := $"fill_doc".
@@ -185,6 +190,7 @@ Definition _to_text_head : ident := $"to_text_head".
 Definition _to_text_new : ident := $"to_text_new".
 Definition _total_length : ident := $"total_length".
 Definition _total_width : ident := $"total_width".
+Definition _type : ident := $"type".
 Definition _width : ident := $"width".
 Definition _t'1 : ident := 128%positive.
 Definition _t'10 : ident := 137%positive.
@@ -5862,6 +5868,368 @@ Definition f_choice_doc := {|
               (Sreturn (Some (Etempvar _result__2 (tptr (Tstruct _format_list noattr))))))))))))
 |}.
 
+Definition f_construct_doc := {|
+  fn_return := (tptr (Tstruct _format_list noattr));
+  fn_callconv := cc_default;
+  fn_params := ((_width, tuint) :: (_height, tuint) :: (_s, (tptr tschar)) ::
+                nil);
+  fn_vars := nil;
+  fn_temps := nil;
+  fn_body :=
+(Sreturn (Some (Ecast (Econst_int (Int.repr 0) tint) (tptr tvoid))))
+|}.
+
+Definition f_evaluator_trivial := {|
+  fn_return := (tptr (Tstruct _format_list noattr));
+  fn_callconv := cc_default;
+  fn_params := ((_width, tuint) :: (_height, tuint) ::
+                (_d, (tptr (Tstruct _doc noattr))) :: nil);
+  fn_vars := nil;
+  fn_temps := ((_t'15, (tptr (Tstruct _format_list noattr))) ::
+               (_t'14, (tptr (Tstruct _format_list noattr))) ::
+               (_t'13, (tptr (Tstruct _format_list noattr))) ::
+               (_t'12, (tptr (Tstruct _format_list noattr))) ::
+               (_t'11, (tptr (Tstruct _format_list noattr))) ::
+               (_t'10, (tptr (Tstruct _format_list noattr))) ::
+               (_t'9, (tptr (Tstruct _format_list noattr))) ::
+               (_t'8, (tptr (Tstruct _format_list noattr))) ::
+               (_t'7, (tptr (Tstruct _format_list noattr))) ::
+               (_t'6, (tptr (Tstruct _format_list noattr))) ::
+               (_t'5, (tptr (Tstruct _format_list noattr))) ::
+               (_t'4, (tptr (Tstruct _format_list noattr))) ::
+               (_t'3, (tptr (Tstruct _format_list noattr))) ::
+               (_t'2, (tptr (Tstruct _format_list noattr))) ::
+               (_t'1, (tptr (Tstruct _format_list noattr))) ::
+               (_t'33, (tptr tvoid)) :: (_t'32, (tptr tvoid)) ::
+               (_t'31, tulong) :: (_t'30, (tptr tvoid)) ::
+               (_t'29, (tptr tvoid)) :: (_t'28, (tptr tvoid)) ::
+               (_t'27, (tptr tvoid)) :: (_t'26, (tptr tvoid)) ::
+               (_t'25, (tptr tvoid)) :: (_t'24, (tptr tvoid)) ::
+               (_t'23, (tptr tvoid)) :: (_t'22, tulong) :: (_t'21, tuint) ::
+               (_t'20, tuint) :: (_t'19, tuint) :: (_t'18, tuint) ::
+               (_t'17, tuint) :: (_t'16, tuint) :: nil);
+  fn_body :=
+(Ssequence
+  (Sset _t'16
+    (Efield
+      (Ederef (Etempvar _d (tptr (Tstruct _doc noattr)))
+        (Tstruct _doc noattr)) _type tuint))
+  (Sifthenelse (Ebinop Oeq (Etempvar _t'16 tuint)
+                 (Econst_int (Int.repr 0) tint) tint)
+    (Ssequence
+      (Ssequence
+        (Sset _t'33
+          (Efield
+            (Ederef (Etempvar _d (tptr (Tstruct _doc noattr)))
+              (Tstruct _doc noattr)) _child1 (tptr tvoid)))
+        (Scall (Some _t'1)
+          (Evar _construct_doc (Tfunction
+                                 (Tcons tuint
+                                   (Tcons tuint (Tcons (tptr tschar) Tnil)))
+                                 (tptr (Tstruct _format_list noattr))
+                                 cc_default))
+          ((Etempvar _width tuint) :: (Etempvar _height tuint) ::
+           (Etempvar _t'33 (tptr tvoid)) :: nil)))
+      (Sreturn (Some (Etempvar _t'1 (tptr (Tstruct _format_list noattr))))))
+    (Ssequence
+      (Sset _t'17
+        (Efield
+          (Ederef (Etempvar _d (tptr (Tstruct _doc noattr)))
+            (Tstruct _doc noattr)) _type tuint))
+      (Sifthenelse (Ebinop Oeq (Etempvar _t'17 tuint)
+                     (Econst_int (Int.repr 1) tint) tint)
+        (Ssequence
+          (Ssequence
+            (Ssequence
+              (Sset _t'32
+                (Efield
+                  (Ederef (Etempvar _d (tptr (Tstruct _doc noattr)))
+                    (Tstruct _doc noattr)) _child1 (tptr tvoid)))
+              (Scall (Some _t'2)
+                (Evar _evaluator_trivial (Tfunction
+                                           (Tcons tuint
+                                             (Tcons tuint
+                                               (Tcons
+                                                 (tptr (Tstruct _doc noattr))
+                                                 Tnil)))
+                                           (tptr (Tstruct _format_list noattr))
+                                           cc_default))
+                ((Etempvar _width tuint) :: (Etempvar _height tuint) ::
+                 (Etempvar _t'32 (tptr tvoid)) :: nil)))
+            (Ssequence
+              (Sset _t'31
+                (Efield
+                  (Ederef (Etempvar _d (tptr (Tstruct _doc noattr)))
+                    (Tstruct _doc noattr)) _shift tulong))
+              (Scall (Some _t'3)
+                (Evar _indent_doc (Tfunction
+                                    (Tcons tuint
+                                      (Tcons tuint
+                                        (Tcons
+                                          (tptr (Tstruct _format_list noattr))
+                                          (Tcons tulong Tnil))))
+                                    (tptr (Tstruct _format_list noattr))
+                                    cc_default))
+                ((Etempvar _width tuint) :: (Etempvar _height tuint) ::
+                 (Etempvar _t'2 (tptr (Tstruct _format_list noattr))) ::
+                 (Etempvar _t'31 tulong) :: nil))))
+          (Sreturn (Some (Etempvar _t'3 (tptr (Tstruct _format_list noattr))))))
+        (Ssequence
+          (Sset _t'18
+            (Efield
+              (Ederef (Etempvar _d (tptr (Tstruct _doc noattr)))
+                (Tstruct _doc noattr)) _type tuint))
+          (Sifthenelse (Ebinop Oeq (Etempvar _t'18 tuint)
+                         (Econst_int (Int.repr 2) tint) tint)
+            (Ssequence
+              (Ssequence
+                (Ssequence
+                  (Ssequence
+                    (Sset _t'30
+                      (Efield
+                        (Ederef (Etempvar _d (tptr (Tstruct _doc noattr)))
+                          (Tstruct _doc noattr)) _child1 (tptr tvoid)))
+                    (Scall (Some _t'4)
+                      (Evar _evaluator_trivial (Tfunction
+                                                 (Tcons tuint
+                                                   (Tcons tuint
+                                                     (Tcons
+                                                       (tptr (Tstruct _doc noattr))
+                                                       Tnil)))
+                                                 (tptr (Tstruct _format_list noattr))
+                                                 cc_default))
+                      ((Etempvar _width tuint) :: (Etempvar _height tuint) ::
+                       (Etempvar _t'30 (tptr tvoid)) :: nil)))
+                  (Ssequence
+                    (Sset _t'29
+                      (Efield
+                        (Ederef (Etempvar _d (tptr (Tstruct _doc noattr)))
+                          (Tstruct _doc noattr)) _child2 (tptr tvoid)))
+                    (Scall (Some _t'5)
+                      (Evar _evaluator_trivial (Tfunction
+                                                 (Tcons tuint
+                                                   (Tcons tuint
+                                                     (Tcons
+                                                       (tptr (Tstruct _doc noattr))
+                                                       Tnil)))
+                                                 (tptr (Tstruct _format_list noattr))
+                                                 cc_default))
+                      ((Etempvar _width tuint) :: (Etempvar _height tuint) ::
+                       (Etempvar _t'29 (tptr tvoid)) :: nil))))
+                (Scall (Some _t'6)
+                  (Evar _beside_doc (Tfunction
+                                      (Tcons tuint
+                                        (Tcons tuint
+                                          (Tcons
+                                            (tptr (Tstruct _format_list noattr))
+                                            (Tcons
+                                              (tptr (Tstruct _format_list noattr))
+                                              Tnil))))
+                                      (tptr (Tstruct _format_list noattr))
+                                      cc_default))
+                  ((Etempvar _width tuint) :: (Etempvar _height tuint) ::
+                   (Etempvar _t'4 (tptr (Tstruct _format_list noattr))) ::
+                   (Etempvar _t'5 (tptr (Tstruct _format_list noattr))) ::
+                   nil)))
+              (Sreturn (Some (Etempvar _t'6 (tptr (Tstruct _format_list noattr))))))
+            (Ssequence
+              (Sset _t'19
+                (Efield
+                  (Ederef (Etempvar _d (tptr (Tstruct _doc noattr)))
+                    (Tstruct _doc noattr)) _type tuint))
+              (Sifthenelse (Ebinop Oeq (Etempvar _t'19 tuint)
+                             (Econst_int (Int.repr 3) tint) tint)
+                (Ssequence
+                  (Ssequence
+                    (Ssequence
+                      (Ssequence
+                        (Sset _t'28
+                          (Efield
+                            (Ederef
+                              (Etempvar _d (tptr (Tstruct _doc noattr)))
+                              (Tstruct _doc noattr)) _child1 (tptr tvoid)))
+                        (Scall (Some _t'7)
+                          (Evar _evaluator_trivial (Tfunction
+                                                     (Tcons tuint
+                                                       (Tcons tuint
+                                                         (Tcons
+                                                           (tptr (Tstruct _doc noattr))
+                                                           Tnil)))
+                                                     (tptr (Tstruct _format_list noattr))
+                                                     cc_default))
+                          ((Etempvar _width tuint) ::
+                           (Etempvar _height tuint) ::
+                           (Etempvar _t'28 (tptr tvoid)) :: nil)))
+                      (Ssequence
+                        (Sset _t'27
+                          (Efield
+                            (Ederef
+                              (Etempvar _d (tptr (Tstruct _doc noattr)))
+                              (Tstruct _doc noattr)) _child2 (tptr tvoid)))
+                        (Scall (Some _t'8)
+                          (Evar _evaluator_trivial (Tfunction
+                                                     (Tcons tuint
+                                                       (Tcons tuint
+                                                         (Tcons
+                                                           (tptr (Tstruct _doc noattr))
+                                                           Tnil)))
+                                                     (tptr (Tstruct _format_list noattr))
+                                                     cc_default))
+                          ((Etempvar _width tuint) ::
+                           (Etempvar _height tuint) ::
+                           (Etempvar _t'27 (tptr tvoid)) :: nil))))
+                    (Scall (Some _t'9)
+                      (Evar _above_doc (Tfunction
+                                         (Tcons tuint
+                                           (Tcons tuint
+                                             (Tcons
+                                               (tptr (Tstruct _format_list noattr))
+                                               (Tcons
+                                                 (tptr (Tstruct _format_list noattr))
+                                                 Tnil))))
+                                         (tptr (Tstruct _format_list noattr))
+                                         cc_default))
+                      ((Etempvar _width tuint) :: (Etempvar _height tuint) ::
+                       (Etempvar _t'7 (tptr (Tstruct _format_list noattr))) ::
+                       (Etempvar _t'8 (tptr (Tstruct _format_list noattr))) ::
+                       nil)))
+                  (Sreturn (Some (Etempvar _t'9 (tptr (Tstruct _format_list noattr))))))
+                (Ssequence
+                  (Sset _t'20
+                    (Efield
+                      (Ederef (Etempvar _d (tptr (Tstruct _doc noattr)))
+                        (Tstruct _doc noattr)) _type tuint))
+                  (Sifthenelse (Ebinop Oeq (Etempvar _t'20 tuint)
+                                 (Econst_int (Int.repr 4) tint) tint)
+                    (Ssequence
+                      (Ssequence
+                        (Ssequence
+                          (Ssequence
+                            (Sset _t'26
+                              (Efield
+                                (Ederef
+                                  (Etempvar _d (tptr (Tstruct _doc noattr)))
+                                  (Tstruct _doc noattr)) _child1
+                                (tptr tvoid)))
+                            (Scall (Some _t'10)
+                              (Evar _evaluator_trivial (Tfunction
+                                                         (Tcons tuint
+                                                           (Tcons tuint
+                                                             (Tcons
+                                                               (tptr (Tstruct _doc noattr))
+                                                               Tnil)))
+                                                         (tptr (Tstruct _format_list noattr))
+                                                         cc_default))
+                              ((Etempvar _width tuint) ::
+                               (Etempvar _height tuint) ::
+                               (Etempvar _t'26 (tptr tvoid)) :: nil)))
+                          (Ssequence
+                            (Sset _t'25
+                              (Efield
+                                (Ederef
+                                  (Etempvar _d (tptr (Tstruct _doc noattr)))
+                                  (Tstruct _doc noattr)) _child2
+                                (tptr tvoid)))
+                            (Scall (Some _t'11)
+                              (Evar _evaluator_trivial (Tfunction
+                                                         (Tcons tuint
+                                                           (Tcons tuint
+                                                             (Tcons
+                                                               (tptr (Tstruct _doc noattr))
+                                                               Tnil)))
+                                                         (tptr (Tstruct _format_list noattr))
+                                                         cc_default))
+                              ((Etempvar _width tuint) ::
+                               (Etempvar _height tuint) ::
+                               (Etempvar _t'25 (tptr tvoid)) :: nil))))
+                        (Scall (Some _t'12)
+                          (Evar _choice_doc (Tfunction
+                                              (Tcons
+                                                (tptr (Tstruct _format_list noattr))
+                                                (Tcons
+                                                  (tptr (Tstruct _format_list noattr))
+                                                  Tnil))
+                                              (tptr (Tstruct _format_list noattr))
+                                              cc_default))
+                          ((Etempvar _t'10 (tptr (Tstruct _format_list noattr))) ::
+                           (Etempvar _t'11 (tptr (Tstruct _format_list noattr))) ::
+                           nil)))
+                      (Sreturn (Some (Etempvar _t'12 (tptr (Tstruct _format_list noattr))))))
+                    (Ssequence
+                      (Sset _t'21
+                        (Efield
+                          (Ederef (Etempvar _d (tptr (Tstruct _doc noattr)))
+                            (Tstruct _doc noattr)) _type tuint))
+                      (Sifthenelse (Ebinop Oeq (Etempvar _t'21 tuint)
+                                     (Econst_int (Int.repr 5) tint) tint)
+                        (Ssequence
+                          (Ssequence
+                            (Ssequence
+                              (Ssequence
+                                (Sset _t'24
+                                  (Efield
+                                    (Ederef
+                                      (Etempvar _d (tptr (Tstruct _doc noattr)))
+                                      (Tstruct _doc noattr)) _child1
+                                    (tptr tvoid)))
+                                (Scall (Some _t'13)
+                                  (Evar _evaluator_trivial (Tfunction
+                                                             (Tcons tuint
+                                                               (Tcons tuint
+                                                                 (Tcons
+                                                                   (tptr (Tstruct _doc noattr))
+                                                                   Tnil)))
+                                                             (tptr (Tstruct _format_list noattr))
+                                                             cc_default))
+                                  ((Etempvar _width tuint) ::
+                                   (Etempvar _height tuint) ::
+                                   (Etempvar _t'24 (tptr tvoid)) :: nil)))
+                              (Ssequence
+                                (Sset _t'23
+                                  (Efield
+                                    (Ederef
+                                      (Etempvar _d (tptr (Tstruct _doc noattr)))
+                                      (Tstruct _doc noattr)) _child2
+                                    (tptr tvoid)))
+                                (Scall (Some _t'14)
+                                  (Evar _evaluator_trivial (Tfunction
+                                                             (Tcons tuint
+                                                               (Tcons tuint
+                                                                 (Tcons
+                                                                   (tptr (Tstruct _doc noattr))
+                                                                   Tnil)))
+                                                             (tptr (Tstruct _format_list noattr))
+                                                             cc_default))
+                                  ((Etempvar _width tuint) ::
+                                   (Etempvar _height tuint) ::
+                                   (Etempvar _t'23 (tptr tvoid)) :: nil))))
+                            (Ssequence
+                              (Sset _t'22
+                                (Efield
+                                  (Ederef
+                                    (Etempvar _d (tptr (Tstruct _doc noattr)))
+                                    (Tstruct _doc noattr)) _shift tulong))
+                              (Scall (Some _t'15)
+                                (Evar _fill_doc (Tfunction
+                                                  (Tcons tuint
+                                                    (Tcons tuint
+                                                      (Tcons
+                                                        (tptr (Tstruct _format_list noattr))
+                                                        (Tcons
+                                                          (tptr (Tstruct _format_list noattr))
+                                                          (Tcons tulong Tnil)))))
+                                                  (tptr (Tstruct _format_list noattr))
+                                                  cc_default))
+                                ((Etempvar _width tuint) ::
+                                 (Etempvar _height tuint) ::
+                                 (Etempvar _t'13 (tptr (Tstruct _format_list noattr))) ::
+                                 (Etempvar _t'14 (tptr (Tstruct _format_list noattr))) ::
+                                 (Etempvar _t'22 tulong) :: nil))))
+                          (Sreturn (Some (Etempvar _t'15 (tptr (Tstruct _format_list noattr))))))
+                        (Sreturn (Some (Ecast (Econst_int (Int.repr 0) tint)
+                                         (tptr tvoid))))))))))))))))
+|}.
+
 Definition composites : list composite_definition :=
 (Composite _list Struct
    (Member_plain _shift tulong :: Member_plain _line (tptr tschar) ::
@@ -5876,6 +6244,11 @@ Definition composites : list composite_definition :=
  Composite _format_list Struct
    (Member_plain _G (tptr (Tstruct _t noattr)) ::
     Member_plain _tail (tptr (Tstruct _format_list noattr)) :: nil)
+   noattr ::
+ Composite _doc Struct
+   (Member_plain _type tuint :: Member_plain _shift tulong ::
+    Member_plain _child1 (tptr tvoid) :: Member_plain _child2 (tptr tvoid) ::
+    nil)
    noattr :: nil).
 
 Definition global_definitions : list (ident * globdef fundef type) :=
@@ -6185,11 +6558,14 @@ Definition global_definitions : list (ident * globdef fundef type) :=
  (_beside_doc, Gfun(Internal f_beside_doc)) ::
  (_format_list_copy, Gfun(Internal f_format_list_copy)) ::
  (_get_format_list_tail, Gfun(Internal f_get_format_list_tail)) ::
- (_choice_doc, Gfun(Internal f_choice_doc)) :: nil).
+ (_choice_doc, Gfun(Internal f_choice_doc)) ::
+ (_construct_doc, Gfun(Internal f_construct_doc)) ::
+ (_evaluator_trivial, Gfun(Internal f_evaluator_trivial)) :: nil).
 
 Definition public_idents : list ident :=
-(_choice_doc :: _get_format_list_tail :: _format_list_copy :: _beside_doc ::
- _fill_doc :: _above_doc :: _indent_doc :: _clear_last_format_element ::
+(_evaluator_trivial :: _construct_doc :: _choice_doc ::
+ _get_format_list_tail :: _format_list_copy :: _beside_doc :: _fill_doc ::
+ _above_doc :: _indent_doc :: _clear_last_format_element ::
  _max_width_check :: _clear_format_list :: _clear_to_text :: _indent ::
  _of_string :: _total_width :: _to_string :: _add_fill ::
  _to_text_add_fill :: _flw_add_fill :: _llw_add_fill :: _mdw_add_fill ::

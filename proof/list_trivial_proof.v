@@ -1,4 +1,3 @@
-
 Require Import HahnBase.
 
 Require Import VST.floyd.proofauto.
@@ -615,7 +614,7 @@ Proof.
   apply Forall_app; auto.
 Qed.
 
-Lemma choice_doc_spec : semax_body Vprog Gprog f_choice_doc choice_doc_spec.
+Lemma body_choice_doc : semax_body Vprog Gprog f_choice_doc choice_doc_spec.
 Proof.
   start_function.
   getnw.
@@ -696,6 +695,12 @@ Proof.
   unfold choiceDoc.
   rewrite (filter_good_format (fs1 ++ fs2) w h); vauto.
   apply good_format_app; vauto.
+  2: { unnw; desf. }
+  unfold good_format_list in *.
+  replace fs1 with (sublist 0 (Zlength fs1 - 1) fs1 ++ [Znth (Zlength fs1 - 1) fs1]) by list_solve.
+  rewrite Forall_app; split.
+  { unnw; ins. }
+  apply Forall_cons; unnw; ins.
 Qed.
 
 Lemma body_beside_doc : semax_body Vprog Gprog f_beside_doc beside_doc_spec.
@@ -3475,4 +3480,521 @@ Proof.
     (total_width (indent' (Z.to_nat shift) (Znth i fs)) <= Z.to_nat w)%nat /\
       (height (indent' (Z.to_nat shift) (Znth i fs)) <= Z.to_nat h)%nat
   ) as GG by auto; desf.
+Qed.
+
+Lemma indent_height_monotone (G : t) (shift : nat):
+  (height G <= height (indent' shift G))%nat.
+Proof.
+  unfold indent'.
+  desf.
+Qed.
+
+Lemma indent_filter_monotone (sigma : list t) (w shift : nat) (h : Z):
+  filter (fun G => (height G <=? Z.to_nat h)%nat) (indentDoc w shift (filter (fun G => (height G <=? Z.to_nat h)%nat) sigma)) =
+      filter (fun G => (height G <=? Z.to_nat h)%nat) (indentDoc w shift sigma).
+Proof.
+  induction sigma.
+  { list_solve. }
+  ins; desf.
+  { unfold indentDoc in *.
+    unfold cross_general in *.
+    ins; desf; ins; desf; ins.
+    f_equal.
+    rewrite IHsigma; vauto. }
+  unfold indentDoc in *.
+  unfold cross_general in *.
+  ins; desf; ins; desf; ins.
+  assert (height a <= height (indent' shift a))%nat as GG by apply indent_height_monotone.
+  lia.
+Qed.
+
+Lemma add_beside_height_monotone_l (a b : t):
+  (height a <= height (add_beside a b))%nat.
+Proof.
+  unfold add_beside.
+  desf; ins; lia.
+Qed.
+
+Lemma add_beside_height_monotone_r (a b : t):
+  (height b <= height (add_beside a b))%nat.
+Proof.
+  unfold add_beside.
+  desf; ins; lia.
+Qed.
+
+Lemma besideDoc_cons (sigma1 sigma2 : list t) (w : nat) (G : t):
+  besideDoc w sigma1 (G :: sigma2) = (besideDoc w sigma1 [G]) ++ (besideDoc w sigma1 sigma2).
+Proof.
+  unfold besideDoc.
+  unfold cross_general.
+  ins.
+  autorewrite with sublist norm.
+  rewrite filter_app.
+  vauto.
+Qed.
+
+Lemma add_beside_monotone_l_single (sigma1 : list t) (w : nat) (h : Z) (a : t):
+  filter (fun G => (height G <=? Z.to_nat h)%nat) (besideDoc w (filter (fun G => (height G <=? Z.to_nat h)%nat) sigma1) [a]) =
+      filter (fun G => (height G <=? Z.to_nat h)%nat) (besideDoc w sigma1 [a]).
+Proof.
+  induction sigma1; ins.
+  desf.
+  { unfold besideDoc in *.
+    unfold cross_general in *.
+    ins; desf; ins; desf; ins.
+    f_equal.
+    autorewrite with sublist norm in *.
+    apply IHsigma1. }
+  unfold besideDoc in *.
+  unfold cross_general in *.
+  ins; desf; ins; desf; ins.
+  assert (height a0 <= height (add_beside a0 a))%nat as GG by apply add_beside_height_monotone_l.
+  lia.
+Qed.
+
+Lemma add_beside_filter_monotone_l (sigma1 sigma2 : list t) (w : nat) (h : Z):
+  filter (fun G => (height G <=? Z.to_nat h)%nat) (besideDoc w (filter (fun G => (height G <=? Z.to_nat h)%nat) sigma1) sigma2) =
+      filter (fun G => (height G <=? Z.to_nat h)%nat) (besideDoc w sigma1 sigma2).
+Proof.
+  revert dependent sigma1.
+  induction sigma2; ins.
+  rewrite besideDoc_cons.
+  rewrite (besideDoc_cons sigma1 sigma2 w a).
+  do 2 rewrite filter_app.
+  rewrite IHsigma2.
+  rewrite app_inv_tail_iff.
+  apply add_beside_monotone_l_single.
+Qed.
+
+Lemma add_beside_filter_emp_single (sigma1 : list t) (w : nat) (h : Z) (a : t):
+  (~(height a <= Z.to_nat h)%nat) ->
+  filter (fun G : t => (height G <=? Z.to_nat h)%nat) (besideDoc w sigma1 [a]) = [].
+Proof.
+  induction sigma1; ins.
+  unfold besideDoc in *.
+  unfold cross_general in *.
+  ins; desf; ins; desf; autorewrite with sublist norm in *.
+  { assert (height a <= height (add_beside a0 a))%nat as GG by apply add_beside_height_monotone_r.
+    lia. }
+  { apply IHsigma1; lia. }
+  apply IHsigma1; lia.
+Qed.
+
+Lemma add_beside_filter_monotone_r (sigma1 sigma2 : list t) (w : nat) (h : Z):
+  filter (fun G => (height G <=? Z.to_nat h)%nat) (besideDoc w sigma1 (filter (fun G => (height G <=? Z.to_nat h)%nat) sigma2)) =
+      filter (fun G => (height G <=? Z.to_nat h)%nat) (besideDoc w sigma1 sigma2).
+Proof.
+  revert dependent sigma1.
+  induction sigma2; ins.
+  desf.
+  { rewrite besideDoc_cons.
+    rewrite (besideDoc_cons sigma1 sigma2 w a).
+    do 2 rewrite filter_app.
+    rewrite IHsigma2.
+    vauto. }
+  rewrite besideDoc_cons.
+  rewrite filter_app.
+  rewrite IHsigma2.
+  enough (filter (fun G : t => (height G <=? Z.to_nat h)%nat) (besideDoc w sigma1 [a]) = []) as K.
+  { rewrite K.
+    list_solve. }
+  rewrite add_beside_filter_emp_single; vauto.
+Qed.
+
+
+Lemma add_above_height_monotone_l (a b : t):
+  (height a <= height (add_above a b))%nat.
+Proof.
+  unfold add_above.
+  desf; ins; lia.
+Qed.
+
+Lemma add_above_height_monotone_r (a b : t):
+  (height b <= height (add_above a b))%nat.
+Proof.
+  unfold add_above.
+  desf; ins; lia.
+Qed.
+
+Lemma aboveDoc_cons (sigma1 sigma2 : list t) (w : nat) (G : t):
+  aboveDoc w sigma1 (G :: sigma2) = (aboveDoc w sigma1 [G]) ++ (aboveDoc w sigma1 sigma2).
+Proof.
+  unfold aboveDoc.
+  unfold cross_general.
+  ins.
+  autorewrite with sublist norm.
+  rewrite filter_app.
+  vauto.
+Qed.
+
+Lemma add_above_monotone_l_single (sigma1 : list t) (w : nat) (h : Z) (a : t):
+  filter (fun G => (height G <=? Z.to_nat h)%nat) (aboveDoc w (filter (fun G => (height G <=? Z.to_nat h)%nat) sigma1) [a]) =
+      filter (fun G => (height G <=? Z.to_nat h)%nat) (aboveDoc w sigma1 [a]).
+Proof.
+  induction sigma1; ins.
+  desf.
+  { unfold aboveDoc in *.
+    unfold cross_general in *.
+    ins; desf; ins; desf; ins.
+    f_equal.
+    autorewrite with sublist norm in *.
+    apply IHsigma1. }
+  unfold aboveDoc in *.
+  unfold cross_general in *.
+  ins; desf; ins; desf; ins.
+  assert (height a0 <= height (add_above a0 a))%nat as GG by apply add_above_height_monotone_l.
+  lia.
+Qed.
+
+Lemma add_above_filter_monotone_l (sigma1 sigma2 : list t) (w : nat) (h : Z):
+  filter (fun G => (height G <=? Z.to_nat h)%nat) (aboveDoc w (filter (fun G => (height G <=? Z.to_nat h)%nat) sigma1) sigma2) =
+      filter (fun G => (height G <=? Z.to_nat h)%nat) (aboveDoc w sigma1 sigma2).
+Proof.
+  revert dependent sigma1.
+  induction sigma2; ins.
+  rewrite aboveDoc_cons.
+  rewrite (aboveDoc_cons sigma1 sigma2 w a).
+  do 2 rewrite filter_app.
+  rewrite IHsigma2.
+  rewrite app_inv_tail_iff.
+  apply add_above_monotone_l_single.
+Qed.
+
+Lemma add_above_filter_emp_single (sigma1 : list t) (w : nat) (h : Z) (a : t):
+  (~(height a <= Z.to_nat h)%nat) ->
+  filter (fun G : t => (height G <=? Z.to_nat h)%nat) (aboveDoc w sigma1 [a]) = [].
+Proof.
+  induction sigma1; ins.
+  unfold aboveDoc in *.
+  unfold cross_general in *.
+  ins; desf; ins; desf; autorewrite with sublist norm in *.
+  { assert (height a <= height (add_above a0 a))%nat as GG by apply add_above_height_monotone_r.
+    lia. }
+  { apply IHsigma1; lia. }
+  apply IHsigma1; lia.
+Qed.
+
+Lemma add_above_filter_monotone_r (sigma1 sigma2 : list t) (w : nat) (h : Z):
+  filter (fun G => (height G <=? Z.to_nat h)%nat) (aboveDoc w sigma1 (filter (fun G => (height G <=? Z.to_nat h)%nat) sigma2)) =
+      filter (fun G => (height G <=? Z.to_nat h)%nat) (aboveDoc w sigma1 sigma2).
+Proof.
+  revert dependent sigma1.
+  induction sigma2; ins.
+  desf.
+  { rewrite aboveDoc_cons.
+    rewrite (aboveDoc_cons sigma1 sigma2 w a).
+    do 2 rewrite filter_app.
+    rewrite IHsigma2.
+    vauto. }
+  rewrite aboveDoc_cons.
+  rewrite filter_app.
+  rewrite IHsigma2.
+  enough (filter (fun G : t => (height G <=? Z.to_nat h)%nat) (aboveDoc w sigma1 [a]) = []) as K.
+  { rewrite K.
+    list_solve. }
+  rewrite add_above_filter_emp_single; vauto.
+Qed.
+ 
+Lemma filter_double_eq (sigma : list t) (h : Z):
+  filter (fun G => (height G <=? Z.to_nat h)%nat) (filter (fun G => (height G <=? Z.to_nat h)%nat) sigma) =
+      filter (fun G => (height G <=? Z.to_nat h)%nat) sigma.
+Proof.
+  induction sigma; ins.
+  desf; ins; desf; ins.
+  f_equal.
+  apply IHsigma.
+Qed.
+
+Lemma add_fill_height_monotone_l (a b : t) (shift : nat):
+  (height a <= height (add_fill a b shift))%nat.
+Proof.
+  unfold add_fill.
+  desf; ins; lia.
+Qed.
+
+Lemma add_fill_height_monotone_r (a b : t) (shift : nat):
+  (height b <= height (add_fill a b shift))%nat.
+Proof.
+  unfold add_fill.
+  desf; ins; lia.
+Qed.
+
+Lemma fillDoc_cons (sigma1 sigma2 : list t) (w shift : nat) (G : t):
+  fillDoc w sigma1 (G :: sigma2) shift = (fillDoc w sigma1 [G] shift) ++ (fillDoc w sigma1 sigma2 shift).
+Proof.
+  unfold fillDoc.
+  unfold cross_general.
+  ins.
+  autorewrite with sublist norm.
+  rewrite filter_app.
+  vauto.
+Qed.
+
+Lemma add_fill_monotone_l_single (sigma1 : list t) (w shift : nat) (h : Z) (a : t):
+  filter (fun G => (height G <=? Z.to_nat h)%nat) (fillDoc w (filter (fun G => (height G <=? Z.to_nat h)%nat) sigma1) [a] shift) =
+      filter (fun G => (height G <=? Z.to_nat h)%nat) (fillDoc w sigma1 [a] shift).
+Proof.
+  induction sigma1; ins.
+  desf.
+  { unfold fillDoc in *.
+    unfold cross_general in *.
+    ins; desf; ins; desf; ins.
+    f_equal.
+    autorewrite with sublist norm in *.
+    apply IHsigma1. }
+  unfold fillDoc in *.
+  unfold cross_general in *.
+  ins; desf; ins; desf; ins.
+  assert (height a0 <= height (add_fill a0 a shift))%nat as GG by apply add_fill_height_monotone_l.
+  lia.
+Qed.
+
+Lemma add_fill_filter_monotone_l (sigma1 sigma2 : list t) (w shift : nat) (h : Z):
+  filter (fun G => (height G <=? Z.to_nat h)%nat) (fillDoc w (filter (fun G => (height G <=? Z.to_nat h)%nat) sigma1) sigma2 shift) =
+      filter (fun G => (height G <=? Z.to_nat h)%nat) (fillDoc w sigma1 sigma2 shift).
+Proof.
+  revert dependent sigma1.
+  induction sigma2; ins.
+  rewrite fillDoc_cons.
+  rewrite (fillDoc_cons sigma1 sigma2 w shift a).
+  do 2 rewrite filter_app.
+  rewrite IHsigma2.
+  rewrite app_inv_tail_iff.
+  apply add_fill_monotone_l_single.
+Qed.
+
+Lemma add_fill_filter_emp_single (sigma1 : list t) (w shift : nat) (h : Z) (a : t):
+  (~(height a <= Z.to_nat h)%nat) ->
+  filter (fun G : t => (height G <=? Z.to_nat h)%nat) (fillDoc w sigma1 [a] shift) = [].
+Proof.
+  induction sigma1; ins.
+  unfold fillDoc in *.
+  unfold cross_general in *.
+  ins; desf; ins; desf; autorewrite with sublist norm in *.
+  { assert (height a <= height (add_fill a0 a shift))%nat as GG by apply add_fill_height_monotone_r.
+    lia. }
+  { apply IHsigma1; lia. }
+  apply IHsigma1; lia.
+Qed.
+
+Lemma add_fill_filter_monotone_r (sigma1 sigma2 : list t) (w shift : nat) (h : Z):
+  filter (fun G => (height G <=? Z.to_nat h)%nat) (fillDoc w sigma1 (filter (fun G => (height G <=? Z.to_nat h)%nat) sigma2) shift) =
+      filter (fun G => (height G <=? Z.to_nat h)%nat) (fillDoc w sigma1 sigma2 shift).
+Proof.
+  revert dependent sigma1.
+  induction sigma2; ins.
+  desf.
+  { rewrite fillDoc_cons.
+    rewrite (fillDoc_cons sigma1 sigma2 w shift a).
+    do 2 rewrite filter_app.
+    rewrite IHsigma2.
+    vauto. }
+  rewrite fillDoc_cons.
+  rewrite filter_app.
+  rewrite IHsigma2.
+  enough (filter (fun G : t => (height G <=? Z.to_nat h)%nat) (fillDoc w sigma1 [a] shift) = []) as K.
+  { rewrite K.
+    list_solve. }
+  rewrite add_fill_filter_emp_single; vauto.
+Qed.
+
+Lemma body_evaluator_trivial: semax_body Vprog Gprog f_evaluator_trivial evaluator_trivial_spec.
+Proof.
+  start_function.
+  destruct d.
+  { unff mdoc.
+    Intros string_ptr.
+    forward.
+    forward_if.
+    2: { vauto. }
+    forward.
+    forward_call(string_to_list_byte s, string_ptr, w, h, gv).
+    Intros vret.
+    destruct vret as (result_ptr, result_fs).
+    forward.
+    Exists result_ptr result_fs.
+    entailer!.
+    { unfold evaluatorTrivial.
+      rewrite string_to_string_eq in *; ins. }
+    unfold mdoc.
+    Exists string_ptr.
+    entailer!. }
+  { unff mdoc.
+    Intros child_ptr.
+    forward.
+    forward_if.
+    { vauto. }
+    forward.
+    forward_if.
+    2: { vauto. }
+    forward.
+    forward_call(d, child_ptr, w, h, gv).
+    Intros vret.
+    destruct vret as (eval_ptr, eval_fs).
+    forward.
+    forward_call(eval_fs, eval_ptr, w, h, (Z.of_nat t), gv).
+    { simpl; entailer!. }
+    Intros vret.
+    destruct vret as (result_ptr, result_fs).
+    forward.
+    Exists result_ptr result_fs.
+    entailer!.
+    2: { unff mdoc.
+      Exists child_ptr.
+      entailer!. }
+    ins.
+    subst.
+    rewrite indent_filter_monotone.
+    replace (Z.to_nat (Z.of_nat t)) with t by lia; vauto. }
+  { unff mdoc; simpl.
+    Intros child1_ptr child2_ptr.
+    forward.
+    forward_if.
+    { vauto. }
+    forward.
+    forward_if.
+    { vauto. }
+    forward.
+    forward_if.
+    2: { vauto. }
+    forward.
+    forward_call(d1, child1_ptr, w, h, gv).
+    Intros vret.
+    destruct vret as (eval1_ptr, eval1_fs).
+    forward.
+    forward_call(d2, child2_ptr, w, h, gv).
+    Intros vret.
+    destruct vret as (eval2_ptr, eval2_fs).
+    forward_call(eval1_fs, eval2_fs, eval1_ptr, eval2_ptr, w, h, gv).
+    { simpl; entailer!. }
+    Intros vret.
+    destruct vret as (result_ptr, result_fs).
+    forward.
+    Exists result_ptr result_fs.
+    entailer!.
+    2: { unff mdoc; simpl.
+      Exists child1_ptr child2_ptr.
+      entailer!. }
+    ins; subst.
+    rewrite add_beside_filter_monotone_l.
+    rewrite add_beside_filter_monotone_r.
+    vauto. }
+  { unff mdoc; simpl.
+    Intros child1_ptr child2_ptr.
+    forward.
+    forward_if.
+    { vauto. }
+    forward.
+    forward_if.
+    { vauto. }
+    forward.
+    forward_if.
+    { vauto. }
+    forward.
+    forward_if.
+    2: { vauto. }
+    forward.
+    forward_call(d1, child1_ptr, w, h, gv).
+    Intros vret.
+    destruct vret as (eval1_ptr, eval1_fs).
+    forward.
+    forward_call(d2, child2_ptr, w, h, gv).
+    Intros vret.
+    destruct vret as (eval2_ptr, eval2_fs).
+    forward_call(eval1_fs, eval2_fs, eval1_ptr, eval2_ptr, w, h, gv).
+    { simpl; entailer!. }
+    Intros vret.
+    destruct vret as (result_ptr, result_fs).
+    forward.
+    Exists result_ptr result_fs.
+    entailer!.
+    2: { unff mdoc; simpl.
+      Exists child1_ptr child2_ptr.
+      entailer!. }
+    ins; subst.
+    rewrite add_above_filter_monotone_l.
+    rewrite add_above_filter_monotone_r.
+    vauto. }
+  { unff mdoc; simpl.
+    Intros child1_ptr child2_ptr.
+    forward.
+    forward_if.
+    { vauto. }
+    forward.
+    forward_if.
+    { vauto. }
+    forward.
+    forward_if.
+    { vauto. }
+    forward.
+    forward_if.
+    { vauto. }
+    forward.
+    forward_if.
+    2: { vauto. }
+    forward.
+    forward_call(d1, child1_ptr, w, h, gv).
+    Intros vret.
+    destruct vret as (eval1_ptr, eval1_fs).
+    forward.
+    forward_call(d2, child2_ptr, w, h, gv).
+    Intros vret.
+    destruct vret as (eval2_ptr, eval2_fs).
+    forward_call(eval1_fs, eval2_fs, eval1_ptr, eval2_ptr, w, h, gv).
+    { simpl; entailer!. }
+    Intros vret.
+    destruct vret as (result_ptr, result_fs).
+    forward.
+    Exists result_ptr result_fs.
+    entailer!.
+    2: { unff mdoc; simpl.
+      Exists child1_ptr child2_ptr.
+      entailer!. }
+    ins; subst.
+    unfold choiceDoc.
+    repeat rewrite filter_app.
+    do 2 rewrite filter_double_eq; vauto. }
+  unff mdoc; simpl.
+  Intros child1_ptr child2_ptr.
+  forward.
+  forward_if.
+  { vauto. }
+  forward.
+  forward_if.
+  { vauto. }
+  forward.
+  forward_if.
+  { vauto. }
+  forward.
+  forward_if.
+  { vauto. }
+  forward.
+  forward_if.
+  { vauto. }
+  forward.
+  forward_if.
+  2: vauto.
+  forward.
+  forward_call(d1, child1_ptr, w, h, gv).
+  Intros vret.
+  destruct vret as (eval1_ptr, eval1_fs).
+  forward.
+  forward_call(d2, child2_ptr, w, h, gv).
+  Intros vret.
+  destruct vret as (eval2_ptr, eval2_fs).
+  forward.
+  forward_call(eval1_fs, eval2_fs, eval1_ptr, eval2_ptr, w, h, Z.of_nat s, gv).
+  { simpl; entailer!. }
+  Intros vret.
+  destruct vret as (result_ptr, result_fs).
+  forward.
+  Exists result_ptr result_fs.
+  entailer!.
+  2: { unff mdoc; simpl.
+    Exists child1_ptr child2_ptr.
+    entailer!. }
+  ins; subst.
+  rewrite add_fill_filter_monotone_l.
+  rewrite add_fill_filter_monotone_r.
+  rewrite Nat2Z.id; vauto.
 Qed.
