@@ -624,7 +624,10 @@ DECLARE _to_text_add_beside
     EX q : val, EX sigma : list (Z * list byte),
     PROP(to_text_eq (to_text (add_beside G F)) sigma; list_mp sigma;
           0 <= Zlength sigma + 1 <= Int.max_unsigned;
-          Zlength sigma = list_add_beside_length sigmaG sigmaF)
+          Zlength sigma = list_add_beside_length sigmaG sigmaF;
+          first_line_width_pred (add_beside G F) sigma;
+          middle_width_pred (add_beside G F) sigma;
+          last_line_width_pred (add_beside G F) sigma)
     RETURN(q)
     SEP(concrete_mformat G pointer_G sigmaG pG; 
         concrete_mformat F pointer_F sigmaF pF;
@@ -713,7 +716,10 @@ DECLARE _to_text_add_fill
     EX q : val, EX sigma : list (Z * list byte),
     PROP(to_text_eq (to_text (add_fill G F (Z.to_nat shift))) sigma; list_mp sigma;
           0 <= Zlength sigma + 1 <= Int.max_unsigned;
-          Zlength sigma = list_add_beside_length sigmaG sigmaF)
+          Zlength sigma = list_add_beside_length sigmaG sigmaF;
+          first_line_width_pred (add_fill G F (Z.to_nat shift)) sigma;
+          middle_width_pred (add_fill G F (Z.to_nat shift)) sigma;
+          last_line_width_pred (add_fill G F (Z.to_nat shift)) sigma)
     RETURN(q)
     SEP(concrete_mformat G pointer_G sigmaG pG; 
         concrete_mformat F pointer_F sigmaF pF;

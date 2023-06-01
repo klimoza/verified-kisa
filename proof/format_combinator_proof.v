@@ -1137,6 +1137,614 @@ Proof.
   inv K1; vauto.
 Qed.
 
+Lemma add_beside_flw_pred (G F : t) (sigmaG sigmaF_tail : list (Z * list byte)) (f_shift tail_shift : Z) (f_line tail_line line_con : list byte):
+  << FMT_MPG : format_mp G sigmaG >> ->
+  << FMT_MPF : format_mp F ((f_shift, f_line) :: sigmaF_tail) >> ->
+  line_con = tail_line ++ sp_byte (Z.to_nat f_shift) ++ f_line ->
+  << TAIL_EQ: (tail_shift, tail_line) = Znth (Zlength sigmaG - 1) sigmaG >> ->
+  first_line_width_pred (add_beside G F) (sublist 0 (Zlength sigmaG - 1) sigmaG ++ 
+      [(tail_shift, line_con)] ++ map (fun x => (fst x + Z.of_nat (last_line_width G), snd x)) sigmaF_tail).
+Proof.
+  ins.
+  getnw.
+  inv FMT_MPG.
+  inv FMT_MPF.
+  inv format_mp_list_mp.
+  inv format_mp_list_mp0.
+  apply Forall_cons_iff in list_mp_forall_fst0.
+  unfold first_line_width_pred in *; desf; unfold add_beside in *; desf; ins; try list_solve.
+  { assert (Zlength sigmaG = 0) as K by list_solve.
+    rewrite K in *.
+    replace (0 - 1) with (-1) in * by lia.
+    replace (sublist 0 (-1) sigmaG) with ([] : list (Z * list byte)) by list_solve.
+    assert (Znth (-1) sigmaG = (0, [])) as K1 by list_solve.
+    rewrite K1 in *; ins.
+    assert (tail_shift = 0) by list_solve.
+    assert (tail_line = []) by list_solve.
+    subst.
+    autorewrite with sublist norm.
+    rewrite sp_byte_length.
+    rewrite format_mp_flw_eq0.
+    rewrite Z2Nat.id; vauto; lia. }
+  { assert (Zlength sigmaG = 1) as K by list_solve.
+    rewrite K in *.
+    replace (1 - 1) with 0 in * by lia.
+    autorewrite with sublist norm in *.
+    rewrite format_mp_flw_eq.
+    rewrite format_mp_flw_eq0.
+    rewrite <- TAIL_EQ; ins.
+    rewrite sp_byte_length.
+    assert (0 <= 4 * fst (tail_shift, tail_line) <= Int.max_unsigned - 1) as K1.
+    { eapply (computable_theorems.Forall_forall1 (fun x => 0 <= 4 * fst x <= Int.max_unsigned - 1) sigmaG).
+      { vauto. }
+      rewrite TAIL_EQ.
+      apply Znth_In; lia. }
+    rewrite Z2Nat.inj_add; ins.
+    2: lia.
+    2: list_solve.
+    rewrite Z2Nat.inj_add; ins.
+    2: lia.
+    2: list_solve.
+    rewrite Z2Nat.id; try lia.
+    rewrite Z2Nat.inj_add; ins; try lia; try list_solve. }
+  { assert (Zlength sigmaG = 1) as K by list_solve.
+    rewrite K in *.
+    replace (1 - 1) with 0 in * by lia.
+    autorewrite with sublist norm in *.
+    rewrite format_mp_flw_eq.
+    rewrite format_mp_flw_eq0.
+    rewrite <- TAIL_EQ; ins.
+    rewrite sp_byte_length.
+    assert (0 <= 4 * fst (tail_shift, tail_line) <= Int.max_unsigned - 1) as K1.
+    { eapply (computable_theorems.Forall_forall1 (fun x => 0 <= 4 * fst x <= Int.max_unsigned - 1) sigmaG).
+      { vauto. }
+      rewrite TAIL_EQ.
+      apply Znth_In; lia. }
+    rewrite Z2Nat.inj_add; ins.
+    2: lia.
+    2: list_solve.
+    rewrite Z2Nat.inj_add; ins.
+    2: lia.
+    2: list_solve.
+    rewrite Z2Nat.id; try lia.
+    rewrite Z2Nat.inj_add; ins; try lia; try list_solve. }
+  assert (Zlength sigmaG = 1) as K by list_solve.
+  rewrite K in *.
+  replace (1 - 1) with 0 in * by lia.
+  autorewrite with sublist norm in *.
+  rewrite format_mp_flw_eq.
+  rewrite format_mp_flw_eq0.
+  rewrite <- TAIL_EQ; ins.
+  rewrite sp_byte_length.
+  assert (0 <= 4 * fst (tail_shift, tail_line) <= Int.max_unsigned - 1) as K1.
+  { eapply (computable_theorems.Forall_forall1 (fun x => 0 <= 4 * fst x <= Int.max_unsigned - 1) sigmaG).
+    { vauto. }
+    rewrite TAIL_EQ.
+    apply Znth_In; lia. }
+  rewrite Z2Nat.inj_add; ins.
+  2: lia.
+  2: list_solve.
+  rewrite Z2Nat.inj_add; ins.
+  2: lia.
+  2: list_solve.
+  rewrite Z2Nat.id; try lia.
+  rewrite Z2Nat.inj_add; ins; try lia; try list_solve.
+Qed.
+
+Lemma add_beside_mw_lemm (sigma : list (Z * list byte)):
+  map (fun x => (fst x + 0, snd x)) sigma = sigma.
+Proof.
+  induction sigma; ins.
+  rewrite IHsigma; ins.
+  f_equal.
+  destruct a; ins.
+  f_equal.
+  lia.
+Qed.
+
+Lemma add_beside_mw_lemm2 (sigma : list (Z * list byte)) (a : Z):
+  sigma <> [] ->
+  a >= 0 ->
+  << FORALL_SIGMA: Forall (fun x => 0 <= 4 * fst x <= Int.max_unsigned - 1) sigma >> ->
+  list_max (map (fun x => Z.to_nat (fst x + a + Zlength (snd x))) sigma) =
+  ((Z.to_nat a) + list_max (map (fun x => Z.to_nat (fst x + Zlength (snd x))) sigma))%nat.
+Proof.
+  induction sigma; ins.
+  destruct sigma; ins.
+  { getnw.
+    inv FORALL_SIGMA.
+    assert (Zlength (snd a0) >= 0) by list_solve.
+    lia. }
+  getnw.
+  inv FORALL_SIGMA.
+  assert (Zlength (snd a0) >= 0) by list_solve.
+  rewrite IHsigma; ins.
+  lia.
+Qed.
+
+Lemma add_beside_mw_pred (G F : t) (sigmaG sigmaF_tail : list (Z * list byte)) (f_shift tail_shift : Z) (f_line tail_line line_con : list byte):
+  << FMT_MPG : format_mp G sigmaG >> ->
+  << FMT_MPF : format_mp F ((f_shift, f_line) :: sigmaF_tail) >> ->
+  line_con = tail_line ++ sp_byte (Z.to_nat f_shift) ++ f_line ->
+  << TAIL_EQ: (tail_shift, tail_line) = Znth (Zlength sigmaG - 1) sigmaG >> ->
+  middle_width_pred (add_beside G F) (sublist 0 (Zlength sigmaG - 1) sigmaG ++ 
+      [(tail_shift, line_con)] ++ map (fun x => (fst x + Z.of_nat (last_line_width G), snd x)) sigmaF_tail).
+Proof.
+  ins.
+  getnw.
+  inv FMT_MPG.
+  inv FMT_MPF.
+  inv format_mp_list_mp.
+  inv format_mp_list_mp0.
+  apply Forall_cons_iff in list_mp_forall_fst0.
+  unfold first_line_width_pred in *.
+  unfold last_line_width_pred in *.
+  unfold middle_width_pred in *; desf; unfold add_beside in *; desf; ins; try list_solve.
+  { assert (Zlength sigmaG = 0) as K by lia.
+    rewrite K in *.
+    replace (0 - 1) with (-1) in * by lia.
+    autorewrite with sublist norm.
+    rewrite format_mp_mw_eq0.
+    assert (Znth (-1) sigmaG = (0, [])) as K1 by list_solve.
+    rewrite K1 in *.
+    assert (tail_shift = 0) by list_solve.
+    assert (tail_line = []) by list_solve.
+    subst.
+    autorewrite with sublist norm.
+    rewrite sp_byte_length.
+    rewrite Z2Nat.id; lia. }
+  { assert (Zlength sigmaG = 1) as K by list_solve.
+    rewrite K in *.
+    replace (1 - 1) with 0 in * by lia.
+    autorewrite with sublist norm in *.
+    rewrite format_mp_flw_eq.
+    rewrite format_mp_flw_eq0.
+    rewrite <- TAIL_EQ; ins.
+    rewrite sp_byte_length.
+    rewrite Z2Nat.id.
+    2: lia.
+    assert (0 <= 4 * fst (tail_shift, tail_line) <= Int.max_unsigned - 1) as K1.
+    { eapply (computable_theorems.Forall_forall1 (fun x => 0 <= 4 * fst x <= Int.max_unsigned - 1) sigmaG).
+      { vauto. }
+      rewrite TAIL_EQ.
+      apply Znth_In; lia. }
+    ins.
+    repeat rewrite Z2Nat.inj_add; try list_solve. }
+  { assert (Zlength sigmaG = 0) as K by lia.
+    rewrite K in *.
+    replace (0 - 1) with (-1) in * by lia.
+    autorewrite with sublist norm.
+    rewrite format_mp_mw_eq0.
+    assert (Znth (-1) sigmaG = (0, [])) as K1 by list_solve.
+    rewrite K1 in *.
+    assert (tail_shift = 0) by list_solve.
+    assert (tail_line = []) by list_solve.
+    subst.
+    autorewrite with sublist norm.
+    rewrite sp_byte_length.
+    rewrite Z2Nat.id; lia. }
+  { assert (Zlength sigmaG = 1) as K by list_solve.
+    rewrite K in *.
+    replace (1 - 1) with 0 in * by lia.
+    autorewrite with sublist norm in *.
+    rewrite format_mp_flw_eq.
+    rewrite format_mp_flw_eq0.
+    rewrite <- TAIL_EQ; ins.
+    rewrite sp_byte_length.
+    rewrite Z2Nat.id.
+    2: lia.
+    assert (0 <= 4 * fst (tail_shift, tail_line) <= Int.max_unsigned - 1) as K1.
+    { eapply (computable_theorems.Forall_forall1 (fun x => 0 <= 4 * fst x <= Int.max_unsigned - 1) sigmaG).
+      { vauto. }
+      rewrite TAIL_EQ.
+      apply Znth_In; lia. }
+    ins.
+    repeat rewrite Z2Nat.inj_add; try list_solve. }
+  { rewrite format_mp_mw_eq.
+    assert (Zlength sigmaF_tail = 0) as K by list_solve.
+    replace (sigmaF_tail) with ([] : list (Z * list byte)) in * by list_solve.
+    ins.
+    autorewrite with sublist norm; vauto. }
+  { assert (Zlength sigmaG = 2) as K1 by list_solve.
+    assert (Zlength sigmaF_tail = 1) as K2 by list_solve.
+    rewrite K1 in *.
+    replace (2 - 1) with 1 in * by lia.
+    rewrite format_mp_flw_eq0.
+    rewrite format_mp_llw_eq.
+    rewrite format_mp_mw_eq0.
+    repeat rewrite Zlength_app.
+    autorewrite with sublist norm.
+    rewrite K2.
+    replace (Z.succ 1 - 1) with 1 in * by lia.
+    replace (sublist 0 1 ((tail_shift, tail_line ++ sp_byte (Z.to_nat f_shift) ++ f_line) :: map
+          (fun x : Z * list byte =>
+           (fst x + Z.of_nat (Z.to_nat (fst (Znth 1 sigmaG) + Zlength (snd (Znth 1 sigmaG)))), snd x)) sigmaF_tail))
+        with [(tail_shift, tail_line ++ sp_byte (Z.to_nat f_shift) ++ f_line)] by list_solve.
+    ins.
+    repeat rewrite Zlength_app.
+    rewrite sp_byte_length.
+    rewrite Z2Nat.id.
+    2: lia.
+    rewrite <- TAIL_EQ; ins.
+    assert (0 <= 4 * fst (tail_shift, tail_line) <= Int.max_unsigned - 1) as K3.
+    { eapply (computable_theorems.Forall_forall1 (fun x => 0 <= 4 * fst x <= Int.max_unsigned - 1) sigmaG).
+      { vauto. }
+      rewrite TAIL_EQ.
+      apply Znth_In; lia. }
+    ins.
+    repeat rewrite Z2Nat.inj_add; try lia; try list_solve. }
+  { assert (Zlength sigmaG = Z.of_nat n0 + 3) as K1 by lia.
+    assert (Zlength sigmaF_tail = 1) as K2 by list_solve.
+    rewrite K1 in *.
+    repeat rewrite Zlength_app.
+    autorewrite with sublist norm.
+    rewrite K2 in *.
+    replace ((Z.of_nat n0 + 3 - 1 + Z.succ 1 - 1)) with (Z.of_nat n0 + 3) in * by lia.
+    replace ((Z.of_nat n0 + 3 - 1)) with (Z.of_nat n0 + 2) in * by lia.
+    rewrite format_mp_mw_eq.
+    rewrite format_mp_llw_eq.
+    rewrite format_mp_mw_eq0.
+    rewrite format_mp_flw_eq0.
+    rewrite <- TAIL_EQ; ins.
+    replace (sublist 1 (Z.of_nat n0 + 3) (sublist 0 (Z.of_nat n0 + 2) sigmaG ++ (tail_shift, tail_line ++ sp_byte (Z.to_nat f_shift) ++ f_line)
+          :: map (fun x : Z * list byte => (fst x + Z.of_nat (Z.to_nat (tail_shift + Zlength tail_line)), snd x)) sigmaF_tail)) with
+          (sublist 1 (Z.of_nat n0 + 2) sigmaG ++ [(tail_shift, tail_line ++ sp_byte (Z.to_nat f_shift) ++ f_line)]) by list_solve.
+    rewrite map_app.
+    rewrite list_max_app; ins.
+    autorewrite with sublist norm.
+    rewrite sp_byte_length.
+    rewrite Z2Nat.id.
+    2: lia.
+    assert (0 <= 4 * fst (tail_shift, tail_line) <= Int.max_unsigned - 1) as K3.
+    { eapply (computable_theorems.Forall_forall1 (fun x => 0 <= 4 * fst x <= Int.max_unsigned - 1) sigmaG).
+      { vauto. }
+      rewrite TAIL_EQ.
+      apply Znth_In; lia. }
+    ins.
+    repeat rewrite Z2Nat.inj_add; try lia; try list_solve. }
+  { assert (Zlength sigmaG = 0) as K by lia.
+    rewrite K in *.
+    replace (0 - 1) with (-1) in * by lia.
+    autorewrite with sublist norm.
+    rewrite format_mp_mw_eq0.
+    assert (Znth (-1) sigmaG = (0, [])) as K1 by list_solve.
+    rewrite K1 in *.
+    assert (tail_shift = 0) by list_solve.
+    assert (tail_line = []) by list_solve.
+    subst.
+    autorewrite with sublist norm.
+    replace (Z.succ (Zlength sigmaF_tail) - 1) with (Zlength sigmaF_tail) in * by list_solve.
+    rewrite format_mp_llw_eq.
+    replace (Z.of_nat 0) with 0 by lia.
+    rewrite add_beside_mw_lemm.
+    repeat rewrite sublist_1_cons; vauto. }
+  { assert (Zlength sigmaG = 1) as K by list_solve.
+    rewrite K in *.
+    replace (1 - 1) with 0 in * by lia.
+    autorewrite with sublist norm in *.
+    rewrite format_mp_llw_eq.
+    rewrite format_mp_mw_eq0.
+    rewrite <- TAIL_EQ; ins.
+    replace (Z.succ (Zlength sigmaF_tail) - 1) with (Zlength sigmaF_tail) in * by list_solve.
+    repeat rewrite sublist_1_cons.
+    rewrite sublist_map.
+    rewrite map_map; ins.
+    assert (0 <= 4 * fst (tail_shift, tail_line) <= Int.max_unsigned - 1) as K3.
+    { eapply (computable_theorems.Forall_forall1 (fun x => 0 <= 4 * fst x <= Int.max_unsigned - 1) sigmaG).
+      { vauto. }
+      rewrite TAIL_EQ.
+      apply Znth_In; lia. }
+    ins.
+    rewrite Z2Nat.id.
+    2: list_solve.
+    rewrite add_beside_mw_lemm2.
+    2: { assert (Zlength sigmaF_tail = Z.of_nat n0 + 2) as KK by list_solve.
+        rewrite KK.
+        replace ((Z.of_nat n0 + 2 - 1)) with (Z.of_nat n0 + 1) by lia.
+        destruct (sublist 0 (Z.of_nat n0 + 1) sigmaF_tail) eqn:FF.
+        2: vauto.
+        assert (Zlength (sublist 0 (Z.of_nat n0 + 1) sigmaF_tail) = (Z.of_nat n0 + 1)) by list_solve.
+        rewrite FF in *.
+        list_solve. }
+    2: { list_solve. }
+    2: { ins; unnw; list_solve. }
+    vauto. }
+  { assert (Zlength sigmaG = 2) as K1 by list_solve.
+    rewrite K1 in * by lia.
+    replace (2 - 1) with 1 in * by lia.
+    repeat rewrite Zlength_app.
+    autorewrite with sublist norm.
+    rewrite format_mp_llw_eq.
+    rewrite format_mp_flw_eq0.
+    rewrite format_mp_mw_eq0.
+    rewrite <- TAIL_EQ; ins.
+    autorewrite with sublist norm.
+    replace ((Z.succ (Zlength sigmaF_tail) - 1)) with (Zlength sigmaF_tail) in * by list_solve.
+    rewrite sublist_1_cons.
+    rewrite sublist_0_cons.
+    2: list_solve.
+    rewrite sublist_map.
+    repeat rewrite map_cons.
+    repeat rewrite list_max_cons.
+    repeat rewrite map_map; ins.
+    assert (0 <= 4 * fst (tail_shift, tail_line) <= Int.max_unsigned - 1) as K3.
+    { eapply (computable_theorems.Forall_forall1 (fun x => 0 <= 4 * fst x <= Int.max_unsigned - 1) sigmaG).
+      { vauto. }
+      rewrite TAIL_EQ.
+      apply Znth_In; lia. }
+    ins.
+    rewrite add_beside_mw_lemm2.
+    2: { assert (Zlength sigmaF_tail = Z.of_nat n0 + 2) as KK by list_solve.
+        rewrite KK.
+        replace ((Z.of_nat n0 + 2 - 1)) with (Z.of_nat n0 + 1) by lia.
+        destruct (sublist 0 (Z.of_nat n0 + 1) sigmaF_tail) eqn:FF.
+        2: vauto.
+        assert (Zlength (sublist 0 (Z.of_nat n0 + 1) sigmaF_tail) = (Z.of_nat n0 + 1)) by list_solve.
+        rewrite FF in *.
+        list_solve. }
+    2: { rewrite Z2Nat.id; list_solve. }
+    2: { unnw; list_solve. }
+    repeat rewrite Zlength_app.
+    repeat rewrite sp_byte_length.
+    repeat rewrite Z2Nat.id.
+    2: list_solve.
+    2: lia.
+    repeat rewrite Z2Nat.inj_add; try lia; try list_solve. }
+  autorewrite with sublist norm.
+  rewrite format_mp_mw_eq.
+  rewrite format_mp_llw_eq.
+  rewrite format_mp_mw_eq0.
+  rewrite format_mp_flw_eq0.
+  rewrite <- TAIL_EQ; ins.
+  autorewrite with sublist norm.
+  replace ((Zlength sigmaG - 1 + Z.succ (Zlength sigmaF_tail) - 1)) with (Zlength sigmaF_tail + Zlength sigmaG - 1) in * by list_solve. 
+  replace ((Z.succ (Zlength sigmaF_tail) - 1)) with (Zlength sigmaF_tail) in * by list_solve.
+  replace (sublist 1 (Zlength sigmaF_tail + Zlength sigmaG - 1) (sublist 0 (Zlength sigmaG - 1) sigmaG ++ (tail_shift, tail_line ++ sp_byte (Z.to_nat f_shift) ++ f_line)
+          :: map (fun x : Z * list byte => (fst x + Z.of_nat (Z.to_nat (tail_shift + Zlength tail_line)), snd x)) sigmaF_tail)) with
+          ((sublist 1 (Zlength sigmaG - 1) sigmaG) ++ [(tail_shift, tail_line ++ sp_byte (Z.to_nat f_shift) ++ f_line)] ++ (sublist 0 (Zlength sigmaF_tail - 1) (map
+          (fun x : Z * list byte => (fst x + Z.of_nat (Z.to_nat (tail_shift + Zlength tail_line)), snd x)) sigmaF_tail))) by list_solve.
+  rewrite sublist_1_cons.
+  repeat rewrite map_app.
+  repeat rewrite sublist_map.
+  repeat rewrite map_map.
+  ins.
+  autorewrite with sublist norm.
+  rewrite sp_byte_length.
+  rewrite list_max_app.
+  rewrite list_max_cons.
+  assert (0 <= 4 * fst (tail_shift, tail_line) <= Int.max_unsigned - 1) as K3.
+  { eapply (computable_theorems.Forall_forall1 (fun x => 0 <= 4 * fst x <= Int.max_unsigned - 1) sigmaG).
+    { vauto. }
+    rewrite TAIL_EQ.
+    apply Znth_In; lia. }
+  ins.
+  rewrite add_beside_mw_lemm2.
+  2: { assert (Zlength sigmaF_tail = Z.of_nat n0 + 2) as KK by list_solve.
+        rewrite KK.
+        replace ((Z.of_nat n0 + 2 - 1)) with (Z.of_nat n0 + 1) by lia.
+        destruct (sublist 0 (Z.of_nat n0 + 1) sigmaF_tail) eqn:FF.
+        2: vauto.
+        assert (Zlength (sublist 0 (Z.of_nat n0 + 1) sigmaF_tail) = (Z.of_nat n0 + 1)) by list_solve.
+        rewrite FF in *.
+        list_solve. }
+  2: { rewrite Z2Nat.id; list_solve. }
+  2: { unnw; list_solve. }
+  repeat rewrite Z2Nat.id.
+  2: list_solve.
+  2: lia.
+  repeat rewrite Z2Nat.inj_add; try lia; try list_solve.
+Qed.
+
+Lemma add_beside_llw_pred (G F : t) (sigmaG sigmaF_tail : list (Z * list byte)) (f_shift tail_shift : Z) (f_line tail_line line_con : list byte):
+  << FMT_MPG : format_mp G sigmaG >> ->
+  << FMT_MPF : format_mp F ((f_shift, f_line) :: sigmaF_tail) >> ->
+  line_con = tail_line ++ sp_byte (Z.to_nat f_shift) ++ f_line ->
+  << TAIL_EQ: (tail_shift, tail_line) = Znth (Zlength sigmaG - 1) sigmaG >> ->
+  last_line_width_pred (add_beside G F) (sublist 0 (Zlength sigmaG - 1) sigmaG ++ 
+      [(tail_shift, line_con)] ++ map (fun x => (fst x + Z.of_nat (last_line_width G), snd x)) sigmaF_tail).
+Proof.
+  ins.
+  getnw.
+  inv FMT_MPG.
+  inv FMT_MPF.
+  inv format_mp_list_mp.
+  inv format_mp_list_mp0.
+  apply Forall_cons_iff in list_mp_forall_fst0.
+  unfold first_line_width_pred in *.
+  unfold last_line_width_pred in *; desf; unfold add_beside in *; desf; ins.
+  { list_solve. }
+  { list_solve. }
+  { list_solve. }
+  { list_solve. }
+  { assert (Zlength sigmaG = 0) as K by lia.
+    rewrite K in *.
+    replace (0 - 1) with (-1) in * by lia.
+    autorewrite with sublist norm.
+    rewrite format_mp_llw_eq0.
+    assert (Znth (-1) sigmaG = (0, [])) as K1 by list_solve.
+    rewrite K1 in *.
+    assert (tail_shift = 0) by list_solve.
+    assert (tail_line = []) by list_solve.
+    subst.
+    autorewrite with sublist norm.
+    replace ((Z.succ (Zlength sigmaF_tail) - 1)) with (Zlength sigmaF_tail) by lia.
+    replace (Zlength sigmaF_tail) with (Z.of_nat n) by list_solve.
+    destruct n.
+    { autorewrite with sublist norm.
+      rewrite <- ZtoNat_Zlength.
+      repeat rewrite Zlength_app.
+      rewrite sp_byte_length.
+      rewrite Z2Nat.id; lia. }
+    repeat rewrite Znth_pos_cons.
+    2: lia.
+    2: lia.
+    replace (Z.of_nat (S n) - 1) with (Z.of_nat n) by lia.
+    rewrite format_mp_llw_eq.
+    replace (Z.of_nat 0) with 0 by lia.
+    rewrite add_beside_mw_lemm.
+    vauto. }
+  { assert (Zlength sigmaG = 1) as K1 by list_solve.
+    rewrite K1 in *.
+    replace (1 - 1) with 0 in * by lia.
+    autorewrite with sublist norm.
+    replace (Z.succ (Zlength sigmaF_tail) - 1) with (Zlength sigmaF_tail) by lia.
+    rewrite format_mp_llw_eq.
+    rewrite format_mp_llw_eq0.
+    replace (Zlength sigmaF_tail) with 0 by list_solve.
+    autorewrite with sublist norm.
+    replace ((Z.succ (Zlength sigmaF_tail) - 1)) with (Zlength sigmaF_tail) by lia.
+    replace (Zlength sigmaF_tail) with 0 by list_solve.
+    autorewrite with sublist norm.
+    rewrite sp_byte_length.
+    assert (0 <= 4 * fst (tail_shift, tail_line) <= Int.max_unsigned - 1) as K3.
+    { eapply (computable_theorems.Forall_forall1 (fun x => 0 <= 4 * fst x <= Int.max_unsigned - 1) sigmaG).
+      { vauto. }
+      rewrite TAIL_EQ.
+      apply Znth_In; lia. }
+    ins.
+    rewrite Z2Nat.id.
+    2: lia.
+    rewrite <- TAIL_EQ; ins.
+    repeat rewrite Z2Nat.inj_add; try lia; try list_solve. }
+  { assert (Zlength sigmaG = 1) as K1 by list_solve.
+    rewrite K1 in *.
+    replace (1 - 1) with 0 in * by lia.
+    rewrite format_mp_llw_eq.
+    rewrite format_mp_llw_eq0.
+    autorewrite with sublist norm.
+    replace (Zlength sigmaF_tail) with 1 by list_solve.
+    replace (Z.succ 1 - 1) with 1 by lia.
+    autorewrite with sublist norm.
+    rewrite <- TAIL_EQ; ins.
+    repeat rewrite Znth_pos_cons; try lia.
+    replace (1 - 1) with 0 by lia.
+    repeat rewrite Znth_map.
+    2: list_solve.
+    autorewrite with sublist norm.
+    assert (0 <= 4 * fst (tail_shift, tail_line) <= Int.max_unsigned - 1) as K3.
+    { eapply (computable_theorems.Forall_forall1 (fun x => 0 <= 4 * fst x <= Int.max_unsigned - 1) sigmaG).
+      { vauto. }
+      rewrite TAIL_EQ.
+      apply Znth_In; lia. }
+    ins.
+    rewrite Z2Nat.id.
+    2: list_solve.
+    repeat rewrite Z2Nat.inj_add; try lia; try list_solve. }
+  { assert (Zlength sigmaG = 1) as K1 by list_solve.
+    rewrite K1 in *.
+    replace (1 - 1) with 0 in * by lia.
+    rewrite format_mp_llw_eq.
+    rewrite format_mp_llw_eq0.
+    autorewrite with sublist norm.
+    replace (Zlength sigmaF_tail) with (Z.of_nat n0 + 2) by list_solve.
+    replace (Z.succ (Z.of_nat n0 + 2) - 1) with (Z.of_nat n0 + 2) by lia.
+    rewrite <- TAIL_EQ; ins.
+    repeat rewrite Znth_pos_cons; try lia.
+    replace (Z.of_nat n0 + 2 - 1) with (Z.of_nat n0 + 1) by lia.
+    repeat rewrite Znth_map.
+    2: list_solve.
+    autorewrite with sublist norm.
+    assert (0 <= 4 * fst (tail_shift, tail_line) <= Int.max_unsigned - 1) as K3.
+    { eapply (computable_theorems.Forall_forall1 (fun x => 0 <= 4 * fst x <= Int.max_unsigned - 1) sigmaG).
+      { vauto. }
+      rewrite TAIL_EQ.
+      apply Znth_In; lia. }
+    ins.
+    rewrite Z2Nat.id.
+    2: list_solve.
+    repeat rewrite Z2Nat.inj_add; try lia; try list_solve. }
+  { assert (Zlength sigmaG = 2) as K1 by list_solve.
+    rewrite K1 in *.
+    replace (2 - 1) with 1 in * by lia.
+    rewrite format_mp_llw_eq.
+    rewrite format_mp_llw_eq0.
+    autorewrite with sublist norm.
+    replace (Zlength sigmaF_tail) with 0 by list_solve.
+    replace (Z.succ 0 - 1) with 0 by lia.
+    rewrite <- TAIL_EQ; ins.
+    repeat rewrite Zlength_app.
+    rewrite sp_byte_length.
+    assert (0 <= 4 * fst (tail_shift, tail_line) <= Int.max_unsigned - 1) as K3.
+    { eapply (computable_theorems.Forall_forall1 (fun x => 0 <= 4 * fst x <= Int.max_unsigned - 1) sigmaG).
+      { vauto. }
+      rewrite TAIL_EQ.
+      apply Znth_In; lia. }
+    ins.
+    rewrite Z2Nat.id.
+    2: list_solve.
+    repeat rewrite Z2Nat.inj_add; try lia; try list_solve. }
+  { assert (Zlength sigmaG = 2) as K1 by list_solve.
+    rewrite K1 in *.
+    replace (2 - 1) with 1 in * by lia.
+    rewrite format_mp_llw_eq.
+    rewrite format_mp_llw_eq0.
+    autorewrite with sublist norm.
+    replace (Zlength sigmaF_tail) with (Z.of_nat n1 + 1) by list_solve.
+    replace (Z.succ (Z.of_nat n1 + 1) - 1) with (Z.of_nat n1 + 1) by lia.
+    rewrite <- TAIL_EQ; ins.
+    repeat rewrite Znth_pos_cons; try lia.
+    replace (Z.of_nat n1 + 1 - 1) with (Z.of_nat n1) by lia.
+    repeat rewrite Znth_map.
+    2: list_solve.
+    autorewrite with sublist norm.
+    assert (0 <= 4 * fst (tail_shift, tail_line) <= Int.max_unsigned - 1) as K3.
+    { eapply (computable_theorems.Forall_forall1 (fun x => 0 <= 4 * fst x <= Int.max_unsigned - 1) sigmaG).
+      { vauto. }
+      rewrite TAIL_EQ.
+      apply Znth_In; lia. }
+    ins.
+    rewrite Z2Nat.id.
+    2: list_solve.
+    repeat rewrite Z2Nat.inj_add; try lia; try list_solve. }
+  { assert (Zlength sigmaG = Z.of_nat n1 + 3) as K1 by list_solve.
+    rewrite K1 in *.
+    replace (Z.of_nat n1 + 3 - 1) with (Z.of_nat n1 + 2) in * by lia.
+    rewrite format_mp_llw_eq.
+    rewrite format_mp_llw_eq0.
+    autorewrite with sublist norm.
+    replace (Zlength sigmaF_tail) with 0 by list_solve.
+    replace ((Z.succ 0 - 1)) with 0 by lia.
+    replace (Z.of_nat n1 + 2 + Z.succ 0 - 1 - (Z.of_nat n1 + 2)) with 0 by lia.
+    rewrite <- TAIL_EQ; ins.
+    assert (0 <= 4 * fst (tail_shift, tail_line) <= Int.max_unsigned - 1) as K3.
+    { eapply (computable_theorems.Forall_forall1 (fun x => 0 <= 4 * fst x <= Int.max_unsigned - 1) sigmaG).
+      { vauto. }
+      rewrite TAIL_EQ.
+      apply Znth_In; lia. }
+    ins.
+    repeat rewrite Zlength_app.
+    rewrite sp_byte_length.
+    rewrite Z2Nat.id.
+    2: list_solve.
+    repeat rewrite Z2Nat.inj_add; try lia; try list_solve. }
+  assert (Zlength sigmaG = Z.of_nat n1 + 3) as K1 by list_solve.
+  rewrite K1 in *.
+  replace (Z.of_nat n1 + 3 - 1) with (Z.of_nat n1 + 2) in * by lia.
+  rewrite format_mp_llw_eq.
+  rewrite format_mp_llw_eq0.
+  autorewrite with sublist norm.
+  replace (Zlength sigmaF_tail) with (Z.of_nat n2 + 1) by list_solve.
+  replace (Z.succ (Z.of_nat n2 + 1) - 1) with (Z.of_nat n2 + 1) by lia.
+  replace (Z.of_nat n1 + 2 + Z.succ (Z.of_nat n2 + 1) - 1 - (Z.of_nat n1 + 2)) with (Z.of_nat n2 + 1) by lia.
+  rewrite <- TAIL_EQ; ins.
+  assert (0 <= 4 * fst (tail_shift, tail_line) <= Int.max_unsigned - 1) as K3.
+  { eapply (computable_theorems.Forall_forall1 (fun x => 0 <= 4 * fst x <= Int.max_unsigned - 1) sigmaG).
+    { vauto. }
+    rewrite TAIL_EQ.
+    apply Znth_In; lia. }
+  ins.
+  repeat rewrite Znth_pos_cons.
+  2: list_solve.
+  2: list_solve.
+  repeat rewrite Znth_map.
+  2: list_solve.
+  replace (Z.of_nat n2 + 1 - 1) with (Z.of_nat n2) by lia.
+  autorewrite with sublist norm.
+  rewrite Z2Nat.id.
+  2: list_solve.
+  repeat rewrite Z2Nat.inj_add; try lia; try list_solve.
+Qed.
+
 Lemma body_to_text_add_beside: semax_body Vprog Gprog f_to_text_add_beside to_text_add_beside_spec.
 Proof.
   start_function.
@@ -1157,7 +1765,7 @@ Proof.
     split.
     { unfold add_beside; desf. }
     split.
-    { subst; split; list_solve. }
+    { subst; repeat split; unfold add_beside; desf. }
     split; split; list_solve. }
   { forward; entailer!. }
   forward.
@@ -1175,8 +1783,9 @@ Proof.
     { unfold add_beside; desf. }
     split.
     { unfold list_add_beside_length.
-      replace (height F) with 0%nat in * by lia.
-      replace sigmaF with ([] : list (Z * list byte)) by list_solve; desf. }
+      replace sigmaF with ([] : list (Z * list byte)) by list_solve; desf.
+      { repeat split; unfold add_beside; desf. }
+      repeat split; unfold add_beside; desf. }
     split; split; list_solve. }
   { forward; entailer!. }
   forward.
@@ -1296,7 +1905,13 @@ Proof.
         apply Forall_cons.
         2: apply Forall_nil.
         ins. }
-      unfold list_add_beside_length; desf; list_solve. }
+      unfold list_add_beside_length; repeat split; desf; try list_solve.
+      { eapply add_beside_flw_pred; eauto.
+        all: apply mk_format_mp; vauto. }
+      { eapply add_beside_mw_pred; eauto.
+        all: apply mk_format_mp; vauto. }
+      eapply add_beside_llw_pred; eauto.
+      all: apply mk_format_mp; vauto. }
     unfold to_text_eq.
     ins.
     unfold add_beside.
@@ -1544,9 +2159,6 @@ Proof.
       inv K.
       eapply shift_line_sum; eauto. }
     apply mk_format_mp; vauto.
-    4: admit.
-    4: admit.
-    4: admit.
     { rewrite K1; lia. }
     { rewrite K2; lia. }
     rewrite K1; ins.
@@ -1567,7 +2179,7 @@ Proof.
   replace (Z.of_nat (height G + height F - 1)) with 
     (Z.of_nat (height G) + Z.of_nat (height F) - 1) by list_solve.
   entailer!.
-Admitted.
+Qed.
 
 Definition body_mdw_add_fill: semax_body Vprog Gprog f_mdw_add_fill mdw_add_fill_spec.
 Proof.
@@ -1870,6 +2482,535 @@ Proof.
   destruct n; vauto; ins; list_solve. 
 Qed.
 
+Lemma add_fill_flw_pred (G F : t) (sigmaG sigmaF_tail : list (Z * list byte)) (f_shift tail_shift shift : Z) (f_line tail_line line_con : list byte):
+  << FMT_MPG : format_mp G sigmaG >> ->
+  << FMT_MPF : format_mp F ((f_shift, f_line) :: sigmaF_tail) >> ->
+  line_con = tail_line ++ sp_byte (Z.to_nat f_shift) ++ f_line ->
+  << TAIL_EQ: (tail_shift, tail_line) = Znth (Zlength sigmaG - 1) sigmaG >> ->
+  first_line_width_pred (add_fill G F (Z.to_nat shift)) (sublist 0 (Zlength sigmaG - 1) sigmaG ++ 
+      [(tail_shift, line_con)] ++ map (fun x => (fst x + shift, snd x)) sigmaF_tail).
+Proof.
+  ins.
+  getnw.
+  inv FMT_MPG.
+  inv FMT_MPF.
+  inv format_mp_list_mp.
+  inv format_mp_list_mp0.
+  apply Forall_cons_iff in list_mp_forall_fst0.
+  unfold first_line_width_pred in *; desf; unfold add_fill in *; desf; ins; try list_solve.
+  { assert (Zlength sigmaG = 0) as K by list_solve.
+    rewrite K in *.
+    replace (0 - 1) with (-1) in * by lia.
+    replace (sublist 0 (-1) sigmaG) with ([] : list (Z * list byte)) by list_solve.
+    assert (Znth (-1) sigmaG = (0, [])) as K1 by list_solve.
+    rewrite K1 in *; ins.
+    assert (tail_shift = 0) by list_solve.
+    assert (tail_line = []) by list_solve.
+    subst.
+    autorewrite with sublist norm.
+    rewrite sp_byte_length.
+    rewrite format_mp_flw_eq0.
+    rewrite Z2Nat.id; vauto; lia. }
+  { assert (Zlength sigmaG = 1) as K by list_solve.
+    rewrite K in *.
+    replace (1 - 1) with 0 in * by lia.
+    autorewrite with sublist norm in *.
+    rewrite format_mp_flw_eq.
+    rewrite format_mp_flw_eq0.
+    rewrite <- TAIL_EQ; ins.
+    rewrite sp_byte_length.
+    assert (0 <= 4 * fst (tail_shift, tail_line) <= Int.max_unsigned - 1) as K1.
+    { eapply (computable_theorems.Forall_forall1 (fun x => 0 <= 4 * fst x <= Int.max_unsigned - 1) sigmaG).
+      { vauto. }
+      rewrite TAIL_EQ.
+      apply Znth_In; lia. }
+    rewrite Z2Nat.inj_add; ins.
+    2: lia.
+    2: list_solve.
+    rewrite Z2Nat.inj_add; ins.
+    2: lia.
+    2: list_solve.
+    rewrite Z2Nat.id; try lia.
+    rewrite Z2Nat.inj_add; ins; try lia; try list_solve. }
+  { assert (Zlength sigmaG = 1) as K by list_solve.
+    rewrite K in *.
+    replace (1 - 1) with 0 in * by lia.
+    autorewrite with sublist norm in *.
+    rewrite format_mp_flw_eq.
+    rewrite format_mp_flw_eq0.
+    rewrite <- TAIL_EQ; ins.
+    rewrite sp_byte_length.
+    assert (0 <= 4 * fst (tail_shift, tail_line) <= Int.max_unsigned - 1) as K1.
+    { eapply (computable_theorems.Forall_forall1 (fun x => 0 <= 4 * fst x <= Int.max_unsigned - 1) sigmaG).
+      { vauto. }
+      rewrite TAIL_EQ.
+      apply Znth_In; lia. }
+    rewrite Z2Nat.inj_add; ins.
+    2: lia.
+    2: list_solve.
+    rewrite Z2Nat.inj_add; ins.
+    2: lia.
+    2: list_solve.
+    rewrite Z2Nat.id; try lia.
+    rewrite Z2Nat.inj_add; ins; try lia; try list_solve. }
+  assert (Zlength sigmaG = 1) as K by list_solve.
+  rewrite K in *.
+  replace (1 - 1) with 0 in * by lia.
+  autorewrite with sublist norm in *.
+  rewrite format_mp_flw_eq.
+  rewrite format_mp_flw_eq0.
+  rewrite <- TAIL_EQ; ins.
+  rewrite sp_byte_length.
+  assert (0 <= 4 * fst (tail_shift, tail_line) <= Int.max_unsigned - 1) as K1.
+  { eapply (computable_theorems.Forall_forall1 (fun x => 0 <= 4 * fst x <= Int.max_unsigned - 1) sigmaG).
+    { vauto. }
+    rewrite TAIL_EQ.
+    apply Znth_In; lia. }
+  rewrite Z2Nat.inj_add; ins.
+  2: lia.
+  2: list_solve.
+  rewrite Z2Nat.inj_add; ins.
+  2: lia.
+  2: list_solve.
+  rewrite Z2Nat.id; try lia.
+  rewrite Z2Nat.inj_add; ins; try lia; try list_solve.
+Qed.
+
+Lemma add_fill_mw_pred (G F : t) (sigmaG sigmaF_tail : list (Z * list byte)) (f_shift tail_shift shift : Z) (f_line tail_line line_con : list byte):
+  (height G <> 0)%nat ->
+  (height F <> 0)%nat ->
+  shift >= 0 ->
+  << FMT_MPG : format_mp G sigmaG >> ->
+  << FMT_MPF : format_mp F ((f_shift, f_line) :: sigmaF_tail) >> ->
+  line_con = tail_line ++ sp_byte (Z.to_nat f_shift) ++ f_line ->
+  << TAIL_EQ: (tail_shift, tail_line) = Znth (Zlength sigmaG - 1) sigmaG >> ->
+  middle_width_pred (add_fill G F (Z.to_nat shift)) (sublist 0 (Zlength sigmaG - 1) sigmaG ++ 
+      [(tail_shift, line_con)] ++ map (fun x => (fst x + shift, snd x)) sigmaF_tail).
+Proof.
+  ins.
+  getnw.
+  inv FMT_MPG.
+  inv FMT_MPF.
+  inv format_mp_list_mp.
+  inv format_mp_list_mp0.
+  apply Forall_cons_iff in list_mp_forall_fst0.
+  unfold first_line_width_pred in *.
+  unfold last_line_width_pred in *.
+  unfold middle_width_pred in *; desf; unfold add_fill in *; desf; ins; try list_solve.
+  { assert (Zlength sigmaG = 1) as K by list_solve.
+    rewrite K in *.
+    replace (1 - 1) with 0 in * by lia.
+    autorewrite with sublist norm in *.
+    rewrite format_mp_flw_eq.
+    rewrite format_mp_flw_eq0.
+    rewrite <- TAIL_EQ; ins.
+    rewrite sp_byte_length.
+    rewrite Z2Nat.id.
+    2: lia.
+    assert (0 <= 4 * fst (tail_shift, tail_line) <= Int.max_unsigned - 1) as K1.
+    { eapply (computable_theorems.Forall_forall1 (fun x => 0 <= 4 * fst x <= Int.max_unsigned - 1) sigmaG).
+      { vauto. }
+      rewrite TAIL_EQ.
+      apply Znth_In; lia. }
+    ins.
+    repeat rewrite Z2Nat.inj_add; try list_solve. }
+  { assert (Zlength sigmaG = 1) as K by list_solve.
+    rewrite K in *.
+    replace (1 - 1) with 0 in * by lia.
+    autorewrite with sublist norm in *.
+    rewrite format_mp_flw_eq.
+    rewrite format_mp_flw_eq0.
+    rewrite <- TAIL_EQ; ins.
+    rewrite sp_byte_length.
+    rewrite Z2Nat.id.
+    2: lia.
+    assert (0 <= 4 * fst (tail_shift, tail_line) <= Int.max_unsigned - 1) as K1.
+    { eapply (computable_theorems.Forall_forall1 (fun x => 0 <= 4 * fst x <= Int.max_unsigned - 1) sigmaG).
+      { vauto. }
+      rewrite TAIL_EQ.
+      apply Znth_In; lia. }
+    ins.
+    repeat rewrite Z2Nat.inj_add; try list_solve. }
+  { rewrite format_mp_mw_eq.
+    assert (Zlength sigmaF_tail = 0) as K by list_solve.
+    replace (sigmaF_tail) with ([] : list (Z * list byte)) in * by list_solve.
+    ins.
+    autorewrite with sublist norm; vauto. }
+  { assert (Zlength sigmaG = 2) as K1 by list_solve.
+    assert (Zlength sigmaF_tail = 1) as K2 by list_solve.
+    rewrite K1 in *.
+    replace (2 - 1) with 1 in * by lia.
+    rewrite format_mp_flw_eq0.
+    rewrite format_mp_llw_eq.
+    (* rewrite format_mp_mw_eq0. *)
+    repeat rewrite Zlength_app.
+    autorewrite with sublist norm.
+    rewrite K2.
+    replace (Z.succ 1 - 1) with 1 in * by lia.
+    replace (sublist 0 1 ((tail_shift, tail_line ++ sp_byte (Z.to_nat f_shift) ++ f_line) :: map
+          (fun x : Z * list byte =>
+           (fst x + Z.of_nat (Z.to_nat (fst (Znth 1 sigmaG) + Zlength (snd (Znth 1 sigmaG)))), snd x)) sigmaF_tail))
+        with [(tail_shift, tail_line ++ sp_byte (Z.to_nat f_shift) ++ f_line)] by list_solve.
+    ins.
+    repeat rewrite Zlength_app.
+    rewrite sp_byte_length.
+    rewrite Z2Nat.id.
+    2: lia.
+    rewrite <- TAIL_EQ; ins.
+    assert (0 <= 4 * fst (tail_shift, tail_line) <= Int.max_unsigned - 1) as K3.
+    { eapply (computable_theorems.Forall_forall1 (fun x => 0 <= 4 * fst x <= Int.max_unsigned - 1) sigmaG).
+      { vauto. }
+      rewrite TAIL_EQ.
+      apply Znth_In; lia. }
+    ins.
+    repeat rewrite Z2Nat.inj_add; try lia; try list_solve. }
+  { assert (Zlength sigmaG = Z.of_nat n0 + 3) as K1 by lia.
+    assert (Zlength sigmaF_tail = 1) as K2 by list_solve.
+    rewrite K1 in *.
+    repeat rewrite Zlength_app.
+    autorewrite with sublist norm.
+    rewrite K2 in *.
+    replace ((Z.of_nat n0 + 3 - 1 + Z.succ 1 - 1)) with (Z.of_nat n0 + 3) in * by lia.
+    replace ((Z.of_nat n0 + 3 - 1)) with (Z.of_nat n0 + 2) in * by lia.
+    rewrite format_mp_mw_eq.
+    rewrite format_mp_llw_eq.
+    rewrite format_mp_flw_eq0.
+    rewrite <- TAIL_EQ; ins.
+    replace (sublist 1 (Z.of_nat n0 + 3) (sublist 0 (Z.of_nat n0 + 2) sigmaG ++ (tail_shift, tail_line ++ sp_byte (Z.to_nat f_shift) ++ f_line)
+          :: map (fun x : Z * list byte => (fst x + shift, snd x)) sigmaF_tail)) with
+          (sublist 1 (Z.of_nat n0 + 2) sigmaG ++ [(tail_shift, tail_line ++ sp_byte (Z.to_nat f_shift) ++ f_line)]) by list_solve.
+    rewrite map_app.
+    rewrite list_max_app; ins.
+    autorewrite with sublist norm.
+    rewrite sp_byte_length.
+    rewrite Z2Nat.id.
+    2: lia.
+    assert (0 <= 4 * fst (tail_shift, tail_line) <= Int.max_unsigned - 1) as K3.
+    { eapply (computable_theorems.Forall_forall1 (fun x => 0 <= 4 * fst x <= Int.max_unsigned - 1) sigmaG).
+      { vauto. }
+      rewrite TAIL_EQ.
+      apply Znth_In; lia. }
+    ins.
+    repeat rewrite Z2Nat.inj_add; try lia; try list_solve. }
+  { assert (Zlength sigmaG = 1) as K by list_solve.
+    rewrite K in *.
+    replace (1 - 1) with 0 in * by lia.
+    autorewrite with sublist norm in *.
+    rewrite format_mp_mw_eq0.
+    (* rewrite <- TAIL_EQ; ins. *)
+    replace (Z.succ (Zlength sigmaF_tail) - 1) with (Zlength sigmaF_tail) in * by list_solve.
+    repeat rewrite sublist_1_cons.
+    rewrite sublist_map.
+    rewrite map_map; ins.
+    assert (0 <= 4 * fst (tail_shift, tail_line) <= Int.max_unsigned - 1) as K3.
+    { eapply (computable_theorems.Forall_forall1 (fun x => 0 <= 4 * fst x <= Int.max_unsigned - 1) sigmaG).
+      { vauto. }
+      rewrite TAIL_EQ.
+      apply Znth_In; lia. }
+    ins.
+    (* rewrite Z2Nat.id. *)
+    (* 2: list_solve. *)
+    rewrite add_beside_mw_lemm2.
+    2: { assert (Zlength sigmaF_tail = Z.of_nat n0 + 2) as KK by list_solve.
+        rewrite KK.
+        replace ((Z.of_nat n0 + 2 - 1)) with (Z.of_nat n0 + 1) by lia.
+        destruct (sublist 0 (Z.of_nat n0 + 1) sigmaF_tail) eqn:FF.
+        2: vauto.
+        assert (Zlength (sublist 0 (Z.of_nat n0 + 1) sigmaF_tail) = (Z.of_nat n0 + 1)) by list_solve.
+        rewrite FF in *.
+        list_solve. }
+    2: { list_solve. }
+    2: { ins; unnw; list_solve. }
+    vauto. }
+  { assert (Zlength sigmaG = 2) as K1 by list_solve.
+    rewrite K1 in * by lia.
+    replace (2 - 1) with 1 in * by lia.
+    repeat rewrite Zlength_app.
+    autorewrite with sublist norm.
+    rewrite format_mp_llw_eq.
+    rewrite format_mp_flw_eq0.
+    rewrite format_mp_mw_eq0.
+    rewrite <- TAIL_EQ; ins.
+    autorewrite with sublist norm.
+    replace ((Z.succ (Zlength sigmaF_tail) - 1)) with (Zlength sigmaF_tail) in * by list_solve.
+    rewrite sublist_1_cons.
+    rewrite sublist_0_cons.
+    2: list_solve.
+    rewrite sublist_map.
+    repeat rewrite map_cons.
+    repeat rewrite list_max_cons.
+    repeat rewrite map_map; ins.
+    assert (0 <= 4 * fst (tail_shift, tail_line) <= Int.max_unsigned - 1) as K3.
+    { eapply (computable_theorems.Forall_forall1 (fun x => 0 <= 4 * fst x <= Int.max_unsigned - 1) sigmaG).
+      { vauto. }
+      rewrite TAIL_EQ.
+      apply Znth_In; lia. }
+    ins.
+    rewrite add_beside_mw_lemm2.
+    2: { assert (Zlength sigmaF_tail = Z.of_nat n0 + 2) as KK by list_solve.
+        rewrite KK.
+        replace ((Z.of_nat n0 + 2 - 1)) with (Z.of_nat n0 + 1) by lia.
+        destruct (sublist 0 (Z.of_nat n0 + 1) sigmaF_tail) eqn:FF.
+        2: vauto.
+        assert (Zlength (sublist 0 (Z.of_nat n0 + 1) sigmaF_tail) = (Z.of_nat n0 + 1)) by list_solve.
+        rewrite FF in *.
+        list_solve. }
+    2: { lia. }
+    2: { unnw; list_solve. }
+    repeat rewrite Zlength_app.
+    repeat rewrite sp_byte_length.
+    repeat rewrite Z2Nat.id.
+    2: list_solve.
+    repeat rewrite Z2Nat.inj_add; try lia; try list_solve. }
+  autorewrite with sublist norm.
+  rewrite format_mp_mw_eq.
+  rewrite format_mp_llw_eq.
+  rewrite format_mp_mw_eq0.
+  rewrite format_mp_flw_eq0.
+  rewrite <- TAIL_EQ; ins.
+  autorewrite with sublist norm.
+  replace ((Zlength sigmaG - 1 + Z.succ (Zlength sigmaF_tail) - 1)) with (Zlength sigmaF_tail + Zlength sigmaG - 1) in * by list_solve. 
+  replace ((Z.succ (Zlength sigmaF_tail) - 1)) with (Zlength sigmaF_tail) in * by list_solve.
+  replace (sublist 1 (Zlength sigmaF_tail + Zlength sigmaG - 1) (sublist 0 (Zlength sigmaG - 1) sigmaG ++ (tail_shift, tail_line ++ sp_byte (Z.to_nat f_shift) ++ f_line)
+          :: map (fun x : Z * list byte => (fst x + shift, snd x)) sigmaF_tail)) with
+          ((sublist 1 (Zlength sigmaG - 1) sigmaG) ++ [(tail_shift, tail_line ++ sp_byte (Z.to_nat f_shift) ++ f_line)] ++ (sublist 0 (Zlength sigmaF_tail - 1) (map
+          (fun x : Z * list byte => (fst x + shift, snd x)) sigmaF_tail))) by list_solve.
+  rewrite sublist_1_cons.
+  repeat rewrite map_app.
+  repeat rewrite sublist_map.
+  repeat rewrite map_map.
+  ins.
+  autorewrite with sublist norm.
+  rewrite sp_byte_length.
+  rewrite list_max_app.
+  rewrite list_max_cons.
+  assert (0 <= 4 * fst (tail_shift, tail_line) <= Int.max_unsigned - 1) as K3.
+  { eapply (computable_theorems.Forall_forall1 (fun x => 0 <= 4 * fst x <= Int.max_unsigned - 1) sigmaG).
+    { vauto. }
+    rewrite TAIL_EQ.
+    apply Znth_In; lia. }
+  ins.
+  rewrite add_beside_mw_lemm2.
+  2: { assert (Zlength sigmaF_tail = Z.of_nat n0 + 2) as KK by list_solve.
+        rewrite KK.
+        replace ((Z.of_nat n0 + 2 - 1)) with (Z.of_nat n0 + 1) by lia.
+        destruct (sublist 0 (Z.of_nat n0 + 1) sigmaF_tail) eqn:FF.
+        2: vauto.
+        assert (Zlength (sublist 0 (Z.of_nat n0 + 1) sigmaF_tail) = (Z.of_nat n0 + 1)) by list_solve.
+        rewrite FF in *.
+        list_solve. }
+  2: { lia. }
+  2: { unnw; list_solve. }
+  repeat rewrite Z2Nat.id.
+  2: list_solve.
+  repeat rewrite Z2Nat.inj_add; try lia; try list_solve.
+Qed.
+
+Lemma add_fill_llw_pred (G F : t) (sigmaG sigmaF_tail : list (Z * list byte)) (f_shift tail_shift shift : Z) (f_line tail_line line_con : list byte):
+  (height G <> 0)%nat ->
+  (height F <> 0)%nat ->
+  shift >= 0 ->
+  << FMT_MPG : format_mp G sigmaG >> ->
+  << FMT_MPF : format_mp F ((f_shift, f_line) :: sigmaF_tail) >> ->
+  line_con = tail_line ++ sp_byte (Z.to_nat f_shift) ++ f_line ->
+  << TAIL_EQ: (tail_shift, tail_line) = Znth (Zlength sigmaG - 1) sigmaG >> ->
+  last_line_width_pred (add_fill G F (Z.to_nat shift)) (sublist 0 (Zlength sigmaG - 1) sigmaG ++ 
+      [(tail_shift, line_con)] ++ map (fun x => (fst x + shift, snd x)) sigmaF_tail).
+Proof.
+  ins.
+  getnw.
+  inv FMT_MPG.
+  inv FMT_MPF.
+  inv format_mp_list_mp.
+  inv format_mp_list_mp0.
+  apply Forall_cons_iff in list_mp_forall_fst0.
+  unfold first_line_width_pred in *.
+  unfold last_line_width_pred in *; desf; unfold add_fill in *; desf; ins.
+  { assert (Zlength sigmaG = 1) as K1 by list_solve.
+    rewrite K1 in *.
+    replace (1 - 1) with 0 in * by lia.
+    autorewrite with sublist norm.
+    replace (Z.succ (Zlength sigmaF_tail) - 1) with (Zlength sigmaF_tail) by lia.
+    rewrite format_mp_llw_eq.
+    rewrite format_mp_llw_eq0.
+    replace (Zlength sigmaF_tail) with 0 by list_solve.
+    autorewrite with sublist norm.
+    replace ((Z.succ (Zlength sigmaF_tail) - 1)) with (Zlength sigmaF_tail) by lia.
+    replace (Zlength sigmaF_tail) with 0 by list_solve.
+    autorewrite with sublist norm.
+    rewrite sp_byte_length.
+    assert (0 <= 4 * fst (tail_shift, tail_line) <= Int.max_unsigned - 1) as K3.
+    { eapply (computable_theorems.Forall_forall1 (fun x => 0 <= 4 * fst x <= Int.max_unsigned - 1) sigmaG).
+      { vauto. }
+      rewrite TAIL_EQ.
+      apply Znth_In; lia. }
+    ins.
+    rewrite Z2Nat.id.
+    2: lia.
+    rewrite <- TAIL_EQ; ins.
+    repeat rewrite Z2Nat.inj_add; try lia; try list_solve. }
+  { assert (Zlength sigmaG = 1) as K1 by list_solve.
+    rewrite K1 in *.
+    replace (1 - 1) with 0 in * by lia.
+    rewrite format_mp_llw_eq0.
+    autorewrite with sublist norm.
+    replace (Zlength sigmaF_tail) with 1 by list_solve.
+    replace (Z.succ 1 - 1) with 1 by lia.
+    autorewrite with sublist norm.
+    repeat rewrite Znth_pos_cons; try lia.
+    replace (1 - 1) with 0 by lia.
+    repeat rewrite Znth_map.
+    2: list_solve.
+    autorewrite with sublist norm.
+    assert (0 <= 4 * fst (tail_shift, tail_line) <= Int.max_unsigned - 1) as K3.
+    { eapply (computable_theorems.Forall_forall1 (fun x => 0 <= 4 * fst x <= Int.max_unsigned - 1) sigmaG).
+      { vauto. }
+      rewrite TAIL_EQ.
+      apply Znth_In; lia. }
+    ins.
+    repeat rewrite Z2Nat.inj_add; try lia; try list_solve. }
+  { assert (Zlength sigmaG = 1) as K1 by list_solve.
+    rewrite K1 in *.
+    replace (1 - 1) with 0 in * by lia.
+    rewrite format_mp_llw_eq0.
+    autorewrite with sublist norm.
+    replace (Zlength sigmaF_tail) with (Z.of_nat n0 + 2) by list_solve.
+    replace (Z.succ (Z.of_nat n0 + 2) - 1) with (Z.of_nat n0 + 2) by lia.
+    repeat rewrite Znth_pos_cons; try lia.
+    replace (Z.of_nat n0 + 2 - 1) with (Z.of_nat n0 + 1) by lia.
+    repeat rewrite Znth_map.
+    2: list_solve.
+    autorewrite with sublist norm.
+    assert (0 <= 4 * fst (tail_shift, tail_line) <= Int.max_unsigned - 1) as K3.
+    { eapply (computable_theorems.Forall_forall1 (fun x => 0 <= 4 * fst x <= Int.max_unsigned - 1) sigmaG).
+      { vauto. }
+      rewrite TAIL_EQ.
+      apply Znth_In; lia. }
+    ins.
+    repeat rewrite Z2Nat.inj_add; try lia; try list_solve. }
+  { assert (Zlength sigmaG = 2) as K1 by list_solve.
+    rewrite K1 in *.
+    replace (2 - 1) with 1 in * by lia.
+    rewrite format_mp_llw_eq.
+    rewrite format_mp_llw_eq0.
+    autorewrite with sublist norm.
+    replace (Zlength sigmaF_tail) with 0 by list_solve.
+    replace (Z.succ 0 - 1) with 0 by lia.
+    rewrite <- TAIL_EQ; ins.
+    repeat rewrite Zlength_app.
+    rewrite sp_byte_length.
+    assert (0 <= 4 * fst (tail_shift, tail_line) <= Int.max_unsigned - 1) as K3.
+    { eapply (computable_theorems.Forall_forall1 (fun x => 0 <= 4 * fst x <= Int.max_unsigned - 1) sigmaG).
+      { vauto. }
+      rewrite TAIL_EQ.
+      apply Znth_In; lia. }
+    ins.
+    rewrite Z2Nat.id.
+    2: list_solve.
+    repeat rewrite Z2Nat.inj_add; try lia; try list_solve. }
+  { assert (Zlength sigmaG = 2) as K1 by list_solve.
+    rewrite K1 in *.
+    replace (2 - 1) with 1 in * by lia.
+    rewrite format_mp_llw_eq0.
+    autorewrite with sublist norm.
+    replace (Zlength sigmaF_tail) with 1 by list_solve.
+    replace (Z.succ 1 - 1) with 1 by lia.
+    repeat rewrite Znth_pos_cons; try lia.
+    replace (1 - 1) with 0 by lia.
+    repeat rewrite Znth_map.
+    2: list_solve.
+    autorewrite with sublist norm.
+    assert (0 <= 4 * fst (tail_shift, tail_line) <= Int.max_unsigned - 1) as K3.
+    { eapply (computable_theorems.Forall_forall1 (fun x => 0 <= 4 * fst x <= Int.max_unsigned - 1) sigmaG).
+      { vauto. }
+      rewrite TAIL_EQ.
+      apply Znth_In; lia. }
+    ins.
+    repeat rewrite Z2Nat.inj_add; try lia; try list_solve. }
+  { assert (Zlength sigmaG = 2) as K1 by list_solve.
+    rewrite K1 in *.
+    replace (2 - 1) with 1 in * by lia.
+    rewrite format_mp_llw_eq0.
+    autorewrite with sublist norm.
+    replace (Zlength sigmaF_tail) with (Z.of_nat n0 + 2) by list_solve.
+    replace (Z.succ (Z.of_nat n0 + 2) - 1) with (Z.of_nat n0 + 2) by lia.
+    repeat rewrite Znth_pos_cons; try lia.
+    replace (Z.of_nat n0 + 2 - 1) with (Z.of_nat n0 + 1) by lia.
+    repeat rewrite Znth_map.
+    2: list_solve.
+    autorewrite with sublist norm.
+    assert (0 <= 4 * fst (tail_shift, tail_line) <= Int.max_unsigned - 1) as K3.
+    { eapply (computable_theorems.Forall_forall1 (fun x => 0 <= 4 * fst x <= Int.max_unsigned - 1) sigmaG).
+      { vauto. }
+      rewrite TAIL_EQ.
+      apply Znth_In; lia. }
+    ins.
+    repeat rewrite Z2Nat.inj_add; try lia; try list_solve. }
+  { assert (Zlength sigmaG = Z.of_nat n1 + 3) as K1 by list_solve.
+    rewrite K1 in *.
+    replace (Z.of_nat n1 + 3 - 1) with (Z.of_nat n1 + 2) in * by lia.
+    rewrite format_mp_llw_eq.
+    rewrite format_mp_llw_eq0.
+    autorewrite with sublist norm.
+    replace (Zlength sigmaF_tail) with 0 by list_solve.
+    replace ((Z.succ 0 - 1)) with 0 by lia.
+    replace (Z.of_nat n1 + 2 + Z.succ 0 - 1 - (Z.of_nat n1 + 2)) with 0 by lia.
+    rewrite <- TAIL_EQ; ins.
+    assert (0 <= 4 * fst (tail_shift, tail_line) <= Int.max_unsigned - 1) as K3.
+    { eapply (computable_theorems.Forall_forall1 (fun x => 0 <= 4 * fst x <= Int.max_unsigned - 1) sigmaG).
+      { vauto. }
+      rewrite TAIL_EQ.
+      apply Znth_In; lia. }
+    ins.
+    repeat rewrite Zlength_app.
+    rewrite sp_byte_length.
+    rewrite Z2Nat.id.
+    2: list_solve.
+    repeat rewrite Z2Nat.inj_add; try lia; try list_solve. }
+  { assert (Zlength sigmaG = (Z.of_nat n1 + 3)) as K1 by list_solve.
+    rewrite K1 in *.
+    replace (Z.of_nat n1 + 3 - 1) with (Z.of_nat n1 + 2) in * by lia.
+    rewrite format_mp_llw_eq0.
+    autorewrite with sublist norm.
+    replace (Zlength sigmaF_tail) with 1 by list_solve.
+    replace (Z.succ 1 - 1) with 1 by lia.
+    replace (Z.of_nat n1 + 2 + Z.succ 1 - 1 - (Z.of_nat n1 + 2)) with 1 by lia.
+    repeat rewrite Znth_pos_cons; try lia.
+    replace (1 - 1) with 0 by lia.
+    repeat rewrite Znth_map.
+    2: list_solve.
+    autorewrite with sublist norm.
+    assert (0 <= 4 * fst (tail_shift, tail_line) <= Int.max_unsigned - 1) as K3.
+    { eapply (computable_theorems.Forall_forall1 (fun x => 0 <= 4 * fst x <= Int.max_unsigned - 1) sigmaG).
+      { vauto. }
+      rewrite TAIL_EQ.
+      apply Znth_In; lia. }
+    ins.
+    repeat rewrite Z2Nat.inj_add; try lia; try list_solve. }
+  assert (Zlength sigmaG = Z.of_nat n1 + 3) as K1 by list_solve.
+  rewrite K1 in *.
+  replace (Z.of_nat n1 + 3 - 1) with (Z.of_nat n1 + 2) in * by lia.
+  rewrite format_mp_llw_eq0.
+  autorewrite with sublist norm.
+  replace (Zlength sigmaF_tail) with (Z.of_nat n0 + 2) by list_solve.
+  replace (Z.succ (Z.of_nat n0 + 2) - 1) with (Z.of_nat n0 + 2) by lia.
+  replace (Z.of_nat n1 + 2 + Z.succ (Z.of_nat n0 + 2) - 1 - (Z.of_nat n1 + 2)) with (Z.of_nat n0 + 2) by lia.
+  assert (0 <= 4 * fst (tail_shift, tail_line) <= Int.max_unsigned - 1) as K3.
+  { eapply (computable_theorems.Forall_forall1 (fun x => 0 <= 4 * fst x <= Int.max_unsigned - 1) sigmaG).
+    { vauto. }
+    rewrite TAIL_EQ.
+    apply Znth_In; lia. }
+  ins.
+  repeat rewrite Znth_pos_cons.
+  2: list_solve.
+  2: list_solve.
+  repeat rewrite Znth_map.
+  2: list_solve.
+  replace (Z.of_nat n0 + 2 - 1) with (Z.of_nat n0 + 1) by lia.
+  autorewrite with sublist norm.
+  repeat rewrite Z2Nat.inj_add; try lia; try list_solve.
+Qed.
+
 Lemma body_to_text_add_fill: semax_body Vprog Gprog f_to_text_add_fill to_text_add_fill_spec.
 Proof.
   start_function.
@@ -1890,7 +3031,9 @@ Proof.
     split.
     { unfold add_fill; desf. }
     split.
-    { subst; split; list_solve. }
+    { subst; split.
+      { list_solve. }
+      split; unfold add_fill; desf. }
     split; split; list_solve. }
   { forward; entailer!. }
   forward.
@@ -1908,8 +3051,9 @@ Proof.
     { unfold add_fill; desf. }
     split.
     { unfold list_add_beside_length.
-      replace (height F) with 0%nat in * by lia.
-      replace sigmaF with ([] : list (Z * list byte)) by list_solve; desf. }
+      replace sigmaF with ([] : list (Z * list byte)) by list_solve; desf.
+      { repeat split; unfold add_fill; desf. }
+      repeat split; unfold add_fill; desf. }
     split; split; list_solve. }
   { forward; entailer!. }
   forward.
@@ -2028,7 +3172,15 @@ Proof.
         apply Forall_cons.
         2: apply Forall_nil.
         ins. }
-      unfold list_add_beside_length; desf; list_solve. }
+      unfold list_add_beside_length; desf; repeat split; try list_solve.
+      { eapply add_fill_flw_pred; eauto.
+        all: apply mk_format_mp; vauto. }
+      { eapply add_fill_mw_pred; eauto.
+        { lia. }
+        all: apply mk_format_mp; vauto. }
+      eapply add_fill_llw_pred; eauto.
+      { lia. }
+      all: apply mk_format_mp; vauto. }
     unfold to_text_eq.
     ins.
     unfold add_fill.
@@ -2271,9 +3423,6 @@ Proof.
       inv K.
       eapply shift_line_sum; eauto. }
     apply mk_format_mp; vauto.
-    4: admit.
-    4: admit.
-    4: admit.
     { rewrite K1; lia. }
     rewrite K1; ins.
     replace (Zlength to_text_list) with (list_add_beside_length sigmaG sigmaF) by vauto.
@@ -2292,4 +3441,4 @@ Proof.
   replace (Z.of_nat (height G + height F - 1)) with 
     (Z.of_nat (height G) + Z.of_nat (height F) - 1) by list_solve.
   entailer!.
-Admitted.
+Qed.
