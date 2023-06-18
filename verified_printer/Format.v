@@ -144,27 +144,20 @@ Definition total_width (f:t) :=
   | T _ fw m lw _ => max fw (max m lw)
   end.
 
-Definition split regexp :=
-  let
-   fix sp_helper pos s:=
-     match s with
-     | EmptyString => EmptyString::nil
-     | String _ s' =>
-         match pos with
-         | 0 =>
-            match index 0 regexp s with
-            | Some n => 
-               substring 0 n s::
-                sp_helper (n - 1 + String.length regexp) s'
-            | None   => s::nil
-            end
-         | _ => sp_helper (pos - 1) s'
-         end
-     end
-  in sp_helper 0.
+Fixpoint split s :=
+  match s with
+  | EmptyString => EmptyString :: nil
+  | String c s' => if Ascii.ascii_dec c (Ascii.ascii_of_N 10) then
+                     EmptyString :: split s'
+                   else
+                     match split s' with
+                     | nil => String c EmptyString :: nil
+                     | s'' :: ss => String c s'' :: ss
+                     end
+  end.
 
 Definition of_string s :=
-  let lines := split newline s in
+  let lines := split s in
   let lineFormats := map line lines in 
   fold_left add_above lineFormats empty.
 

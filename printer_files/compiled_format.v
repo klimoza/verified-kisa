@@ -158,9 +158,10 @@ Definition _new : ident := $"new".
 Definition _new_line : ident := $"new_line".
 Definition _new_list : ident := $"new_list".
 Definition _new_result_tail : ident := $"new_result_tail".
+Definition _new_string : ident := $"new_string".
+Definition _new_string_list : ident := $"new_string_list".
 Definition _newline : ident := $"newline".
 Definition _nt : ident := $"nt".
-Definition _of_string : ident := $"of_string".
 Definition _result : ident := $"result".
 Definition _result__1 : ident := $"result__1".
 Definition _result__2 : ident := $"result__2".
@@ -172,10 +173,12 @@ Definition _shifted : ident := $"shifted".
 Definition _sigma : ident := $"sigma".
 Definition _sp : ident := $"sp".
 Definition _space : ident := $"space".
+Definition _split : ident := $"split".
 Definition _src : ident := $"src".
 Definition _str : ident := $"str".
 Definition _strcat : ident := $"strcat".
 Definition _strcpy : ident := $"strcpy".
+Definition _string_list : ident := $"string_list".
 Definition _strlen : ident := $"strlen".
 Definition _t : ident := $"t".
 Definition _tail : ident := $"tail".
@@ -3650,14 +3653,214 @@ Definition f_total_width := {|
   (Sreturn (Some (Etempvar _t'2 tuint))))
 |}.
 
-Definition f_of_string := {|
-  fn_return := (tptr (Tstruct _t noattr));
+Definition f_new_string_list := {|
+  fn_return := (tptr (Tstruct _string_list noattr));
+  fn_callconv := cc_default;
+  fn_params := nil;
+  fn_vars := nil;
+  fn_temps := ((_result, (tptr (Tstruct _string_list noattr))) ::
+               (_t'2, (tptr tvoid)) :: (_t'1, (tptr tvoid)) ::
+               (_t'4, (tptr tschar)) :: (_t'3, (tptr tschar)) :: nil);
+  fn_body :=
+(Ssequence
+  (Ssequence
+    (Scall (Some _t'1)
+      (Evar _malloc (Tfunction (Tcons tulong Tnil) (tptr tvoid) cc_default))
+      ((Esizeof (Tstruct _string_list noattr) tulong) :: nil))
+    (Sset _result (Etempvar _t'1 (tptr tvoid))))
+  (Ssequence
+    (Sifthenelse (Eunop Onotbool
+                   (Etempvar _result (tptr (Tstruct _string_list noattr)))
+                   tint)
+      (Scall None (Evar _exit (Tfunction (Tcons tint Tnil) tvoid cc_default))
+        ((Econst_int (Int.repr 1) tint) :: nil))
+      Sskip)
+    (Ssequence
+      (Ssequence
+        (Scall (Some _t'2)
+          (Evar _malloc (Tfunction (Tcons tulong Tnil) (tptr tvoid)
+                          cc_default))
+          ((Econst_int (Int.repr 1) tint) :: nil))
+        (Sassign
+          (Efield
+            (Ederef (Etempvar _result (tptr (Tstruct _string_list noattr)))
+              (Tstruct _string_list noattr)) _line (tptr tschar))
+          (Etempvar _t'2 (tptr tvoid))))
+      (Ssequence
+        (Ssequence
+          (Sset _t'4
+            (Efield
+              (Ederef (Etempvar _result (tptr (Tstruct _string_list noattr)))
+                (Tstruct _string_list noattr)) _line (tptr tschar)))
+          (Sifthenelse (Eunop Onotbool (Etempvar _t'4 (tptr tschar)) tint)
+            (Scall None
+              (Evar _exit (Tfunction (Tcons tint Tnil) tvoid cc_default))
+              ((Econst_int (Int.repr 1) tint) :: nil))
+            Sskip))
+        (Ssequence
+          (Ssequence
+            (Sset _t'3
+              (Efield
+                (Ederef
+                  (Etempvar _result (tptr (Tstruct _string_list noattr)))
+                  (Tstruct _string_list noattr)) _line (tptr tschar)))
+            (Sassign
+              (Ederef
+                (Ebinop Oadd (Etempvar _t'3 (tptr tschar))
+                  (Econst_int (Int.repr 0) tint) (tptr tschar)) tschar)
+              (Econst_int (Int.repr 0) tint)))
+          (Ssequence
+            (Sassign
+              (Efield
+                (Ederef
+                  (Etempvar _result (tptr (Tstruct _string_list noattr)))
+                  (Tstruct _string_list noattr)) _tail
+                (tptr (Tstruct _string_list noattr)))
+              (Ecast (Econst_int (Int.repr 0) tint) (tptr tvoid)))
+            (Sreturn (Some (Etempvar _result (tptr (Tstruct _string_list noattr)))))))))))
+|}.
+
+Definition f_split := {|
+  fn_return := (tptr (Tstruct _string_list noattr));
   fn_callconv := cc_default;
   fn_params := ((_s, (tptr tschar)) :: nil);
   fn_vars := nil;
-  fn_temps := nil;
+  fn_temps := ((_tail, (tptr (Tstruct _string_list noattr))) ::
+               (_result, (tptr (Tstruct _string_list noattr))) ::
+               (_new_string, (tptr tschar)) :: (_t'5, (tptr tvoid)) ::
+               (_t'4, tulong) ::
+               (_t'3, (tptr (Tstruct _string_list noattr))) ::
+               (_t'2, (tptr (Tstruct _string_list noattr))) ::
+               (_t'1, (tptr (Tstruct _string_list noattr))) ::
+               (_t'11, tschar) :: (_t'10, (tptr tschar)) :: (_t'9, tschar) ::
+               (_t'8, (tptr tschar)) :: (_t'7, (tptr tschar)) ::
+               (_t'6, tschar) :: nil);
   fn_body :=
-(Sreturn (Some (Ecast (Econst_int (Int.repr 0) tint) (tptr tvoid))))
+(Ssequence
+  (Ssequence
+    (Sset _t'11
+      (Ederef
+        (Ebinop Oadd (Etempvar _s (tptr tschar))
+          (Econst_int (Int.repr 0) tint) (tptr tschar)) tschar))
+    (Sifthenelse (Ebinop Oeq (Etempvar _t'11 tschar)
+                   (Econst_int (Int.repr 0) tint) tint)
+      (Ssequence
+        (Scall (Some _t'1)
+          (Evar _new_string_list (Tfunction Tnil
+                                   (tptr (Tstruct _string_list noattr))
+                                   cc_default)) nil)
+        (Sreturn (Some (Etempvar _t'1 (tptr (Tstruct _string_list noattr))))))
+      Sskip))
+  (Ssequence
+    (Ssequence
+      (Scall (Some _t'2)
+        (Evar _split (Tfunction (Tcons (tptr tschar) Tnil)
+                       (tptr (Tstruct _string_list noattr)) cc_default))
+        ((Ebinop Oadd (Etempvar _s (tptr tschar))
+           (Econst_int (Int.repr 1) tint) (tptr tschar)) :: nil))
+      (Sset _tail (Etempvar _t'2 (tptr (Tstruct _string_list noattr)))))
+    (Ssequence
+      (Sset _t'6
+        (Ederef
+          (Ebinop Oadd (Etempvar _s (tptr tschar))
+            (Econst_int (Int.repr 0) tint) (tptr tschar)) tschar))
+      (Sifthenelse (Ebinop Oeq (Etempvar _t'6 tschar)
+                     (Econst_int (Int.repr 10) tint) tint)
+        (Ssequence
+          (Ssequence
+            (Scall (Some _t'3)
+              (Evar _new_string_list (Tfunction Tnil
+                                       (tptr (Tstruct _string_list noattr))
+                                       cc_default)) nil)
+            (Sset _result
+              (Etempvar _t'3 (tptr (Tstruct _string_list noattr)))))
+          (Ssequence
+            (Sassign
+              (Efield
+                (Ederef
+                  (Etempvar _result (tptr (Tstruct _string_list noattr)))
+                  (Tstruct _string_list noattr)) _tail
+                (tptr (Tstruct _string_list noattr)))
+              (Etempvar _tail (tptr (Tstruct _string_list noattr))))
+            (Sreturn (Some (Etempvar _result (tptr (Tstruct _string_list noattr)))))))
+        (Ssequence
+          (Ssequence
+            (Ssequence
+              (Ssequence
+                (Sset _t'10
+                  (Efield
+                    (Ederef
+                      (Etempvar _tail (tptr (Tstruct _string_list noattr)))
+                      (Tstruct _string_list noattr)) _line (tptr tschar)))
+                (Scall (Some _t'4)
+                  (Evar _strlen (Tfunction (Tcons (tptr tschar) Tnil) tulong
+                                  cc_default))
+                  ((Etempvar _t'10 (tptr tschar)) :: nil)))
+              (Scall (Some _t'5)
+                (Evar _malloc (Tfunction (Tcons tulong Tnil) (tptr tvoid)
+                                cc_default))
+                ((Ebinop Oadd (Etempvar _t'4 tulong)
+                   (Econst_int (Int.repr 2) tint) tulong) :: nil)))
+            (Sset _new_string (Etempvar _t'5 (tptr tvoid))))
+          (Ssequence
+            (Sifthenelse (Eunop Onotbool (Etempvar _new_string (tptr tschar))
+                           tint)
+              (Scall None
+                (Evar _exit (Tfunction (Tcons tint Tnil) tvoid cc_default))
+                ((Econst_int (Int.repr 1) tint) :: nil))
+              Sskip)
+            (Ssequence
+              (Ssequence
+                (Sset _t'9
+                  (Ederef
+                    (Ebinop Oadd (Etempvar _s (tptr tschar))
+                      (Econst_int (Int.repr 0) tint) (tptr tschar)) tschar))
+                (Sassign
+                  (Ederef
+                    (Ebinop Oadd (Etempvar _new_string (tptr tschar))
+                      (Econst_int (Int.repr 0) tint) (tptr tschar)) tschar)
+                  (Etempvar _t'9 tschar)))
+              (Ssequence
+                (Sassign
+                  (Ederef
+                    (Ebinop Oadd (Etempvar _new_string (tptr tschar))
+                      (Econst_int (Int.repr 1) tint) (tptr tschar)) tschar)
+                  (Econst_int (Int.repr 0) tint))
+                (Ssequence
+                  (Ssequence
+                    (Sset _t'8
+                      (Efield
+                        (Ederef
+                          (Etempvar _tail (tptr (Tstruct _string_list noattr)))
+                          (Tstruct _string_list noattr)) _line (tptr tschar)))
+                    (Scall None
+                      (Evar _strcat (Tfunction
+                                      (Tcons (tptr tschar)
+                                        (Tcons (tptr tschar) Tnil))
+                                      (tptr tschar) cc_default))
+                      ((Etempvar _new_string (tptr tschar)) ::
+                       (Etempvar _t'8 (tptr tschar)) :: nil)))
+                  (Ssequence
+                    (Ssequence
+                      (Sset _t'7
+                        (Efield
+                          (Ederef
+                            (Etempvar _tail (tptr (Tstruct _string_list noattr)))
+                            (Tstruct _string_list noattr)) _line
+                          (tptr tschar)))
+                      (Scall None
+                        (Evar _free (Tfunction (Tcons (tptr tvoid) Tnil)
+                                      tvoid cc_default))
+                        ((Etempvar _t'7 (tptr tschar)) :: nil)))
+                    (Ssequence
+                      (Sassign
+                        (Efield
+                          (Ederef
+                            (Etempvar _tail (tptr (Tstruct _string_list noattr)))
+                            (Tstruct _string_list noattr)) _line
+                          (tptr tschar))
+                        (Etempvar _new_string (tptr tschar)))
+                      (Sreturn (Some (Etempvar _tail (tptr (Tstruct _string_list noattr))))))))))))))))
 |}.
 
 Definition f_indent := {|
@@ -6241,6 +6444,10 @@ Definition composites : list composite_definition :=
     Member_plain _last_line_width tuint ::
     Member_plain _to_text (tptr (Tstruct _list noattr)) :: nil)
    noattr ::
+ Composite _string_list Struct
+   (Member_plain _line (tptr tschar) ::
+    Member_plain _tail (tptr (Tstruct _string_list noattr)) :: nil)
+   noattr ::
  Composite _format_list Struct
    (Member_plain _G (tptr (Tstruct _t noattr)) ::
     Member_plain _tail (tptr (Tstruct _format_list noattr)) :: nil)
@@ -6546,8 +6753,8 @@ Definition global_definitions : list (ident * globdef fundef type) :=
  (_add_fill, Gfun(Internal f_add_fill)) ::
  (_to_string, Gfun(Internal f_to_string)) ::
  (_total_width, Gfun(Internal f_total_width)) ::
- (_of_string, Gfun(Internal f_of_string)) ::
- (_indent, Gfun(Internal f_indent)) ::
+ (_new_string_list, Gfun(Internal f_new_string_list)) ::
+ (_split, Gfun(Internal f_split)) :: (_indent, Gfun(Internal f_indent)) ::
  (_clear_to_text, Gfun(Internal f_clear_to_text)) ::
  (_clear_format_list, Gfun(Internal f_clear_format_list)) ::
  (_max_width_check, Gfun(Internal f_max_width_check)) ::
@@ -6567,7 +6774,7 @@ Definition public_idents : list ident :=
  _get_format_list_tail :: _format_list_copy :: _beside_doc :: _fill_doc ::
  _above_doc :: _indent_doc :: _clear_last_format_element ::
  _max_width_check :: _clear_format_list :: _clear_to_text :: _indent ::
- _of_string :: _total_width :: _to_string :: _add_fill ::
+ _split :: _new_string_list :: _total_width :: _to_string :: _add_fill ::
  _to_text_add_fill :: _flw_add_fill :: _llw_add_fill :: _mdw_add_fill ::
  _add_beside :: _to_text_add_beside :: _shift_list :: _line_concats ::
  _flw_add_beside :: _mdw_add_beside :: _add_above :: _to_text_add_above ::

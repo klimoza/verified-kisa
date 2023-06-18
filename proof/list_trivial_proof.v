@@ -3998,3 +3998,222 @@ Proof.
   rewrite add_fill_filter_monotone_r.
   rewrite Nat2Z.id; vauto.
 Qed.
+
+Lemma body_new_string_list: semax_body Vprog Gprog f_new_string_list new_string_list_spec.
+Proof.
+  start_function.
+  forward_call(t_slist, gv).
+  Intros result_ptr.
+  dest_ptr result_ptr.
+  forward_call((Tarray tschar 1 noattr), gv).
+  Intros result_line_ptr.
+  do 2 forward.
+  dest_ptr result_line_ptr.
+  do 4 forward.
+  Exists result_ptr.
+  entailer!.
+  unff listreps.
+  Exists nullval result_line_ptr.
+  entailer!.
+  unfold cstring.
+  entailer!.
+Qed.
+
+Lemma split_not_nil (s : string):
+  split s <> [].
+Proof.
+  induction s; ins; desf.
+Qed.
+
+Lemma split_first_element_length (l tail_string : list byte) (tail_ar : list (list byte)):
+  l :: tail_ar = map (fun x => string_to_list_byte x) (split (list_byte_to_string tail_string)) ->
+  Zlength l <= Zlength tail_string.
+Proof.
+  revert dependent tail_ar.
+  revert dependent l.
+  induction tail_string; ins; desf; ins; desf.
+  { list_solve. }
+  { list_solve. }
+  autorewrite with sublist norm in *.
+  remember (IHtail_string (string_to_list_byte s) (map (fun x => string_to_list_byte x) l0)) as K.
+  enough (Zlength (string_to_list_byte s) <= Zlength tail_string) by lia.
+  apply K; ins.
+Qed.
+
+Lemma body_split: semax_body Vprog Gprog f_split split_spec.
+Proof.
+  start_function.
+  unfold cstring; Intros.
+  forward.
+  assert_PROP(field_compatible (tarray tschar (Zlength s + 1)) [] p) as K by entailer.
+  forward_if.
+  { forward_call(gv).
+    Intros result_ptr.
+    forward.
+    Exists result_ptr.
+    entailer!.
+    assert (Zlength s = 0) as K1 by list_solve.
+    assert (s = []) as K2 by list_solve; subst; ins.
+    unff listreps.
+    Intros x y.
+    Exists x y.
+    unfold cstring; entailer!. }
+  forward_call(sublist 1 (Zlength s) s, offset_val 1 p, gv).
+  { unfold cstring; entailer!.
+    { list_solve. }
+    assert (s = sublist 0 1 s ++ sublist 1 (Zlength s) s) as KK by list_solve.
+    rewrite KK at 2.
+    rewrite <- app_assoc.
+    do 2 rewrite map_app.
+    rewrite (split2_data_at_Tarray_app 1 (Zlength s + 1) (Ews) tschar _ _ _).
+    2: list_solve.
+    2: list_solve.
+    repeat rewrite Zlength_sublist.
+    2: list_solve.
+    2: list_solve.
+    rewrite (arr_field_address0 tschar (Zlength s + 1) p 1).
+    {  autorewrite with sublist norm; entailer!. }
+    { desf. }
+    list_solve. }
+  { list_solve. }
+  Intros tail_ptr.
+  assert (Zlength s > 0) as K1 by list_solve.
+  forward.
+  forward_if.
+  { forward_call(gv).
+    Intros result_ptr.
+    do 2 forward.
+    Exists result_ptr.
+    destruct s as [|h tail_string]; [contradiction|].
+    replace (sublist 1 (Zlength (h :: tail_string)) (h :: tail_string)) with tail_string in * by list_solve.
+    replace (sublist 0 1 (h :: tail_string)) with [h] in * by list_solve.
+    autorewrite with sublist norm in *.
+    replace ((Z.succ (Zlength tail_string) + 1)) with (Zlength tail_string + 2) in * by list_solve.
+    ins; desf; ins.
+    { unff listreps.
+      Exists tail_ptr y.
+      entailer!.
+      unfold cstring; entailer!.
+      replace ((h :: tail_string) ++ [Byte.zero]) with ([h] ++ tail_string ++ [Byte.zero]) by list_solve.
+      repeat rewrite map_app.
+      rewrite (split2_data_at_Tarray_app 1 (Zlength (h :: tail_string) + 1) (Ews) tschar _ _ _).
+      2: list_solve.
+      2: list_solve.
+      replace (Zlength (h :: tail_string)) with (Zlength tail_string + 1) by list_solve.
+      autorewrite with sublist norm.
+      replace (Zlength tail_string + 1 + 1) with (Zlength tail_string + 2) by list_solve.
+      rewrite arr_field_address0; ins.
+      2: list_solve.
+      entailer!. }
+    { apply split_not_nil in Heq; ins. } 
+    assert (Byte.unsigned h = 10) as KK.
+    { replace 10 with (Byte.signed h).
+      symmetry.
+      apply Byte.signed_eq_unsigned.
+      apply Byte.signed_positive; lia. }
+    rewrite KK in *; ins. }
+  destruct s as [|h tail_string]; [contradiction|].
+  replace (sublist 1 (Zlength (h :: tail_string)) (h :: tail_string)) with tail_string in * by list_solve.
+  replace (sublist 0 1 (h :: tail_string)) with [h] in * by list_solve.
+  autorewrite with sublist norm in *.
+  replace ((Z.succ (Zlength tail_string) + 1)) with (Zlength tail_string + 2) in * by list_solve.
+  remember (map (fun x : string => string_to_list_byte x) (split (list_byte_to_string tail_string))) as tail_ar.
+  destruct tail_ar.
+  { destruct (split (list_byte_to_string tail_string)) eqn:eq_K; ins.
+    apply split_not_nil in eq_K; ins. }
+  unff listreps.
+  Intros x y.
+  forward.
+  forward_call(Ews, l, y).
+  forward_call((Tarray tschar (Zlength l + 2) noattr), gv).
+  { unfold sizeof; ins.
+    unfold Int.max_unsigned in *.
+    unfold Ptrofs.max_unsigned in *; ins.
+    apply split_first_element_length in Heqtail_ar; lia. }
+  Intros result_string_ptr.
+  forward.
+  dest_ptr result_string_ptr.
+  replace (Tarray tschar (Zlength l + 2) noattr) with (tarray tschar (Zlength l + 2)) by reflexivity.
+  rewrite data_at__tarray.
+  do 2 forward.
+  { entailer!. }
+  assert (default_val tschar = Vundef) as DEF by auto.
+  rewrite DEF.
+  unfold upd_Znth; desf.
+  2: { desf; list_solve. }
+  autorewrite with sublist norm.
+  replace (Zlength l + 2 - 1) with (Zlength l + 1) by lia.
+  forward.
+  { entailer!. }
+  rewrite upd_Znth_cons.
+  replace (1 - 1) with 0 by lia.
+  unfold upd_Znth; desf.
+  2: { desf; list_solve. }
+  2: { desf; list_solve. }
+  autorewrite with sublist norm.
+  forward.
+  forward_call(Ews, Ews, result_string_ptr, (Zlength l + 2), y, [h], l).
+  2: list_solve.
+  { unfold cstringn; entailer!.
+    { destruct h; desf; ins; desf. }
+    autorewrite with sublist norm in *.
+    repeat rewrite map_app; ins.
+    entailer!. }
+  forward.
+  forward_call(tarray tschar (Zlength l + 1), y, gv).
+  { desf; entailer!.
+    unfold cstring.
+    rewrite data_at__tarray.
+    entailer!. }
+  do 2 forward.
+  Exists tail_ptr.
+  ins; desf; ins.
+  { assert (Byte.unsigned h = 10) as KK.
+    { unfold ascii_of_N in *; desf.
+      unfold ascii_of_pos in *; desf; rep_lia. }
+    enough (Byte.signed h = 10) by lia.
+    rewrite Byte.signed_eq_unsigned; ins.
+    unfold Byte.max_signed; ins; lia. }
+  unfold cstringn.
+  unfold cstring.
+  autorewrite with sublist norm in *.
+  unff listreps.
+  Exists x result_string_ptr.
+  entailer!.
+  inv Heqtail_ar.
+  entailer!.
+  autorewrite with sublist norm.
+  replace ((Z.succ (Zlength (string_to_list_byte s)) + 1)) with
+    (Zlength (string_to_list_byte s) + 2) by list_solve.
+  unfold cstring; entailer!.
+  { enough (~In Byte.zero (Byte.repr (Z.of_N (N_of_ascii (ascii_of_N (Z.to_N (Byte.unsigned h))))) :: string_to_list_byte s)) by ins.
+    ins; desf.
+    { rewrite N_ascii_embedding.
+      2: rep_lia.
+      rewrite Z2N.id.
+      2: rep_lia.
+      rewrite Byte.repr_unsigned; ins. }
+    list_solve. }
+  autorewrite with sublist norm in *.
+  replace (Z.succ (Zlength (string_to_list_byte s)) + 1) with
+    (Zlength (string_to_list_byte s) + 2) by list_solve.
+  replace ((h :: tail_string) ++ [Byte.zero]) with ([h] ++ tail_string ++ [Byte.zero]) by list_solve.
+  repeat rewrite map_app.
+  replace (Z.succ (Zlength tail_string) + 1) with (Zlength tail_string + 2) by list_solve.
+  rewrite (split2_data_at_Tarray_app 1 (Zlength tail_string + 2) (Ews) tschar _ _ _).
+  2: list_solve.
+  2: list_solve.
+  rewrite (arr_field_address0 tschar (Zlength tail_string + 2) p 1).
+  2: list_solve.
+  2: list_solve.
+  replace (Zlength tail_string + 2 - 1) with (Zlength tail_string + 1) by list_solve.
+  assert (sizeof tschar = 1) as KK by reflexivity.
+  rewrite KK.
+  replace (1 * 1) with 1 by lia.
+  entailer!.
+  rewrite N_ascii_embedding.
+  2: rep_lia.
+  rewrite Z2N.id.
+  2: rep_lia.
+  rewrite Byte.repr_unsigned; ins.
+Qed.

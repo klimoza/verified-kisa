@@ -3,29 +3,33 @@
 
 size_t strlen(const char *str) {
   size_t i;
-  for (i=0; ; i++)
-    if (str[i]==0) return i;
+  for (i = 0 ;; i++)
+    if (str[i] == 0) 
+      return i;
 }
 
 char *strcpy(char *dest, const char *src) {
   size_t i;
-  for(i = 0;; i++){
+  for(i = 0 ;; i++) {
     char d = src[i];
     dest[i] = d;
-    if(d == 0) return dest;
+    if(d == 0) 
+      return dest;
   }
 }
 
 char *strcat(char *dest, const char *src) {
-  size_t i,j;
-  for(i = 0;; i++){
+  size_t i, j;
+  for(i = 0 ;; i++){
     char d = dest[i];
-    if(d == 0) break;
+    if(d == 0)
+      break;
   }
-  for(j = 0;; j++){
+  for(j = 0 ;; j++){
     char d = src[j];
     dest[i + j] = d;
-    if(d == 0) return dest;
+    if(d == 0)
+      return dest;
   }
 }
 
@@ -471,9 +475,39 @@ unsigned int total_width(t *f) {
   return max(f->first_line_width, max(f->middle_width, f->last_line_width));
 }
 
-t *of_string(char* s) {
-  // TODO
-  return NULL;
+struct string_list {
+  char *line;
+  struct string_list *tail;
+} typedef string_list;
+
+string_list* new_string_list() {
+  string_list *result = malloc(sizeof(string_list));
+  if(!result) exit(1);
+  result->line = malloc(1);
+  if(!result->line) exit(1);
+  result->line[0] = 0;
+  result->tail = NULL;
+  return result;
+}
+
+string_list* split(char *s) {
+  if(s[0] == 0)
+    return new_string_list();
+  string_list *tail = split(s + 1);
+  if(s[0] == '\n') {
+    string_list *result = new_string_list();
+    result->tail = tail;
+    return result;
+  } else {
+    char *new_string = malloc(strlen(tail->line) + 2);
+    if(!new_string) exit(1);
+    new_string[0] = s[0];
+    new_string[1] = 0;
+    strcat(new_string, tail->line);
+    free(tail->line);
+    tail->line = new_string;
+    return tail;
+  }
 }
 
 t *indent(t *f, size_t n) {

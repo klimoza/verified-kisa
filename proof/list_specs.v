@@ -10,6 +10,7 @@ Require Import Coq.Strings.Ascii.
 Require Import format_specs.
 
 Definition t_flist := Tstruct _format_list noattr.
+Definition t_slist := Tstruct _string_list noattr.
 
 Lemma list_max_cons (x : nat) (l : list nat):
   list_max (x :: l) = max x (list_max l).
@@ -354,6 +355,85 @@ DECLARE _evaluator_trivial
       SEP (mdoc d p w h; listrepf res q w h; mem_mgr gv).
 
 
+Fixpoint listreps (sigma: list (list byte)) (p: val) : mpred :=
+ match sigma with
+ | h::hs =>
+    EX x:val, EX y: val,
+    malloc_token Ews (Tarray tschar (Zlength h + 1) noattr) y *
+    cstring Ews h y *
+    malloc_token Ews t_slist p * 
+    data_at Ews t_slist ((y, x) : @reptype CompSpecs t_slist) p *
+    listreps hs x
+ | nil =>
+    !! (<< LIST_NULL_PTR : p = nullval >> ) && emp
+ end.
+
+Arguments listreps sigma p : simpl never.
+
+Lemma listreps_local_facts sigma p :
+   listreps sigma p |--
+   !! (<< LIST_PTR_FACT : is_pointer_or_null p /\ (p=nullval <-> sigma=nil) >>).
+Proof.
+  intros.
+  revert p; induction sigma; intros p.
+  { unfold listreps. unnw. entailer!. split; auto. }
+  unff listreps.
+  entailer. unnw. entailer!.
+  split; ins.
+  subst. eapply field_compatible_nullval; eauto.
+Qed.
+#[export] Hint Resolve listreps_local_facts : saturate_local.
+
+Lemma listreps_valid_pointer sigma p :
+   listreps sigma p |-- valid_pointer p.
+Proof.
+  intros.
+  unfold listreps. destruct sigma; simpl; unnw.
+  { entailer!. }
+  Intros x y. auto with valid_pointer.
+Qed.
+#[export] Hint Resolve listreps_valid_pointer : valid_pointer.
+
+Fixpoint lsegs (sigma: list (list byte)) (x z: val) : mpred :=
+  match sigma with
+  | nil => !! (<< LSEG_PTR_FACT : x = z >>) && emp
+  | b::hs => EX h: val, EX y:val, 
+        malloc_token Ews (Tarray tschar (Zlength b + 1) noattr) y *
+        cstring Ews b y *
+        malloc_token Ews t_slist x * 
+        data_at Ews t_slist ((y, h)) x * 
+        lsegs hs h z
+  end.
+
+Arguments lsegs sigma x z : simpl never.
+
+Definition new_string_list_spec : ident * funspec :=
+DECLARE _new_string_list
+   WITH gv: globals
+   PRE []
+      PROP ()
+      PARAMS() GLOBALS(gv)
+      SEP (mem_mgr gv)
+   POST [ tptr t_slist ]
+      EX q: val,
+      PROP ()
+      RETURN(q)
+      SEP (listreps [[]] q; mem_mgr gv).
+
+Definition split_spec : ident * funspec :=
+DECLARE _split
+   WITH s : list byte, p : val, gv : globals
+   PRE [ tptr tschar ]
+      PROP (0 <= Zlength s <= Int.max_unsigned)
+      PARAMS (p) GLOBALS(gv)
+      SEP (cstring Ews s p; mem_mgr gv)
+   POST [ tptr t_slist ]
+      EX q : val,
+      PROP ()
+      RETURN (q)
+      SEP (listreps (map (fun x => string_to_list_byte x) (split (list_byte_to_string s))) q;
+           cstring Ews s p; mem_mgr gv).
+
 Definition Gprog : funspecs :=
         ltac:(with_library prog [
                    max_spec; strlen_spec; strcpy_spec; strcat_spec;
@@ -369,5 +449,5 @@ Definition Gprog : funspecs :=
                    max_width_check_spec; total_width_spec; get_format_list_tail_spec; format_list_copy_spec;
                    choice_doc_spec; beside_doc_spec; above_doc_spec; fill_doc_spec; indent_spec;
                    clear_last_format_element_spec; indent_doc_spec; construct_doc_spec;
-                   evaluator_trivial_spec
+                   evaluator_trivial_spec; new_string_list_spec; split_spec
  ]).

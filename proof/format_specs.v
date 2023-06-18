@@ -201,10 +201,7 @@ DECLARE _list_copy
   WITH sh : share, l : val, sigma : list (Z * (list byte)), gv: globals
   PRE [ tptr t_list ]
     PROP(0 <= Zlength sigma <= Int.max_unsigned;
-         Forall
-           (fun x => 0 <= (fst x) <= Int.max_unsigned /\
-                     0 <= Zlength (snd x) + 1 <= Int.max_unsigned)
-           sigma)
+         Forall (fun x => 0 <= fst x <= Int.max_unsigned /\ 0 <= Zlength (snd x) + 1 <= Int.max_unsigned) sigma)
     PARAMS(l) GLOBALS(gv)
     SEP(listrep sigma l; mem_mgr gv)
   POST [ tptr t_list ] 

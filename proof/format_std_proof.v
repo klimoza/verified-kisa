@@ -11,71 +11,55 @@ Require Import list_specs.
 Lemma body_max: semax_body Vprog Gprog f_max max_spec.
 Proof.
   start_function. 
-  forward_if.
-  { forward. Exists b. entailer!. }
-  forward. Exists a. entailer!.
+  forward_if; forward.
+  { Exists b; entailer!. }
+  Exists a; entailer!.
 Qed.
 
 Lemma body_strlen: semax_body Vprog Gprog f_strlen strlen_spec.
 Proof.
   start_function.
-  unfold cstring in *.
-  Intros.
+  unfold cstring in *; Intros.
   forward.
 
-  forward_loop  (EX i : Z,
+  forward_loop(
+    EX i : Z,
     PROP (0 <= i < Zlength s + 1)
     LOCAL (temp _str str; temp _i (Vptrofs (Ptrofs.repr i)))
-    SEP (data_at sh (tarray tschar (Zlength s + 1))
-            (map Vbyte (s ++ [Byte.zero])) str)).
-
-  { Exists 0. entailer. }
-  Intros i. forward. forward_if. forward. entailer!. 
-  repeat f_equal. cstring.
-  forward. entailer. Exists (i + 1). entailer!.
-  assert(0 <= i + 1 < Zlength (s ++ [Byte.zero])) as AA.
-  { assert (i < Zlength s) by cstring.
-    autorewrite with sublist.
-    cstring. }
-  autorewrite with sublist in AA. simpl in AA.
-  apply AA.
+    SEP (cstring sh s str)
+  ).
+  { Exists 0; unfold cstring; entailer. }
+  Intros i. 
+  unfold cstring; Intros.
+  forward; forward_if; forward; entailer!. 
+  { list_solve. }
+  Exists (i + 1).
+  unfold cstring; entailer!.
+  list_solve.
 Qed.
 
 Lemma body_strcpy : semax_body Vprog Gprog f_strcpy strcpy_spec.
 Proof.
   start_function.
-
-  unfold cstring,cstringn in *.
+  unfold cstring.
   forward.
-
   forward_loop (EX i : Z,
     PROP (0 <= i < Zlength s + 1)
     LOCAL (temp _i (Vptrofs (Ptrofs.repr i)); temp _dest dest; temp _src src)
-    SEP (data_at wsh (tarray tschar n)
-          (map Vbyte (sublist 0 i s) ++ Zrepeat Vundef (n - i)) dest;
-         data_at rsh (tarray tschar (Zlength s + 1)) (map Vbyte (s ++ [Byte.zero])) src)).
-  { Exists 0. entailer. }
-  Intros i. forward. forward. forward. forward_if.
-  { forward. entailer!. apply derives_refl'. f_equal.
-    rewrite upd_Znth_app2.
-    2: { list_solve. }
-    assert (i - Zlength (map Vbyte (sublist 0 i s)) = 0) as AA by list_solve.
-    rewrite AA. unfold Zrepeat.
-    remember (Z.to_nat (n - i)). destruct n0.
-    { lia. }
-    simpl. 
-    assert (i = Zlength s) by cstring.
-    replace (Z.to_nat (n - (Zlength s + 1))) with n0 by lia.
+    SEP (data_at wsh (tarray tschar n) (map Vbyte (sublist 0 i s) ++ Zrepeat Vundef (n - i)) dest;
+         cstring rsh s src)).
+  { Exists 0; unfold cstring; entailer. }
+  Intros i; unfold cstring; Intros.
+  do 3 forward; forward_if.
+  { forward. 
+    unfold cstring, cstringn; entailer!.
+    apply derives_refl'; f_equal.
     list_solve. }
-  forward. Exists (i + 1). entailer!. 
+  unfold cstring; forward.
+  Exists (i + 1); entailer!.
   2: { rewrite upd_Znth_app2.
        all: list_solve. }
-  assert (0 <= i + 1 < (Zlength (s ++ [Byte.zero]))) as AA.
-  { assert (i < Zlength s) as LT by cstring.
-    autorewrite with sublist.
-    cstring. }
-  autorewrite with sublist in AA. simpl in AA.
-  apply AA.
+  list_solve.
 Qed.
 
 Lemma body_strcat: semax_body Vprog Gprog f_strcat strcat_spec.
@@ -88,28 +72,23 @@ Proof.
     EX i : Z,
     PROP (0 <= i < Zlength b + 1)
     LOCAL (temp _i (Vptrofs (Ptrofs.repr i)); temp _dest dest; temp _src src)
-    SEP (cstringn wsh b n dest; cstring rsh s src))
-  break:
-  (
+    SEP (cstringn wsh b n dest; cstring rsh s src)) 
+    break: (
     PROP ()
     LOCAL (temp _i (Vptrofs (Ptrofs.repr (Zlength b))); temp _dest dest; temp _src src)
     SEP (cstringn wsh b n dest; cstring rsh s src)).
-  { Exists 0. unfold cstringn, cstring. entailer!. }
+  { Exists 0. 
+    unfold cstringn, cstring; entailer!. }
   { unfold cstringn, cstring.
-    Intros i.
-    forward. 
+    Intros i; forward.
     { entailer!. }
-    { entailer!. list_solve. }
+    { entailer!; list_solve. }
     autorewrite with sublist norm.
-    forward.
-    forward_if.
-    { forward. unfold cstringn, cstring. entailer!. do 2 f_equal. list_solve. }
-    forward.
+    forward; forward_if; forward.
+    { unfold cstringn, cstring; entailer!.
+       do 2 f_equal; list_solve. }
     Exists (i + 1).
-    unfold cstringn, cstring.
-    entailer!.
-    list_solve.
-  }
+    unfold cstringn, cstring; entailer!; list_solve. }
   unfold cstringn, cstring.
   forward.
   autorewrite with sublist norm in *.
@@ -117,29 +96,30 @@ Proof.
     EX j : Z,
     PROP (0 <= j < Zlength s + 1)
     LOCAL (temp _i (Vptrofs (Ptrofs.repr (Zlength b)));
-            temp _j (Vptrofs (Ptrofs.repr j));
-            temp _dest dest; temp _src src)
-    SEP ( data_at wsh (tarray tschar n) (map Vbyte (b ++ sublist 0 j s) ++ 
-    Zrepeat Vundef (n - (Zlength b + j))) dest;
-        cstring rsh s src)
-  ).
-  { Exists 0. unfold cstring, cstringn. autorewrite with sublist norm. entailer!. list_solve. }
+           temp _j (Vptrofs (Ptrofs.repr j));
+           temp _dest dest; temp _src src)
+    SEP (data_at wsh (tarray tschar n) (map Vbyte (b ++ sublist 0 j s) ++  Zrepeat Vundef (n - (Zlength b + j))) dest; 
+         cstring rsh s src)).
+  { Exists 0. 
+    unfold cstring, cstringn. 
+    autorewrite with sublist norm; entailer!; list_solve. }
   Intros j.
   unfold cstringn, cstring.
   autorewrite with sublist norm in *.
-  Intros.
   do 3 forward.
   { entailer!. }
   forward_if.
-  { forward. autorewrite with sublist norm. entailer!; list_solve. }
+  { forward; entailer!.
+    { assert (In Byte.zero b \/ In Byte.zero s) as K.
+      { apply in_app_or; ins. }
+      desf. }
+    list_solve. }
   forward.
   Exists (j + 1).
   entailer!.
   { list_solve. }
   unfold cstringn, cstring.
-  autorewrite with sublist norm.
-  entailer!.
-  list_solve.
+  entailer!; list_solve.
 Qed.
 
 Lemma list_copy_length_fact:
