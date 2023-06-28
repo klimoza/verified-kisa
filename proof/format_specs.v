@@ -4,6 +4,7 @@ Require Import VST.floyd.proofauto.
 Require Import VST.floyd.library.
 Require Import printer.printer_files.compiled_format.
 Require Import printer.verified_printer.Format.
+Require Import printer.verified_printer.FuncCorrect.
 Require Import Coq.Strings.Ascii.
 
 Instance CompSpecs : compspecs. make_compspecs prog. Defined.
@@ -387,12 +388,12 @@ DECLARE _line
   PRE [ tptr tschar ]
     PROP(0 <= 4 * Zlength sigma + 1 <= Int.max_unsigned)
     PARAMS(p) GLOBALS(gv)
-    SEP(mem_mgr gv; malloc_token Ews (Tarray tschar (Zlength sigma + 1) noattr) p * cstring Ews sigma p)
+    SEP(mem_mgr gv; cstring Ews sigma p)
   POST [ tptr t_format ]
     EX q : val,
     PROP()
     RETURN(q)
-    SEP(mem_mgr gv; mformat (line (list_byte_to_string sigma)) q).
+    SEP(mem_mgr gv; mformat (line (list_byte_to_string sigma)) q; cstring Ews sigma p).
     
 
 Definition sp_spec : ident * funspec :=

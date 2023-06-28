@@ -148,7 +148,7 @@ Lemma is_less_than_fact1 x y :
 Proof.
   remember (Nat.eqb_spec x y) eqn:AA. clear AA. split.
   { intros. destruct r; easy. }
-  intros. destruct r; auto. lia.
+  intros. destruct r; auto.
 Qed.
 
 Lemma nat_eq_iff_int_eq x y
@@ -306,26 +306,32 @@ Proof.
   { forward_call. entailer!. } 
   { forward. entailer. }
 
-  do 7 forward.
+  do 2 forward.
+  forward_call(Ews, sigma, p).
+  forward_call(tarray tschar (Zlength sigma + 1), gv).
+  { ins.
+    rep_lia. }
+  Intros to_text_ptr.
+  do 4 forward.
+  dest_ptr to_text_ptr.
+  do 2 forward.
+  forward_call(Ews, Ews, to_text_ptr, Zlength sigma + 1, p, sigma).
+  do 3 forward.
   Exists format_pointer.
-  unfold mformat. unfold cstring.
+  unfold mformat.
+  unfold cstring.
   Exists ([(0, sigma)]) to_text_pointer.
-  entailer!. unfold concrete_mformat.
+  entailer!; unfold concrete_mformat.
   entailer!.
-  { 
-    unnw. apply mk_format_mp.
-    { unfold to_text_eq. unfold to_text. simpl.
+  { unnw; apply mk_format_mp.
+    { unfold to_text_eq. 
+      unfold to_text; simpl.
       intros x line.
       rewrite string_to_list_byte_app.
-      rewrite list_byte_to_list_byte_eq.
-      auto.
-    }
-    { apply mk_list_mp; auto.
-      { simpl. unfold Int.max_unsigned. simpl. lia. }
-      list_simplify; simpl; lia. 
-    }
-    all: unfold line; simpl.
-    { unfold Int.max_unsigned. simpl. lia. }
+      rewrite list_byte_to_list_byte_eq; auto. }
+    { apply mk_list_mp; auto; ins.
+      list_simplify; ins; lia. }
+    all: unfold line; ins.
     4: ins.
     4: { unfold first_line_width_pred; ins.
           rewrite <- list_byte_to_string_length; lia. }
@@ -336,10 +342,12 @@ Proof.
     all: rewrite list_byte_to_string_length; list_solve. }
   unfold listrep.
   unfold cstring.
-  Exists (Vlong (Int64.repr 0)) p.
+  Exists (Vlong (Int64.repr 0)) to_text_ptr.
   entailer!.
-  unfold line; simpl.
+  unfold line; ins.
   repeat rewrite list_byte_to_string_length.
+  unfold cstringn.
+  autorewrite with sublist norm.
   entailer!.
 Qed.
 

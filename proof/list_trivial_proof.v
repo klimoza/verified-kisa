@@ -5,6 +5,7 @@ Require Import VST.floyd.library.
 Require Import printer.printer_files.compiled_format.
 Require Import printer.verified_printer.Format.
 Require Import printer.verified_printer.FormatTrivial.
+Require Import printer.verified_printer.FuncCorrect.
 Require Import Coq.Strings.Ascii.
 Require Import format_specs.
 Require Import list_specs.
@@ -596,8 +597,10 @@ Proof.
   { f_equal.
     unfold good_format_list in H.
     apply (IHfs h w).
+    unfold good_format_list.
     apply Forall_cons_iff in H; desf. }
   unfold good_format_list in H.
+  desf.
   apply Forall_cons_iff in H.
   desf.
   unfold good_format in H.
@@ -699,8 +702,30 @@ Proof.
   unfold good_format_list in *.
   replace fs1 with (sublist 0 (Zlength fs1 - 1) fs1 ++ [Znth (Zlength fs1 - 1) fs1]) by list_solve.
   rewrite Forall_app; split.
-  { unnw; ins. }
-  apply Forall_cons; unnw; ins.
+  { unnw; desf. }
+  apply Forall_cons; auto.
+Qed.
+
+
+Lemma good_format_add_beside (G F : t) (w h : Z):
+  << GOOD1: good_format G w h >> ->
+  << GOOD2: good_format F w h >> ->
+  format_correct (add_beside G F) \/ (add_beside G F = empty).
+Proof.
+  ins; getnw.
+  unfold good_format in *; desf.
+  { left.
+    apply beside_format; vauto. }
+  { vauto. }
+  { left.
+    unfold add_beside; unfold empty.
+    desf.
+    unfold format_correct in GOOD5.
+    unfold format_correct1 in GOOD5.
+    unfold format_correct2 in GOOD5.
+    unfold format_correct3 in GOOD5.
+    unfold HahnBase.NW in *; desf; lia. }
+  vauto.
 Qed.
 
 Lemma body_beside_doc : semax_body Vprog Gprog f_beside_doc beside_doc_spec.
@@ -781,8 +806,19 @@ Proof.
     inv FMT_MP.
     unfold empty in *; ins.
     unnw; unfold good_format; ins.
-    assert (sigma_list = []) by list_solve; subst.
-    list_solve. }
+    split.
+    { list_solve. }
+    split.
+    { list_solve. }
+    unfold format_correct in *.
+    unfold HahnBase.NW in *.
+    unfold format_correct1 in *.
+    unfold format_correct2 in *.
+    unfold format_correct3 in *.
+    desf; ins.
+    right.
+    unfold empty.
+    vauto. }
   2: { subst.
       Intros result_tail_ptr res_part.
       forward_call(fs1, p1, w, h, gv).
@@ -1311,7 +1347,11 @@ entailer!.
   unff lsegf.
   Exists new_result_tail_ptr result_format_ptr result_sigma result_sigma_pt.
   entailer!.
-  { unfold good_format; split; vauto. }
+  { unfold good_format.
+    unnw; repeat split.
+    { vauto. }
+    { vauto. }
+    apply (good_format_add_beside (Znth j fs1) (Znth i fs2) w h); vauto. }
   unfold concrete_mformat; entailer!.
   assert (
     listrepf (sublist j (Zlength fs1) fs1) head_ptr2 w h
@@ -1383,6 +1423,27 @@ assert (
   (total_width (add_beside (Znth j fs1) (Znth i fs2)) <= Z.to_nat w)%nat /\
     (height (add_beside (Znth j fs1) (Znth i fs2)) <= Z.to_nat h)%nat
 ) as GG by auto; desf.
+Qed.
+
+Lemma good_format_add_fill (G F : t) (w h : Z) (shift : nat):
+  << GOOD1: good_format G w h >> ->
+  << GOOD2: good_format F w h >> ->
+  format_correct (add_fill G F shift) \/ (add_fill G F shift = empty).
+Proof.
+  ins; getnw.
+  unfold good_format in *; desf.
+  { left.
+    apply fill_format; vauto. }
+  { vauto. }
+  { left.
+    unfold add_fill; unfold empty.
+    desf.
+    unfold format_correct in GOOD5.
+    unfold format_correct1 in GOOD5.
+    unfold format_correct2 in GOOD5.
+    unfold format_correct3 in GOOD5.
+    unfold HahnBase.NW in *; desf; lia. }
+  vauto.
 Qed.
 
 Lemma body_fill_doc : semax_body Vprog Gprog f_fill_doc fill_doc_spec.
@@ -1998,7 +2059,10 @@ entailer!.
   unff lsegf.
   Exists new_result_tail_ptr result_format_ptr result_sigma result_sigma_pt.
   entailer!.
-  { unfold good_format; split; vauto. }
+  { unfold good_format; repeat split.
+    { vauto. }
+    { vauto. }
+    apply (good_format_add_fill (Znth j fs1) (Znth i fs2) w h (Z.to_nat shift)); vauto. }
   unfold concrete_mformat; entailer!.
   assert (
     listrepf (sublist j (Zlength fs1) fs1) head_ptr2 w h
@@ -2070,6 +2134,27 @@ assert (
   (total_width (add_fill (Znth j fs1) (Znth i fs2) (Z.to_nat shift)) <= Z.to_nat w)%nat /\
     (height (add_fill (Znth j fs1) (Znth i fs2) (Z.to_nat shift)) <= Z.to_nat h)%nat
 ) as GG by auto; desf.
+Qed.
+
+Lemma good_format_add_above (G F : t) (w h : Z):
+  << GOOD1: good_format G w h >> ->
+  << GOOD2: good_format F w h >> ->
+  format_correct (add_above G F) \/ (add_above G F = empty).
+Proof.
+  ins; getnw.
+  unfold good_format in *; desf.
+  { left.
+    apply above_format; vauto. }
+  { vauto. }
+  { left.
+    unfold add_above; unfold empty.
+    desf.
+    unfold format_correct in GOOD5.
+    unfold format_correct1 in GOOD5.
+    unfold format_correct2 in GOOD5.
+    unfold format_correct3 in GOOD5.
+    unfold HahnBase.NW in *; desf; lia. }
+  vauto.
 Qed.
 
 
@@ -2659,7 +2744,10 @@ entailer!.
   unff lsegf.
   Exists new_result_tail_ptr result_format_ptr result_sigma result_sigma_pt.
   entailer!.
-  { unfold good_format; split; vauto. }
+  { unfold good_format; repeat split. 
+    { vauto. }
+    { vauto. }
+    apply (good_format_add_above (Znth j fs1) (Znth i fs2) w h); vauto. }
   unfold concrete_mformat; entailer!.
   assert (
     listrepf (sublist j (Zlength fs1) fs1) head_ptr2 w h
@@ -3138,6 +3226,16 @@ Proof.
   entailer!.
 Qed.
 
+Lemma good_format_indent (G : t) (w h : Z) (shift : nat):
+  G <> empty ->
+  << GOOD: good_format G w h >> ->
+  format_correct (indent' shift G) \/ (indent' shift G = empty).
+Proof.
+  ins; getnw.
+  unfold good_format in *; desf.
+  left; apply indent_format; vauto.
+Qed.
+
 Lemma body_indent_doc: semax_body Vprog Gprog f_indent_doc indent_doc_spec.
 Proof.
   start_function.
@@ -3199,8 +3297,10 @@ Proof.
     entailer!.
     unnw.
     unfold good_format.
-    unfold empty.
-    ins; lia. }
+    repeat split.
+    { unfold empty; ins; lia. }
+    { unfold empty; ins; lia. }
+    right; ins. }
   2: { subst.
       Intros result_tail_ptr res_part.
       forward_call(fs, p, w, h, gv).
@@ -4136,7 +4236,6 @@ Proof.
   replace (Tarray tschar (Zlength l + 2) noattr) with (tarray tschar (Zlength l + 2)) by reflexivity.
   rewrite data_at__tarray.
   do 2 forward.
-  { entailer!. }
   assert (default_val tschar = Vundef) as DEF by auto.
   rewrite DEF.
   unfold upd_Znth; desf.
@@ -4144,7 +4243,6 @@ Proof.
   autorewrite with sublist norm.
   replace (Zlength l + 2 - 1) with (Zlength l + 1) by lia.
   forward.
-  { entailer!. }
   rewrite upd_Znth_cons.
   replace (1 - 1) with 0 by lia.
   unfold upd_Znth; desf.
@@ -4217,3 +4315,369 @@ Proof.
   2: rep_lia.
   rewrite Byte.repr_unsigned; ins.
 Qed.
+
+Lemma body_clear_string_list: semax_body Vprog Gprog f_clear_string_list clear_string_list_spec.
+Proof.
+  start_function.
+  forward_if.
+  { forward.
+    unnw; desf.
+    assert (sl = []) by auto; subst.
+    unff listreps; entailer!. }
+  destruct sl.
+  { unff listreps; Intros.
+    unnw; vauto. }
+  unff listreps; Intros x y.
+  forward.
+  { entailer!; unnw; desf. }
+  forward_call(sl, x, gv).
+  forward.
+  forward_call((Tarray tschar (Zlength l + 1) noattr), y, gv).
+  { unfold cstring; desf; entailer!. }
+  forward_call(t_slist, p, gv).
+  { desf; entailer!. }
+  entailer!.
+Qed.
+
+Lemma length_list_byte_to_string (l : list byte):
+  String.length (list_byte_to_string l) = Z.to_nat (Zlength l).
+Proof.
+  induction l; ins.
+  list_solve.
+Qed.
+
+Lemma body_fl_from_sl: semax_body Vprog Gprog f_fl_from_sl fl_from_sl_spec.
+Proof.
+  start_function.
+  forward_if.
+  { forward.
+    Exists nullval.
+    unnw; desf.
+    assert (sl = []) by auto; subst; ins.
+    unff listreps.
+    unff listrepf.
+    entailer!. }
+  destruct sl.
+  { unff listreps; Intros.
+    unnw; ins. }
+  unff listreps.
+  Intros x y.
+  forward.
+  forward_call(Ews, l, y).
+  forward_if.
+  { forward.
+    { entailer!; unnw; desf. }
+    forward_call(sl, x, w, h, gv).
+    Intros vret.
+    forward.
+    replace (Int.unsigned (Int.repr w)) with w in *.
+    2: { rewrite Int.unsigned_repr; lia. }
+    Exists vret; ins; desf. 
+    { lia. }
+    { rewrite length_list_byte_to_string in *.
+      assert ((Z.to_nat w) < (Z.to_nat (Zlength l)))%nat as K by lia.
+      repeat rewrite Nat.max_id in *.
+      assert (((Z.to_nat (Zlength l)) <=? Z.to_nat w)%nat = false) as KK.
+      { apply leb_correct_conv; lia. }
+      rewrite KK in *; ins. }
+    { unff listreps.
+      Exists x y.
+      entailer!. }
+    unff listreps.
+    Exists x y.
+    entailer!. }
+  forward_if.
+  { forward.
+    { entailer!; unnw; desf. }
+    forward_call(sl, x, w, h, gv).
+    Intros vret.
+    forward.
+    replace (Int.unsigned (Int.repr w)) with w in *.
+    2: { rewrite Int.unsigned_repr; lia. }
+    Exists vret; ins; desf. 
+    { lia. }
+    unff listreps.
+    Exists x y.
+    entailer!. }
+  forward_call(t_flist, gv).
+  Intros result_ptr.
+  dest_ptr result_ptr.
+  forward.
+  { entailer!; unnw; desf. }
+  forward_call(sl, x, w, h, gv).
+  Intros tail_ptr.
+  do 2 forward.
+  replace (Int.unsigned (Int.repr w)) with w in *.
+  2: { rewrite Int.unsigned_repr; lia. }
+  assert ((Z.to_nat w) >= (Z.to_nat (Zlength l)))%nat as K by lia.
+  repeat rewrite Nat.max_id in *.
+  forward_call(y, l, gv).
+  Intros format_ptr.
+  do 2 forward.
+  Exists result_ptr.
+  entailer!.
+  ins; desf.
+  { lia. }
+  { unff listreps.
+    Exists x y.
+    entailer!.
+    unfold mformat.
+    Intros format_sigma sigma_ptr.
+    unff listrepf.
+    Exists tail_ptr format_ptr format_sigma sigma_ptr.
+    entailer!.
+    unnw.
+    unfold good_format.
+    unfold line; ins.
+    repeat rewrite length_list_byte_to_string in *.
+    lia. }
+  { lia. }
+  rewrite length_list_byte_to_string in *.
+  repeat rewrite Nat.max_id in *.
+  assert (((Z.to_nat (Zlength l)) <=? Z.to_nat w)%nat = true) as KK.
+  { apply leb_correct; lia. }
+  rewrite KK in *; ins. 
+Qed.
+
+Lemma fold_left_app_single (l : list t) (bs a : t):
+  fold_left add_above (l ++ [a]) bs = add_above (fold_left add_above l bs) a.
+Proof.
+  revert dependent bs.
+  revert dependent a.
+  induction l; ins.
+Qed.
+
+Lemma fold_left_cons (l : list t) (bs a : t):
+  fold_left add_above (a :: l) bs = fold_left add_above l (add_above bs a).
+Proof.
+  revert dependent bs.
+  revert dependent a.
+  induction l; ins.
+Qed.
+(* 
+Lemma fold_left_base (l : list t) (bs : t):
+  l <> [] -> exists G, fold_left add_above l bs = add_above bs G.
+Proof.
+  revert dependent bs.
+  induction l; ins.
+  destruct l; ins.
+  { exists a; ins. }
+  assert (t :: l <> []) as K by vauto.
+  apply (IHl (add_above bs a)) in K.
+  destruct K as [G KK].
+  rewrite KK.
+  exists (add_above a G).
+  remember (add_above bs a) as T1.
+  remember (add_above a G) as T2.
+  remember (add_above T1 G) as T3.
+  unfold add_above; desf.
+  all: remember (add_above bs a) as TT.
+  all: unfold add_above in HeqTT.
+  all: desf; ins.
+  all: remember (add_above a G) as TT.
+  all: unfold add_above in HeqTT.
+  all: desf; ins.
+  all: unfold add_above.
+  all: desf; ins.
+  all: try lia.
+  { ins.
+
+  }
+  {
+
+  }
+  destruct bs. *)
+  
+  
+(* Lemma fold_above_le (l1 l2 : list t) (bs : t):
+  (total_width (fold_left add_above l1 bs) <= total_width (fold_left add_above (l1 ++ l2) bs))%nat.
+Proof.
+  revert dependent l2.
+  revert dependent bs.
+  induction l1; ins.
+  revert dependent bs.
+  induction l2; ins.
+  apply (Nat.le_trans _ (total_width (add_above bs a)) _ ).
+  2: auto.
+  clear IHl2.
+  unfold add_above.
+  unfold total_width.
+  all: destruct a.
+  all: destruct bs.
+  ins.
+  all: desf; ins.
+  {
+
+  } *)
+
+Lemma body_fold_above: semax_body Vprog Gprog f_fold_above fold_above_spec.
+Proof.
+  start_function.
+  forward_call(gv).
+  Intros result_ptr.
+  forward_loop(
+    EX res : t, EX i : Z, EX q : val, EX res_ptr,
+    PROP(
+      res = fold_left add_above (sublist 0 i fl) empty;
+      ((height res) <= Z.to_nat h)%nat;
+      ((total_width res) <= Z.to_nat w)%nat;
+      0 <= i <= Zlength fl)
+    LOCAL (
+      temp _result res_ptr; gvars gv;
+      temp _fl q; temp _width (Vint (Int.repr w));
+      temp _height (Vint (Int.repr h)))
+    SEP (
+      mem_mgr gv; mformat res res_ptr;
+      lsegf (sublist 0 i fl) p q w h;
+      listrepf (sublist i (Zlength fl) fl) q w h)
+  ).
+  { Exists empty 0 p result_ptr.
+    entailer!.
+    { unfold empty; ins.
+      split; lia. }
+    autorewrite with sublist norm.
+    unff lsegf; entailer!. }
+  { entailer!. }
+  2: {
+    forward.
+    Exists (fold_left add_above fl empty) res_ptr.
+    getnw; unnw; desf; ins.
+    { assert( sublist i (Zlength fl) fl = []) by auto.
+      assert (i < Zlength fl \/ i = Zlength fl) as K by lia.
+      destruct K.
+      { replace (sublist i (Zlength fl) fl) with
+            (Znth i fl :: sublist (i + 1) (Zlength fl) fl) in * by list_solve.
+        ins. }
+      subst.
+      autorewrite with sublist norm in *.
+      unfold good_format_list in *.
+      apply orb_prop in Heq.
+      desf.
+      all: apply Nat.ltb_lt in Heq; lia. }
+    assert(sublist i (Zlength fl) fl = []) by auto.
+    assert (i < Zlength fl \/ i = Zlength fl) as K by lia.
+    destruct K.
+    { replace (sublist i (Zlength fl) fl) with
+          (Znth i fl :: sublist (i + 1) (Zlength fl) fl) in * by list_solve.
+      ins. }
+    subst.
+    autorewrite with sublist norm in *.
+    entailer!.
+    sep_apply lsegf_null_listrepf.
+    unff listrepf; entailer!. }
+  assert (i = Zlength fl \/ i < Zlength fl) as K by lia.
+  destruct K.
+  { replace i with (Zlength fl).
+    autorewrite with sublist norm.
+    unff listrepf; Intros.
+    getnw; ins. }
+  replace (sublist i (Zlength fl) fl) with 
+      (Znth i fl :: sublist (i + 1) (Zlength fl) fl) by list_solve.
+  unff listrepf.
+  Intros x y format_sigma sigma_pt.
+  forward.
+  { entailer.
+    unfold concrete_mformat.
+    entailer. }
+  unfold mformat.
+  Intros result_sigma result_sigma_ptr.
+  unfold concrete_mformat; Intros.
+  forward_call(res, (Znth i fl), res_ptr, y, result_sigma, format_sigma, result_sigma_ptr, sigma_pt, gv).
+  { unfold concrete_mformat; entailer!. }
+  { getnw.
+    inversion FMT_MP; clear FMT_MP.
+    getnw.
+    inversion FMT_MP; clear FMT_MP.
+    assert (total_width res <= Z.to_nat w)%nat as K by auto.
+    apply total_impl_widt in K.
+    unfold good_format in GOOD_FORMAT.
+    destruct GOOD_FORMAT as [K1 K2].
+    apply total_impl_widt in K1.
+    desf.
+    apply mk_format_comb; lia. }
+  Intros vret.
+  destruct vret as (vret, above_sigma_ptr).
+  destruct vret as (above_ptr, above_sigma).
+  simpl.
+  forward.
+  assert_PROP(format_mp (add_above res (Znth i fl)) above_sigma).
+  { unfold concrete_mformat; entailer!. }
+  forward.
+  { entailer!; unnw; desf. }
+  forward_call(result_sigma, result_sigma_ptr, gv).
+  forward_call(t_format, res_ptr, gv).
+  { desf; entailer!. }
+  forward.
+  forward_call(add_above res (Znth i fl), above_ptr, above_sigma, above_sigma_ptr, w, h).
+  { entailer!. }
+  Intros check_result.
+  forward_if.
+  { forward.
+    { entailer!; unnw; desf. }
+    entailer!.
+    Exists (fold_left add_above (sublist 0 (i + 1) fl) empty, (i + 1), x, above_ptr); ins.
+    entailer!.
+    { desf.
+      replace (sublist 0 (i + 1) fl) with
+        (sublist 0 i fl ++ [Znth i fl]) by list_solve.
+      rewrite fold_left_app_single.
+      list_solve. }
+    replace (sublist 0 (i + 1) fl) with
+        (sublist 0 i fl ++ [Znth i fl]) by list_solve.
+    unfold mformat.
+    Exists above_sigma above_sigma_ptr.
+    rewrite fold_left_app_single.
+    entailer!.
+    assert (
+      lsegf (sublist 0 i fl) p q w h *
+      lsegf ([Znth i fl]) q x w h |--
+      lsegf (sublist 0 i fl ++ [Znth i fl]) p x w h
+    ) as K.
+    { apply lsegf_lsegf. }
+    eapply derives_trans.
+    2: eauto.
+    unff lsegf.
+    Exists x y format_sigma sigma_pt.
+    entailer!. }
+  forward.
+  { entailer!; unnw; desf. }
+  forward_call(above_sigma, above_sigma_ptr, gv).
+  forward_call(t_format, above_ptr, gv).
+  { desf; entailer!. }
+  forward.
+  Exists (fold_left add_above fl empty) nullval.
+  desf; ins; entailer!.
+  { assert (fl = (sublist 0 i fl) ++ [Znth i fl] ++ (sublist (i + 1) (Zlength fl) fl)) as K by list_solve.
+    assert (
+      lsegf (sublist 0 i fl) p q w h *
+      lsegf ([Znth i fl]) q x w h *
+      listrepf (sublist (i + 1) (Zlength fl) fl) x w h |--
+      listrepf fl p w h
+    ) as KK.
+    { sep_apply lsegf_lsegf.
+      sep_apply lsegf_listf.
+      rewrite K at 5.
+      rewrite app_assoc.
+      entailer!. }
+    eapply derives_trans.
+    2: eauto.
+    entailer!.
+    unff lsegf.
+    Exists x y format_sigma sigma_pt.
+    entailer!. }
+  remember (fold_left add_above (sublist 0 i fl) empty) as res.
+  assert (
+    (total_width (add_above res (Znth i fl)) <= Z.to_nat w)%nat /\
+    (height (add_above res (Znth i fl)) <= Z.to_nat h)%nat
+    -> false=true
+  ) as K1 by auto.
+  assert (
+    false = true -> False
+  ) as K2 by ins.
+  remember (base.compose K2 K1) as K.
+  clear HeqK.
+  apply not_and_or in K.
+  destruct K as [KA | KB].
+  (* { Search (~(_ <= _))%nat.
+    apply not_le in KA.
+  } *)

@@ -6,6 +6,7 @@ Require Import printer.printer_files.compiled_format.
 Require Import printer.verified_printer.Format.
 Require Import printer.verified_printer.FormatTrivial.
 Require Import printer.verified_printer.Doc.
+Require Import printer.verified_printer.FuncCorrect.
 Require Import Coq.Strings.Ascii.
 Require Import format_specs.
 
@@ -30,7 +31,9 @@ Qed.
 
 Definition good_format (G : t) (w h : Z) : Prop :=
    (total_width G <= Z.to_nat w)%nat /\
-   (G.(height) <= Z.to_nat h)%nat.
+   (G.(height) <= Z.to_nat h)%nat /\
+   (format_correct G \/ G = empty).
+
 Definition good_format_list (fs : list t) (w h : Z) : Prop :=
   Forall (fun G => good_format G w h) fs.
 
@@ -60,10 +63,28 @@ Proof.
     repeat split; unnw; auto; ins. }
   unff listrepf.
   destruct a. entailer. unnw. entailer!.
-  repeat split; ins.
-  { subst. eapply field_compatible_nullval; eauto. }
-   unfold good_format_list in *.
-   apply Forall_cons; auto.
+  repeat split; ins; unfold good_format_list in *.
+  { subst; eapply field_compatible_nullval; eauto. }
+  { desf; apply Forall_cons; auto. }
+  all: unfold good_format in *.
+  all: unfold format_correct in *.
+  all: unfold format_correct1 in *.
+  all: unfold format_correct2 in *.
+  all: unfold format_correct3 in *.
+  all: unfold HahnBase.NW in *.
+  all: desf; ins.
+  all: try lia.
+  all: assert ((total_width a <= Z.to_nat w)%nat /\ ((a.(Format.height)) <= Z.to_nat h)%nat /\ format_correct a) as K.
+  all: try (assert (Forall (fun a => (total_width a <= Z.to_nat w)%nat /\ ((a.(Format.height)) <= Z.to_nat h)%nat /\ format_correct a) sigma) as K).
+  all: try list_solve.
+  all: try apply (HahnList.Forall_in a) in K.
+  all: vauto.
+  all: unfold format_correct in *.
+  all: unfold HahnBase.NW in *.
+  all: unfold format_correct1 in *.
+  all: unfold format_correct2 in *.
+  all: unfold format_correct3 in *.
+  all: desf; ins; lia.
 Qed.
 #[export] Hint Resolve listrepf_local_facts : saturate_local.
 
@@ -101,9 +122,23 @@ Proof.
    unfold good_format_list in *.
    unnw.
    rewrite Forall_cons_iff.
-   entailer.
+   entailer!.
 Qed.
 #[export] Hint Resolve lsegf_local_facts : saturate_local.
+
+Lemma lsegf_null_listrepf sigma p w h:
+  lsegf sigma p nullval w h |-- listrepf sigma p w h.
+Proof.
+  revert p.
+  induction sigma.
+  { unff lsegf; unff listrepf; entailer!. }
+  intros p.
+  unff lsegf.
+  Intros h0 y format_sigma sigma_pt.
+  unff listrepf.
+  Exists h0 y format_sigma sigma_pt.
+  entailer!.
+Qed.
 
 Definition total_width_spec : ident * funspec :=
 DECLARE _total_width
@@ -287,7 +322,7 @@ DECLARE _construct_doc
       SEP (cstring Ews sigma p; mem_mgr gv)
    POST [ tptr t_flist ]
       EX q: val, EX res: list t,
-      PROP (res = filter (fun G => (G.(height) <=? (Z.to_nat h))%nat) (constructDoc (list_byte_to_string sigma)))
+      PROP (res = filter (fun G => (G.(height) <=? (Z.to_nat h))%nat) (constructDoc (Z.to_nat w) (list_byte_to_string sigma)))
       RETURN(q)
       SEP (listrepf res q w h; cstring Ews sigma p; mem_mgr gv).
 
@@ -297,6 +332,7 @@ Fixpoint mdoc (doc : Doc) (x : val) (w h : Z) : mpred :=
   match doc with
   | Text s     => 
       EX p : val,
+      !! (0 <= Zlength (string_to_list_byte s) <= w) &&
       data_at Ews t_doc (Vint (Int.repr 0), (Vptrofs (Ptrofs.repr 0), (p, nullval))) x *
       cstring Ews (string_to_list_byte s) p
   | Indent n d => 
@@ -359,6 +395,7 @@ Fixpoint listreps (sigma: list (list byte)) (p: val) : mpred :=
  match sigma with
  | h::hs =>
     EX x:val, EX y: val,
+    !! (0 <= 4 * Zlength h + 1 <= Int.max_unsigned) &&
     malloc_token Ews (Tarray tschar (Zlength h + 1) noattr) y *
     cstring Ews h y *
     malloc_token Ews t_slist p * 
@@ -398,6 +435,7 @@ Fixpoint lsegs (sigma: list (list byte)) (x z: val) : mpred :=
   match sigma with
   | nil => !! (<< LSEG_PTR_FACT : x = z >>) && emp
   | b::hs => EX h: val, EX y:val, 
+        !! (0 <= 4 * Zlength b + 1 <= Int.max_unsigned) &&
         malloc_token Ews (Tarray tschar (Zlength b + 1) noattr) y *
         cstring Ews b y *
         malloc_token Ews t_slist x * 
@@ -424,7 +462,7 @@ Definition split_spec : ident * funspec :=
 DECLARE _split
    WITH s : list byte, p : val, gv : globals
    PRE [ tptr tschar ]
-      PROP (0 <= Zlength s <= Int.max_unsigned)
+      PROP (0 <= 4 * Zlength s + 1 <= Int.max_unsigned)
       PARAMS (p) GLOBALS(gv)
       SEP (cstring Ews s p; mem_mgr gv)
    POST [ tptr t_slist ]
@@ -433,6 +471,51 @@ DECLARE _split
       RETURN (q)
       SEP (listreps (map (fun x => string_to_list_byte x) (split (list_byte_to_string s))) q;
            cstring Ews s p; mem_mgr gv).
+
+Definition clear_string_list_spec : ident * funspec :=
+DECLARE _clear_string_list
+   WITH sl : list (list byte), p : val, gv : globals
+   PRE [ tptr t_slist ]
+      PROP () 
+      PARAMS (p) GLOBALS(gv)
+      SEP (listreps sl p; mem_mgr gv)
+   POST [ tvoid ]
+      PROP () 
+      RETURN () 
+      SEP (mem_mgr gv).
+
+Definition fl_from_sl_spec : ident * funspec :=
+DECLARE _fl_from_sl
+   WITH sl : list (list byte), p : val, w : Z, h : Z, gv : globals
+   PRE [ tptr t_slist, tuint, tuint ]
+      PROP (0 <= 8 * w <= Int.max_unsigned - 1;
+            0 <= 8 * h <= Int.max_unsigned)
+      PARAMS (p; Vint (Int.repr w); Vint (Int.repr h)) GLOBALS(gv)
+      SEP (listreps sl p; mem_mgr gv)
+   POST [ tptr t_flist ]
+      EX q : val,
+      PROP ()
+      RETURN (q)
+      SEP (listrepf (filter (fun x => (((total_width x) <=? Z.to_nat w)%nat && (x.(height) <=? Z.to_nat h)%nat)%bool) (map (fun x => line (list_byte_to_string x)) sl)) q w h; 
+             listreps sl p; mem_mgr gv).
+
+Definition fold_above_spec : ident * funspec :=
+DECLARE _fold_above
+   WITH fl : list t, p : val, w : Z, h : Z, gv : globals
+   PRE [ tptr t_flist, tuint, tuint ]
+      PROP (0 <= 8 * w <= Int.max_unsigned - 1;
+            0 <= 8 * h <= Int.max_unsigned)
+      PARAMS (p; Vint (Int.repr w); Vint (Int.repr h)) GLOBALS(gv)
+      SEP (listrepf fl p w h; mem_mgr gv) 
+   POST [ tptr t_format ]
+      EX res : t, EX q : val,
+      PROP (res = fold_left add_above fl empty)
+      RETURN (q)
+      SEP (
+         if ((Nat.ltb (Z.to_nat h) res.(height)) || (Nat.ltb (Z.to_nat w) (total_width res)))%bool 
+         then ((listrepf fl p w h) * (mem_mgr gv))
+         else ((listrepf fl p w h) * (mformat res q) * (mem_mgr gv))).
+      
 
 Definition Gprog : funspecs :=
         ltac:(with_library prog [
@@ -449,5 +532,6 @@ Definition Gprog : funspecs :=
                    max_width_check_spec; total_width_spec; get_format_list_tail_spec; format_list_copy_spec;
                    choice_doc_spec; beside_doc_spec; above_doc_spec; fill_doc_spec; indent_spec;
                    clear_last_format_element_spec; indent_doc_spec; construct_doc_spec;
-                   evaluator_trivial_spec; new_string_list_spec; split_spec
+                   evaluator_trivial_spec; new_string_list_spec; split_spec; clear_string_list_spec;
+                   fl_from_sl_spec
  ]).

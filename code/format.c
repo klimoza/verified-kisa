@@ -163,7 +163,9 @@ t *line(char *nt) {
   result->to_text = malloc(sizeof(struct list));
   if(!result->to_text) exit(1);
   result->to_text->shift = 0;
-  result->to_text->line = nt;
+  result->to_text->line = malloc(strlen(nt) + 1);
+  if(!result->to_text->line) exit(1);
+  strcpy(result->to_text->line, nt);
   result->to_text->tail = NULL;
   return result;
 }
@@ -490,6 +492,14 @@ string_list* new_string_list() {
   return result;
 }
 
+void clear_string_list(string_list *l) {
+  if(l == NULL)
+    return;
+  clear_string_list(l->tail);
+  free(l->line);
+  free(l);
+}
+
 string_list* split(char *s) {
   if(s[0] == 0)
     return new_string_list();
@@ -814,8 +824,49 @@ format_list* choice_doc(format_list *fs1, format_list *fs2) {
   return result;
 }
 
+format_list* fl_from_sl(string_list *sl, unsigned int width, unsigned int height) {
+  if(sl == NULL)
+    return NULL;
+  if(strlen(sl->line) > width)
+    return fl_from_sl(sl->tail, width, height);
+  if(height == 0)
+    return fl_from_sl(sl->tail, width, height);
+  format_list *result = malloc(sizeof(format_list));
+  if(!result) exit(1);
+  result->tail = fl_from_sl(sl->tail, width, height);
+  result->G = line(sl->line);
+  return result;
+}
+
+t* fold_above(format_list *fl, unsigned int width, unsigned int height) {
+  t *result = empty();
+  while(fl != NULL) {
+    t* new_result = add_above(result, fl->G);
+    clear_to_text(result->to_text);
+    free(result);
+    result = new_result;
+    if(max_width_check(result, width, height))
+      fl = fl->tail;
+    else {
+      clear_to_text(result->to_text);
+      free(result);
+      return NULL;
+    }
+  }
+  return result;
+}
+
 format_list* construct_doc(unsigned int width, unsigned int height, char *s) {
-  return NULL;
+  string_list *sl = split(s);
+  format_list *fl = fl_from_sl(sl, width, height);
+  clear_string_list(sl);
+  t* result = fold_above(fl, width, height);
+  if(!result) return NULL;
+  format_list *result_list = malloc(sizeof(format_list));
+  if(!result_list) exit(1);
+  result_list->G = result;
+  result_list->tail = NULL;
+  return result_list;
 }
 
 struct doc {

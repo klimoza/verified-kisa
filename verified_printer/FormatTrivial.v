@@ -14,7 +14,8 @@ Definition cross_general (width: nat) (op: t -> t -> t) (fl1: list t) (fl2: list
 Definition blank_line := (line "")::nil.
 
 (* Construct document from 'string' using 'above' rule *)
-Definition constructDoc (s: string) := (of_string s)::nil.
+Definition constructDoc (width : nat) (s: string) := 
+  List.filter (fun f => total_width f <=? width) ((of_string s)::nil).
 
 Definition indentDoc (width: nat) (shift: nat) (fs: list t) :=
   cross_general width (fun _ b => indent' shift b) (empty::nil) fs.
@@ -37,7 +38,7 @@ Definition choiceDoc (fs1: list t) (fs2: list t) :=
 
 Fixpoint evaluatorTrivial (width: nat) (doc: Doc): list t:=
   match doc with
-  | Text s     => constructDoc s
+  | Text s     => constructDoc width s
   | Indent n d => indentDoc width n (evaluatorTrivial width d)
   | Beside a b => besideDoc width (evaluatorTrivial width a) (evaluatorTrivial width b)
   | Above a b  => aboveDoc width (evaluatorTrivial width a) (evaluatorTrivial width b)
