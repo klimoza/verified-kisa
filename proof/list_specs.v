@@ -426,7 +426,7 @@ Arguments lsegs sigma x z : simpl never.
 Definition new_string_list_spec : ident * funspec :=
 DECLARE _new_string_list
    WITH gv: globals
-   2: PRE []
+   PRE []
       PROP ()
       PARAMS() GLOBALS(gv)
       SEP (mem_mgr gv)
@@ -471,10 +471,11 @@ DECLARE _fl_from_sl
       PARAMS (p; Vint (Int.repr w); Vint (Int.repr h)) GLOBALS(gv)
       SEP (listreps sl p; mem_mgr gv)
    POST [ tptr t_flist ]
-      EX q : val,
-      PROP ()
+      EX q : val, EX res : list t,
+      PROP (res = (filter (fun x => (((total_width x) <=? Z.to_nat w)%nat && (x.(height) <=? Z.to_nat h)%nat)%bool) (map (fun x => line (list_byte_to_string x)) sl));
+            good_format_list res w h)
       RETURN (q)
-      SEP (listrepf (filter (fun x => (((total_width x) <=? Z.to_nat w)%nat && (x.(height) <=? Z.to_nat h)%nat)%bool) (map (fun x => line (list_byte_to_string x)) sl)) q w h; 
+      SEP (listrepf res q w h; 
              listreps sl p; mem_mgr gv).
 
 Definition fold_above_spec : ident * funspec :=
@@ -482,7 +483,8 @@ DECLARE _fold_above
    WITH fl : list t, p : val, w : Z, h : Z, gv : globals
    PRE [ tptr t_flist, tuint, tuint ]
       PROP (0 <= 8 * w <= Int.max_unsigned - 1;
-            0 <= 8 * h <= Int.max_unsigned)
+            0 <= 8 * h <= Int.max_unsigned;
+            good_format_list fl w h)
       PARAMS (p; Vint (Int.repr w); Vint (Int.repr h)) GLOBALS(gv)
       SEP (listrepf fl p w h; mem_mgr gv) 
    POST [ tptr t_format ]
