@@ -617,6 +617,25 @@ Proof.
   apply Forall_app; auto.
 Qed.
 
+Lemma good_format_app_inv (fs1 fs2 : list t) (w h : Z):
+  good_format_list (fs1 ++ fs2) w h ->
+  good_format_list fs1 w h /\ good_format_list fs2 w h.
+Proof.
+  revert dependent fs2.
+  revert dependent w.
+  revert dependent h.
+  induction fs1; ins.
+  { vauto. } 
+  unfold good_format_list in H.
+  inv H.
+  assert (good_format_list fs1 w h /\ good_format_list fs2 w h) as K.
+  { apply IHfs1; vauto. }
+  desf.
+  split.
+  { apply Forall_cons; vauto. }
+  vauto.
+Qed.
+
 Lemma body_choice_doc : semax_body Vprog Gprog f_choice_doc choice_doc_spec.
 Proof.
   start_function.
@@ -696,37 +715,11 @@ Proof.
     Exists fs2_new_ptr y format_sigma sigma_pt.
     entailer!. }
   unfold choiceDoc.
+  assert (good_format_list (fs1 ++ fs2) w h) as KK.
+  { apply good_format_app; vauto. }
   rewrite (filter_good_format (fs1 ++ fs2) w h); vauto.
-  apply good_format_app; vauto.
-  2: { unnw; desf. }
-  unfold good_format_list in *.
-  replace fs1 with (sublist 0 (Zlength fs1 - 1) fs1 ++ [Znth (Zlength fs1 - 1) fs1]) by list_solve.
-  rewrite Forall_app; split.
-  { unnw; desf. }
-  apply Forall_cons; auto.
 Qed.
 
-
-Lemma good_format_add_beside (G F : t) (w h : Z):
-  << GOOD1: good_format G w h >> ->
-  << GOOD2: good_format F w h >> ->
-  format_correct (add_beside G F) \/ (add_beside G F = empty).
-Proof.
-  ins; getnw.
-  unfold good_format in *; desf.
-  { left.
-    apply beside_format; vauto. }
-  { vauto. }
-  { left.
-    unfold add_beside; unfold empty.
-    desf.
-    unfold format_correct in GOOD5.
-    unfold format_correct1 in GOOD5.
-    unfold format_correct2 in GOOD5.
-    unfold format_correct3 in GOOD5.
-    unfold HahnBase.NW in *; desf; lia. }
-  vauto.
-Qed.
 
 Lemma body_beside_doc : semax_body Vprog Gprog f_beside_doc beside_doc_spec.
 Proof.
@@ -770,7 +763,8 @@ Proof.
   remember (
       EX i : Z, EX head_ptr : val, EX result_tail_ptr : val, EX res_part : list t,
       PROP(0 <= i <= Zlength fs2;
-            res_part = filter (fun G => (G.(height) <=? Z.to_nat h)%nat) (FormatTrivial.besideDoc (Z.to_nat w) fs1 (sublist 0 i fs2)))
+            res_part = filter (fun G => (G.(height) <=? Z.to_nat h)%nat) (FormatTrivial.besideDoc (Z.to_nat w) fs1 (sublist 0 i fs2));
+            << GOOD_FMT: good_format_list res_part w h >>)
       LOCAL(temp _fs2_tail head_ptr;
             temp _has_item (Val.of_bool (0 <? Zlength res_part)); temp _result result_ptr; gvars gv; 
             temp _width (Vint (Int.repr w)); temp _height (Vint (Int.repr h));
@@ -780,7 +774,8 @@ Proof.
           listrepf [empty] result_tail_ptr w h)) as loop_invariant eqn:eqn_loop.
   remember (
       EX result_tail_ptr : val, EX res_part : list t,
-      PROP(res_part = filter (fun G => (G.(height) <=? Z.to_nat h)%nat) (FormatTrivial.besideDoc (Z.to_nat w) fs1 fs2))
+      PROP(res_part = filter (fun G => (G.(height) <=? Z.to_nat h)%nat) (FormatTrivial.besideDoc (Z.to_nat w) fs1 fs2);
+            << GOOD_FMT: good_format_list res_part w h >>)
       LOCAL(temp _has_item (Val.of_bool (0 <? Zlength res_part)); temp _result result_ptr; gvars gv;
             temp _result_tail result_tail_ptr;
             temp _width (Vint (Int.repr w)); temp _height (Vint (Int.repr h));
@@ -791,6 +786,7 @@ Proof.
   { subst.
     Exists 0 p2 result_ptr ([] : list t).
     entailer!.
+    { vauto. }
     replace (sublist 0 0 fs2) with ([] : list t) by list_solve.
     assert (sublist 0 (Zlength fs2) fs2 = fs2) as K.
     { rewrite sublist_skip; vauto. }
@@ -801,24 +797,7 @@ Proof.
     unff listrepf.
     Exists nullval cur_empty_ptr sigma_list sigma_pt.
     unfold concrete_mformat.
-    entailer!.
-    getnw.
-    inv FMT_MP.
-    unfold empty in *; ins.
-    unnw; unfold good_format; ins.
-    split.
-    { list_solve. }
-    split.
-    { list_solve. }
-    unfold format_correct in *.
-    unfold HahnBase.NW in *.
-    unfold format_correct1 in *.
-    unfold format_correct2 in *.
-    unfold format_correct3 in *.
-    desf; ins.
-    right.
-    unfold empty.
-    vauto. }
+    entailer!. }
   2: { subst.
       Intros result_tail_ptr res_part.
       forward_call(fs1, p1, w, h, gv).
@@ -837,6 +816,7 @@ Proof.
         forward.
         Exists nullval ([] : list t); entailer!.
         2: { unff listrepf; entailer!. }
+        split; vauto.
         list_solve. }
       { forward; entailer!; ins.
         assert (Zlength (filter (fun G : t => (height G <=? Z.to_nat h)%nat)
@@ -895,9 +875,7 @@ Proof.
           unff listrepf.
           Exists ith_tail_ptr ith_format_ptr format_sigma sigma_pt.
           Exists nullval empty_ptr format_sigma_empty sigma_pt_empty.
-          entailer!.
-          unnw.
-          list_solve. }
+          entailer!. }
         replace (sublist (i + 1) (Zlength res_part) res_part)
           with (Znth (i + 1) res_part :: sublist (i + 2) (Zlength res_part) res_part) by list_solve.
         replace ((Znth (i + 1) res_part :: sublist (i + 2) (Zlength res_part) res_part) ++ [empty]) with
@@ -993,7 +971,8 @@ forward.
 remember (
     EX j : Z, EX head_ptr2 : val, EX result_tail_ptr_new : val, EX res_part_new : list t,
     PROP(0 <= j <= Zlength fs1;
-          res_part_new = res_part ++ filter (fun G => (G.(height) <=? Z.to_nat h)%nat) (FormatTrivial.besideDoc (Z.to_nat w) (sublist 0 j fs1) [Znth i fs2]))
+          res_part_new = res_part ++ filter (fun G => (G.(height) <=? Z.to_nat h)%nat) (FormatTrivial.besideDoc (Z.to_nat w) (sublist 0 j fs1) [Znth i fs2]);
+          good_format_list res_part_new w h)
     LOCAL(temp _fs2_tail head_ptr; temp _fs1_tail head_ptr2;
           temp _has_item (Val.of_bool (0 <? Zlength res_part_new)); 
           temp _result result_ptr; gvars gv; 
@@ -1008,7 +987,8 @@ remember (
         listrepf [empty] result_tail_ptr_new w h)) as loop_invariant eqn:eqn_loop.
 remember (
     EX result_tail_ptr_new : val, EX res_part_new : list t,
-    PROP(res_part_new = filter (fun G => (G.(height) <=? Z.to_nat h)%nat) (FormatTrivial.besideDoc (Z.to_nat w) fs1 (sublist 0 (i + 1) fs2)))
+    PROP(res_part_new = filter (fun G => (G.(height) <=? Z.to_nat h)%nat) (FormatTrivial.besideDoc (Z.to_nat w) fs1 (sublist 0 (i + 1) fs2));
+          good_format_list res_part_new w h)
     LOCAL(temp _has_item (Val.of_bool (0 <? Zlength res_part_new)); 
           temp _result result_ptr; 
           gvars gv;
@@ -1095,7 +1075,18 @@ forward_if.
     rewrite beside_doc_app.
     replace (sublist 0 (i + 1) fs2) with
       (sublist 0 i fs2 ++ [Znth i fs2]) by list_solve.
-    vauto. }
+    split.
+    2: { vauto. }
+    rewrite <- beside_doc_app.
+    rewrite filter_app.
+    apply good_format_app.
+    { vauto. }
+    replace (sublist 0 (Zlength fs1) fs1) with fs1 in * by list_solve.
+    assert (
+      good_format_list (filter (fun G => (height G <=? Z.to_nat h)%nat) (besideDoc (Z.to_nat w) fs1 (sublist 0 i fs2)) 
+          ++ filter (fun G => (height G <=? Z.to_nat h)%nat) (besideDoc (Z.to_nat w) fs1 [Znth i fs2])) w h
+    ) as K by vauto.
+    apply good_format_app_inv in K; desf. }
   autorewrite with sublist norm.
   unff listrepf.
   rewrite <- filter_app.
@@ -1140,9 +1131,13 @@ Intros.
 forward_call(Znth j fs1, Znth i fs2, 
     ith_format_fs1_ptr, ith_format_fs2_ptr, fs1_sigma, fs2_sigma, fs1_sigma_pt, fs2_sigma_pt, gv).
 { unfold concrete_mformat; entailer!. }
-{ getnw; inv FMT_MP; inv GOOD_FORMAT.
-  getnw; inv FMT_MP; inv GOOD_FORMAT.
-  getnw; inv FMT_MP; inv GOOD_FORMAT.  
+{ getnw; inv FMT_MP.
+  getnw; inv FMT_MP.
+  getnw; inv FMT_MP.
+  unfold good_format_list in *.
+  assert (good_format (Znth i fs2) w h) as K1 by list_solve.
+  assert (good_format (Znth j fs1) w h) as K2 by list_solve.
+  unfold good_format in *; desf.
   split.
   { destruct (Znth j fs1); ins.
     destruct (Znth i fs2); ins.
@@ -1151,13 +1146,13 @@ forward_call(Znth j fs1, Znth i fs2,
     all: ins.
     all: lia. }
   assert (Forall (fun x => 0 <= fst x + Zlength (snd x) <= w) fs2_sigma) as FORALL2.
-      { enough (list_max (map (fun x => Z.to_nat (fst x + Zlength (snd x))) fs2_sigma) <= Z.to_nat w)%nat.
-        { apply list_max_impl_forall; vauto. }
-        rewrite <- (total_width_eq (Znth i fs2)); vauto. }
+  { enough (list_max (map (fun x => Z.to_nat (fst x + Zlength (snd x))) fs2_sigma) <= Z.to_nat w)%nat.
+    { apply list_max_impl_forall; vauto. }
+    rewrite <- (total_width_eq (Znth i fs2)); vauto. }
   assert (Forall (fun x => 0 <= fst x + Zlength (snd x) <= w) fs1_sigma) as FORALL1.
-      { enough (list_max (map (fun x => Z.to_nat (fst x + Zlength (snd x))) fs1_sigma) <= Z.to_nat w)%nat.
-        { apply list_max_impl_forall; vauto. }
-        rewrite <- (total_width_eq (Znth j fs1)); vauto. }
+  { enough (list_max (map (fun x => Z.to_nat (fst x + Zlength (snd x))) fs1_sigma) <= Z.to_nat w)%nat.
+    { apply list_max_impl_forall; vauto. }
+    rewrite <- (total_width_eq (Znth j fs1)); vauto. }
   split.
   { eapply beside_doc_llw_add.
     4: eauto.
@@ -1185,7 +1180,8 @@ Intros width_check_result.
 forward_if(
   EX res_part_new : list t, EX result_tail_ptr_new : val,
   PROP(0 <= j <= Zlength fs1;
-        res_part_new = res_part ++ filter (fun G => (G.(height) <=? Z.to_nat h)%nat) (FormatTrivial.besideDoc (Z.to_nat w) (sublist 0 (j + 1) fs1) [Znth i fs2]))
+        res_part_new = res_part ++ filter (fun G => (G.(height) <=? Z.to_nat h)%nat) (FormatTrivial.besideDoc (Z.to_nat w) (sublist 0 (j + 1) fs1) [Znth i fs2]);
+        good_format_list res_part_new w h)
   LOCAL(temp _fs2_tail head_ptr; temp _fs1_tail head_ptr2;
         temp _has_item (Val.of_bool (0 <? Zlength res_part_new)); 
         temp _result result_ptr; gvars gv; 
@@ -1347,11 +1343,6 @@ entailer!.
   unff lsegf.
   Exists new_result_tail_ptr result_format_ptr result_sigma result_sigma_pt.
   entailer!.
-  { unfold good_format.
-    unnw; repeat split.
-    { vauto. }
-    { vauto. }
-    apply (good_format_add_beside (Znth j fs1) (Znth i fs2) w h); vauto. }
   unfold concrete_mformat; entailer!.
   assert (
     listrepf (sublist j (Zlength fs1) fs1) head_ptr2 w h
@@ -1406,7 +1397,30 @@ enough (Zlength part4 = 1) as KK.
   assert (0 <? Zlength part1 + (Zlength part2 + 1) = true) as GG.
   { lia. }
   rewrite GG.
-  list_solve. }
+  split.
+  2: vauto.
+  rewrite app_assoc.
+  apply good_format_app; vauto.
+  unfold good_format_list.
+  unfold besideDoc.
+  unfold cross_general.
+  assert ((total_width (add_beside (Znth j fs1) (Znth i fs2)) <= Z.to_nat w)%nat /\
+          (height (add_beside (Znth j fs1) (Znth i fs2)) <= Z.to_nat h)%nat) as T by auto.
+  ins; desf.
+  2: { lia. }
+  ins; desf.
+  2: lia. 
+  apply Forall_cons; ins.
+  unfold good_format.
+  split.
+  { lia. }
+  split.
+  { lia. }
+  unfold good_format_list in *.
+  assert (good_format (Znth i fs2) w h) as T1 by list_solve.
+  assert (good_format (Znth j fs1) w h) as T2 by list_solve.
+  unfold good_format in *; desf.
+  apply beside_format; vauto. }
 vauto.
 unfold besideDoc.
 unfold cross_general.
@@ -1423,27 +1437,6 @@ assert (
   (total_width (add_beside (Znth j fs1) (Znth i fs2)) <= Z.to_nat w)%nat /\
     (height (add_beside (Znth j fs1) (Znth i fs2)) <= Z.to_nat h)%nat
 ) as GG by auto; desf.
-Qed.
-
-Lemma good_format_add_fill (G F : t) (w h : Z) (shift : nat):
-  << GOOD1: good_format G w h >> ->
-  << GOOD2: good_format F w h >> ->
-  format_correct (add_fill G F shift) \/ (add_fill G F shift = empty).
-Proof.
-  ins; getnw.
-  unfold good_format in *; desf.
-  { left.
-    apply fill_format; vauto. }
-  { vauto. }
-  { left.
-    unfold add_fill; unfold empty.
-    desf.
-    unfold format_correct in GOOD5.
-    unfold format_correct1 in GOOD5.
-    unfold format_correct2 in GOOD5.
-    unfold format_correct3 in GOOD5.
-    unfold HahnBase.NW in *; desf; lia. }
-  vauto.
 Qed.
 
 Lemma body_fill_doc : semax_body Vprog Gprog f_fill_doc fill_doc_spec.
@@ -1488,7 +1481,8 @@ Proof.
   remember (
       EX i : Z, EX head_ptr : val, EX result_tail_ptr : val, EX res_part : list t,
       PROP(0 <= i <= Zlength fs2;
-            res_part = filter (fun G => (G.(height) <=? Z.to_nat h)%nat) (FormatTrivial.fillDoc (Z.to_nat w) fs1 (sublist 0 i fs2) (Z.to_nat shift)))
+            res_part = filter (fun G => (G.(height) <=? Z.to_nat h)%nat) (FormatTrivial.fillDoc (Z.to_nat w) fs1 (sublist 0 i fs2) (Z.to_nat shift));
+            good_format_list res_part w h)
       LOCAL(temp _fs2_tail head_ptr;
             temp _shift (Vptrofs (Ptrofs.repr shift));
             temp _has_item (Val.of_bool (0 <? Zlength res_part)); temp _result result_ptr; gvars gv; 
@@ -1499,7 +1493,8 @@ Proof.
           listrepf [empty] result_tail_ptr w h)) as loop_invariant eqn:eqn_loop.
   remember (
       EX result_tail_ptr : val, EX res_part : list t,
-      PROP(res_part = filter (fun G => (G.(height) <=? Z.to_nat h)%nat) (FormatTrivial.fillDoc (Z.to_nat w) fs1 fs2 (Z.to_nat shift)))
+      PROP(res_part = filter (fun G => (G.(height) <=? Z.to_nat h)%nat) (FormatTrivial.fillDoc (Z.to_nat w) fs1 fs2 (Z.to_nat shift));
+            good_format_list res_part w h)
       LOCAL(temp _has_item (Val.of_bool (0 <? Zlength res_part)); temp _result result_ptr; gvars gv;
             temp _result_tail result_tail_ptr;
             temp _shift (Vptrofs (Ptrofs.repr shift));
@@ -1511,6 +1506,7 @@ Proof.
   { subst.
     Exists 0 p2 result_ptr ([] : list t).
     entailer!.
+    { vauto. }
     replace (sublist 0 0 fs2) with ([] : list t) by list_solve.
     assert (sublist 0 (Zlength fs2) fs2 = fs2) as K.
     { rewrite sublist_skip; vauto. }
@@ -1521,13 +1517,7 @@ Proof.
     unff listrepf.
     Exists nullval cur_empty_ptr sigma_list sigma_pt.
     unfold concrete_mformat.
-    entailer!.
-    getnw.
-    inv FMT_MP.
-    unfold empty in *; ins.
-    unnw; unfold good_format; ins.
-    assert (sigma_list = []) by list_solve; subst.
-    list_solve. }
+    entailer!. }
   2: { subst.
       Intros result_tail_ptr res_part.
       forward_call(fs1, p1, w, h, gv).
@@ -1546,6 +1536,7 @@ Proof.
         forward.
         Exists nullval ([] : list t); entailer!.
         2: { unff listrepf; entailer!. }
+        split; vauto.
         list_solve. }
       { forward; entailer!; ins.
         assert (Zlength (filter (fun G : t => (height G <=? Z.to_nat h)%nat)
@@ -1604,9 +1595,7 @@ Proof.
           unff listrepf.
           Exists ith_tail_ptr ith_format_ptr format_sigma sigma_pt.
           Exists nullval empty_ptr format_sigma_empty sigma_pt_empty.
-          entailer!.
-          unnw.
-          list_solve. }
+          entailer!. }
         replace (sublist (i + 1) (Zlength res_part) res_part)
           with (Znth (i + 1) res_part :: sublist (i + 2) (Zlength res_part) res_part) by list_solve.
         replace ((Znth (i + 1) res_part :: sublist (i + 2) (Zlength res_part) res_part) ++ [empty]) with
@@ -1702,7 +1691,8 @@ forward.
 remember (
     EX j : Z, EX head_ptr2 : val, EX result_tail_ptr_new : val, EX res_part_new : list t,
     PROP(0 <= j <= Zlength fs1;
-          res_part_new = res_part ++ filter (fun G => (G.(height) <=? Z.to_nat h)%nat) (FormatTrivial.fillDoc (Z.to_nat w) (sublist 0 j fs1) [Znth i fs2] (Z.to_nat shift)))
+          res_part_new = res_part ++ filter (fun G => (G.(height) <=? Z.to_nat h)%nat) (FormatTrivial.fillDoc (Z.to_nat w) (sublist 0 j fs1) [Znth i fs2] (Z.to_nat shift));
+          good_format_list res_part_new w h)
     LOCAL(temp _fs2_tail head_ptr; temp _fs1_tail head_ptr2;
           temp _has_item (Val.of_bool (0 <? Zlength res_part_new)); 
           temp _shift (Vptrofs (Ptrofs.repr shift));
@@ -1718,7 +1708,8 @@ remember (
         listrepf [empty] result_tail_ptr_new w h)) as loop_invariant eqn:eqn_loop.
 remember (
     EX result_tail_ptr_new : val, EX res_part_new : list t,
-    PROP(res_part_new = filter (fun G => (G.(height) <=? Z.to_nat h)%nat) (FormatTrivial.fillDoc (Z.to_nat w) fs1 (sublist 0 (i + 1) fs2 ) (Z.to_nat shift)))
+    PROP(res_part_new = filter (fun G => (G.(height) <=? Z.to_nat h)%nat) (FormatTrivial.fillDoc (Z.to_nat w) fs1 (sublist 0 (i + 1) fs2 ) (Z.to_nat shift));
+          good_format_list res_part_new w h)
     LOCAL(temp _has_item (Val.of_bool (0 <? Zlength res_part_new)); 
           temp _result result_ptr; 
           gvars gv;
@@ -1806,7 +1797,18 @@ forward_if.
     rewrite fill_doc_app.
     replace (sublist 0 (i + 1) fs2) with
       (sublist 0 i fs2 ++ [Znth i fs2]) by list_solve.
-    vauto. }
+    split.
+    2: { vauto. }
+    rewrite <- fill_doc_app.
+    rewrite filter_app.
+    apply good_format_app.
+    { vauto. }
+    replace (sublist 0 (Zlength fs1) fs1) with fs1 in * by list_solve.
+    assert (
+      good_format_list (filter (fun G => (height G <=? Z.to_nat h)%nat) (fillDoc (Z.to_nat w) fs1 (sublist 0 i fs2) (Z.to_nat shift)) 
+          ++ filter (fun G => (height G <=? Z.to_nat h)%nat) (fillDoc (Z.to_nat w) fs1 [Znth i fs2] (Z.to_nat shift))) w h
+    ) as K by vauto.
+    apply good_format_app_inv in K; desf. }
   autorewrite with sublist norm.
   unff listrepf.
   rewrite <- filter_app.
@@ -1851,9 +1853,13 @@ Intros.
 forward_call(Znth j fs1, Znth i fs2, 
     ith_format_fs1_ptr, ith_format_fs2_ptr, fs1_sigma, fs2_sigma, fs1_sigma_pt, fs2_sigma_pt, shift, gv).
 { unfold concrete_mformat; entailer!. }
-{ getnw; inv FMT_MP; inv GOOD_FORMAT.
-  getnw; inv FMT_MP; inv GOOD_FORMAT.
-  getnw; inv FMT_MP; inv GOOD_FORMAT.  
+{ getnw; inv FMT_MP.
+  getnw; inv FMT_MP.
+  getnw; inv FMT_MP.
+  unfold good_format_list in *.
+  assert (good_format (Znth i fs2) w h) as K1 by list_solve.
+  assert (good_format (Znth j fs1) w h) as K2 by list_solve.
+  unfold good_format in *; desf.
   split.
   { destruct (Znth j fs1); ins.
     destruct (Znth i fs2); ins.
@@ -1862,13 +1868,13 @@ forward_call(Znth j fs1, Znth i fs2,
     all: ins.
     all: lia. }
   assert (Forall (fun x => 0 <= fst x + Zlength (snd x) <= w) fs2_sigma) as FORALL2.
-      { enough (list_max (map (fun x => Z.to_nat (fst x + Zlength (snd x))) fs2_sigma) <= Z.to_nat w)%nat.
-        { apply list_max_impl_forall; vauto. }
-        rewrite <- (total_width_eq (Znth i fs2)); vauto. }
+  { enough (list_max (map (fun x => Z.to_nat (fst x + Zlength (snd x))) fs2_sigma) <= Z.to_nat w)%nat.
+    { apply list_max_impl_forall; vauto. }
+    rewrite <- (total_width_eq (Znth i fs2)); vauto. }
   assert (Forall (fun x => 0 <= fst x + Zlength (snd x) <= w) fs1_sigma) as FORALL1.
-      { enough (list_max (map (fun x => Z.to_nat (fst x + Zlength (snd x))) fs1_sigma) <= Z.to_nat w)%nat.
-        { apply list_max_impl_forall; vauto. }
-        rewrite <- (total_width_eq (Znth j fs1)); vauto. }
+  { enough (list_max (map (fun x => Z.to_nat (fst x + Zlength (snd x))) fs1_sigma) <= Z.to_nat w)%nat.
+    { apply list_max_impl_forall; vauto. }
+    rewrite <- (total_width_eq (Znth j fs1)); vauto. }
   split.
   { eapply beside_doc_llw_add.
     4: eauto.
@@ -1896,7 +1902,8 @@ Intros width_check_result.
 forward_if(
   EX res_part_new : list t, EX result_tail_ptr_new : val,
   PROP(0 <= j <= Zlength fs1;
-        res_part_new = res_part ++ filter (fun G => (G.(height) <=? Z.to_nat h)%nat) (FormatTrivial.fillDoc (Z.to_nat w) (sublist 0 (j + 1) fs1) [Znth i fs2] (Z.to_nat shift)))
+        res_part_new = res_part ++ filter (fun G => (G.(height) <=? Z.to_nat h)%nat) (FormatTrivial.fillDoc (Z.to_nat w) (sublist 0 (j + 1) fs1) [Znth i fs2] (Z.to_nat shift));
+        good_format_list res_part_new w h)
   LOCAL(temp _fs2_tail head_ptr; temp _fs1_tail head_ptr2;
         temp _has_item (Val.of_bool (0 <? Zlength res_part_new)); 
         temp _result result_ptr; gvars gv; 
@@ -2059,10 +2066,6 @@ entailer!.
   unff lsegf.
   Exists new_result_tail_ptr result_format_ptr result_sigma result_sigma_pt.
   entailer!.
-  { unfold good_format; repeat split.
-    { vauto. }
-    { vauto. }
-    apply (good_format_add_fill (Znth j fs1) (Znth i fs2) w h (Z.to_nat shift)); vauto. }
   unfold concrete_mformat; entailer!.
   assert (
     listrepf (sublist j (Zlength fs1) fs1) head_ptr2 w h
@@ -2117,7 +2120,30 @@ enough (Zlength part4 = 1) as KK.
   assert (0 <? Zlength part1 + (Zlength part2 + 1) = true) as GG.
   { lia. }
   rewrite GG.
-  list_solve. }
+  split.
+  2: vauto.
+  rewrite app_assoc.
+  apply good_format_app; vauto.
+  unfold good_format_list.
+  unfold fillDoc.
+  unfold cross_general.
+  assert ((total_width (add_fill (Znth j fs1) (Znth i fs2) (Z.to_nat shift)) <= Z.to_nat w)%nat /\
+          (height (add_fill (Znth j fs1) (Znth i fs2) (Z.to_nat shift)) <= Z.to_nat h)%nat) as T by auto.
+  ins; desf.
+  2: { lia. }
+  ins; desf.
+  2: lia. 
+  apply Forall_cons; ins.
+  unfold good_format.
+  split.
+  { lia. }
+  split.
+  { lia. }
+  unfold good_format_list in *.
+  assert (good_format (Znth i fs2) w h) as T1 by list_solve.
+  assert (good_format (Znth j fs1) w h) as T2 by list_solve.
+  unfold good_format in *; desf.
+  apply fill_format; vauto. }
 vauto.
 unfold fillDoc.
 unfold cross_general.
@@ -2135,28 +2161,6 @@ assert (
     (height (add_fill (Znth j fs1) (Znth i fs2) (Z.to_nat shift)) <= Z.to_nat h)%nat
 ) as GG by auto; desf.
 Qed.
-
-Lemma good_format_add_above (G F : t) (w h : Z):
-  << GOOD1: good_format G w h >> ->
-  << GOOD2: good_format F w h >> ->
-  format_correct (add_above G F) \/ (add_above G F = empty).
-Proof.
-  ins; getnw.
-  unfold good_format in *; desf.
-  { left.
-    apply above_format; vauto. }
-  { vauto. }
-  { left.
-    unfold add_above; unfold empty.
-    desf.
-    unfold format_correct in GOOD5.
-    unfold format_correct1 in GOOD5.
-    unfold format_correct2 in GOOD5.
-    unfold format_correct3 in GOOD5.
-    unfold HahnBase.NW in *; desf; lia. }
-  vauto.
-Qed.
-
 
 Lemma body_above_doc: semax_body Vprog Gprog f_above_doc above_doc_spec.
 Proof.
@@ -2200,7 +2204,8 @@ Proof.
   remember (
       EX i : Z, EX head_ptr : val, EX result_tail_ptr : val, EX res_part : list t,
       PROP(0 <= i <= Zlength fs2;
-            res_part = filter (fun G => (G.(height) <=? Z.to_nat h)%nat) (FormatTrivial.aboveDoc (Z.to_nat w) fs1 (sublist 0 i fs2)))
+            res_part = filter (fun G => (G.(height) <=? Z.to_nat h)%nat) (FormatTrivial.aboveDoc (Z.to_nat w) fs1 (sublist 0 i fs2));
+            good_format_list res_part w h)
       LOCAL(temp _fs2_tail head_ptr;
             temp _has_item (Val.of_bool (0 <? Zlength res_part)); temp _result result_ptr; gvars gv; 
             temp _width (Vint (Int.repr w)); temp _height (Vint (Int.repr h));
@@ -2210,7 +2215,8 @@ Proof.
           listrepf [empty] result_tail_ptr w h)) as loop_invariant eqn:eqn_loop.
   remember (
       EX result_tail_ptr : val, EX res_part : list t,
-      PROP(res_part = filter (fun G => (G.(height) <=? Z.to_nat h)%nat) (FormatTrivial.aboveDoc (Z.to_nat w) fs1 fs2))
+      PROP(res_part = filter (fun G => (G.(height) <=? Z.to_nat h)%nat) (FormatTrivial.aboveDoc (Z.to_nat w) fs1 fs2);
+            good_format_list res_part w h)
       LOCAL(temp _has_item (Val.of_bool (0 <? Zlength res_part)); temp _result result_ptr; gvars gv;
             temp _result_tail result_tail_ptr;
             temp _width (Vint (Int.repr w)); temp _height (Vint (Int.repr h));
@@ -2221,6 +2227,7 @@ Proof.
   { subst.
     Exists 0 p2 result_ptr ([] : list t).
     entailer!.
+    { vauto. }
     replace (sublist 0 0 fs2) with ([] : list t) by list_solve.
     assert (sublist 0 (Zlength fs2) fs2 = fs2) as K.
     { rewrite sublist_skip; vauto. }
@@ -2231,13 +2238,7 @@ Proof.
     unff listrepf.
     Exists nullval cur_empty_ptr sigma_list sigma_pt.
     unfold concrete_mformat.
-    entailer!.
-    getnw.
-    inv FMT_MP.
-    unfold empty in *; ins.
-    unnw; unfold good_format; ins.
-    assert (sigma_list = []) by list_solve; subst.
-    list_solve. }
+    entailer!. }
   2: { subst.
       Intros result_tail_ptr res_part.
       forward_call(fs1, p1, w, h, gv).
@@ -2256,6 +2257,7 @@ Proof.
         forward.
         Exists nullval ([] : list t); entailer!.
         2: { unff listrepf; entailer!. }
+        split; vauto.
         list_solve. }
       { forward; entailer!; ins.
         assert (Zlength (filter (fun G : t => (height G <=? Z.to_nat h)%nat)
@@ -2314,9 +2316,7 @@ Proof.
           unff listrepf.
           Exists ith_tail_ptr ith_format_ptr format_sigma sigma_pt.
           Exists nullval empty_ptr format_sigma_empty sigma_pt_empty.
-          entailer!.
-          unnw.
-          list_solve. }
+          entailer!. }
         replace (sublist (i + 1) (Zlength res_part) res_part)
           with (Znth (i + 1) res_part :: sublist (i + 2) (Zlength res_part) res_part) by list_solve.
         replace ((Znth (i + 1) res_part :: sublist (i + 2) (Zlength res_part) res_part) ++ [empty]) with
@@ -2412,7 +2412,8 @@ forward.
 remember (
     EX j : Z, EX head_ptr2 : val, EX result_tail_ptr_new : val, EX res_part_new : list t,
     PROP(0 <= j <= Zlength fs1;
-          res_part_new = res_part ++ filter (fun G => (G.(height) <=? Z.to_nat h)%nat) (FormatTrivial.aboveDoc (Z.to_nat w) (sublist 0 j fs1) [Znth i fs2]))
+          res_part_new = res_part ++ filter (fun G => (G.(height) <=? Z.to_nat h)%nat) (FormatTrivial.aboveDoc (Z.to_nat w) (sublist 0 j fs1) [Znth i fs2]);
+          good_format_list res_part_new w h)
     LOCAL(temp _fs2_tail head_ptr; temp _fs1_tail head_ptr2;
           temp _has_item (Val.of_bool (0 <? Zlength res_part_new)); 
           temp _result result_ptr; gvars gv; 
@@ -2427,7 +2428,8 @@ remember (
         listrepf [empty] result_tail_ptr_new w h)) as loop_invariant eqn:eqn_loop.
 remember (
     EX result_tail_ptr_new : val, EX res_part_new : list t,
-    PROP(res_part_new = filter (fun G => (G.(height) <=? Z.to_nat h)%nat) (FormatTrivial.aboveDoc (Z.to_nat w) fs1 (sublist 0 (i + 1) fs2)))
+    PROP(res_part_new = filter (fun G => (G.(height) <=? Z.to_nat h)%nat) (FormatTrivial.aboveDoc (Z.to_nat w) fs1 (sublist 0 (i + 1) fs2));
+          good_format_list res_part_new w h)
     LOCAL(temp _has_item (Val.of_bool (0 <? Zlength res_part_new)); 
           temp _result result_ptr; 
           gvars gv;
@@ -2514,7 +2516,18 @@ forward_if.
     rewrite above_doc_app.
     replace (sublist 0 (i + 1) fs2) with
       (sublist 0 i fs2 ++ [Znth i fs2]) by list_solve.
-    vauto. }
+    split.
+    2: { vauto. }
+    rewrite <- above_doc_app.
+    rewrite filter_app.
+    apply good_format_app.
+    { vauto. }
+    replace (sublist 0 (Zlength fs1) fs1) with fs1 in * by list_solve.
+    assert (
+      good_format_list (filter (fun G => (height G <=? Z.to_nat h)%nat) (aboveDoc (Z.to_nat w) fs1 (sublist 0 i fs2)) 
+          ++ filter (fun G => (height G <=? Z.to_nat h)%nat) (aboveDoc (Z.to_nat w) fs1 [Znth i fs2])) w h
+    ) as K by vauto.
+    apply good_format_app_inv in K; desf. }
   autorewrite with sublist norm.
   unff listrepf.
   rewrite <- filter_app.
@@ -2559,9 +2572,13 @@ Intros.
 forward_call(Znth j fs1, Znth i fs2, 
     ith_format_fs1_ptr, ith_format_fs2_ptr, fs1_sigma, fs2_sigma, fs1_sigma_pt, fs2_sigma_pt, gv).
 { unfold concrete_mformat; entailer!. }
-{ getnw; inv FMT_MP; inv GOOD_FORMAT.
-  getnw; inv FMT_MP; inv GOOD_FORMAT.
-  getnw; inv FMT_MP; inv GOOD_FORMAT.  
+{ getnw; inv FMT_MP.
+  getnw; inv FMT_MP.
+  getnw; inv FMT_MP.
+  unfold good_format_list in *.
+  assert (good_format (Znth i fs2) w h) as K1 by list_solve.
+  assert (good_format (Znth j fs1) w h) as K2 by list_solve.
+  unfold good_format in *; desf.
   destruct (Znth j fs1); ins.
   destruct (Znth i fs2); ins.
   apply mk_format_comb; ins.
@@ -2582,7 +2599,8 @@ Intros width_check_result.
 forward_if(
   EX res_part_new : list t, EX result_tail_ptr_new : val,
   PROP(0 <= j <= Zlength fs1;
-        res_part_new = res_part ++ filter (fun G => (G.(height) <=? Z.to_nat h)%nat) (FormatTrivial.aboveDoc (Z.to_nat w) (sublist 0 (j + 1) fs1) [Znth i fs2]))
+        res_part_new = res_part ++ filter (fun G => (G.(height) <=? Z.to_nat h)%nat) (FormatTrivial.aboveDoc (Z.to_nat w) (sublist 0 (j + 1) fs1) [Znth i fs2]);
+        good_format_list res_part_new w h)
   LOCAL(temp _fs2_tail head_ptr; temp _fs1_tail head_ptr2;
         temp _has_item (Val.of_bool (0 <? Zlength res_part_new)); 
         temp _result result_ptr; gvars gv; 
@@ -2744,10 +2762,6 @@ entailer!.
   unff lsegf.
   Exists new_result_tail_ptr result_format_ptr result_sigma result_sigma_pt.
   entailer!.
-  { unfold good_format; repeat split. 
-    { vauto. }
-    { vauto. }
-    apply (good_format_add_above (Znth j fs1) (Znth i fs2) w h); vauto. }
   unfold concrete_mformat; entailer!.
   assert (
     listrepf (sublist j (Zlength fs1) fs1) head_ptr2 w h
@@ -2802,7 +2816,30 @@ enough (Zlength part4 = 1) as KK.
   assert (0 <? Zlength part1 + (Zlength part2 + 1) = true) as GG.
   { lia. }
   rewrite GG.
-  list_solve. }
+  split.
+  2: vauto.
+  rewrite app_assoc.
+  apply good_format_app; vauto.
+  unfold good_format_list.
+  unfold aboveDoc.
+  unfold cross_general.
+  assert ((total_width (add_above (Znth j fs1) (Znth i fs2)) <= Z.to_nat w)%nat /\
+          (height (add_above (Znth j fs1) (Znth i fs2)) <= Z.to_nat h)%nat) as T by auto.
+  ins; desf.
+  2: { lia. }
+  ins; desf.
+  2: lia. 
+  apply Forall_cons; ins.
+  unfold good_format.
+  split.
+  { lia. }
+  split.
+  { lia. }
+  unfold good_format_list in *.
+  assert (good_format (Znth i fs2) w h) as T1 by list_solve.
+  assert (good_format (Znth j fs1) w h) as T2 by list_solve.
+  unfold good_format in *; desf.
+  apply above_format; vauto. }
 vauto.
 unfold aboveDoc.
 unfold cross_general.
@@ -2855,6 +2892,7 @@ Proof.
     rewrite Nat2Z.id.
     repeat rewrite sp_byte_app.
     list_solve. }
+  repeat rewrite sp_byte_app.
   rewrite (IHsigma shift0 shift (p :: l)).
   { rewrite Z2Nat.inj_add; try lia.
     2: { apply Forall_cons_iff in LIST_FACT; ins; lia. }
@@ -3210,12 +3248,9 @@ Proof.
   entailer!.
   replace (i + 2) with (Zlength fs) in * by lia.
   getnw.
-  rename GOOD_FORMAT into GOOD_FORMAT1.
   getnw.
   replace (i + 1) with (Zlength fs - 1) by lia.
-  replace (i + 1) with (Zlength fs - 1) in GOOD_FORMAT1 by lia.
   replace i with (Zlength fs - 2) by lia.
-  replace i with (Zlength fs - 2) in GOOD_FORMAT by lia.
   entailer!.
   replace (sublist (Zlength fs - 2) (Zlength fs) fs) with
       [Znth (Zlength fs - 2) fs; Znth (Zlength fs - 1) fs] by list_solve.
@@ -3224,16 +3259,6 @@ Proof.
   Exists ith_tail_ptr ith_format_ptr ith_sigma ith_sigma_ptr.
   Exists nullval jth_format_ptr jth_sigma jth_sigma_ptr.
   entailer!.
-Qed.
-
-Lemma good_format_indent (G : t) (w h : Z) (shift : nat):
-  G <> empty ->
-  << GOOD: good_format G w h >> ->
-  format_correct (indent' shift G) \/ (indent' shift G = empty).
-Proof.
-  ins; getnw.
-  unfold good_format in *; desf.
-  left; apply indent_format; vauto.
 Qed.
 
 Lemma body_indent_doc: semax_body Vprog Gprog f_indent_doc indent_doc_spec.
@@ -3256,7 +3281,8 @@ Proof.
   remember (
       EX i : Z, EX head_ptr : val, EX result_tail_ptr : val, EX res_part : list t,
       PROP(0 <= i <= Zlength fs;
-            res_part = filter (fun G => (G.(height) <=? Z.to_nat h)%nat) (FormatTrivial.indentDoc (Z.to_nat w) (Z.to_nat shift) (sublist 0 i fs)))
+            res_part = filter (fun G => (G.(height) <=? Z.to_nat h)%nat) (FormatTrivial.indentDoc (Z.to_nat w) (Z.to_nat shift) (sublist 0 i fs));
+            good_format_list res_part w h)
       LOCAL(temp _fs_tail head_ptr;
             temp _has_item (Val.of_bool (0 <? Zlength res_part)); 
             temp _result result_ptr; 
@@ -3272,7 +3298,8 @@ Proof.
           listrepf [empty] result_tail_ptr w h)) as loop_invariant eqn:eqn_loop.
   remember (
       EX result_tail_ptr : val, EX res_part : list t,
-      PROP(res_part = filter (fun G => (G.(height) <=? Z.to_nat h)%nat) (FormatTrivial.indentDoc (Z.to_nat w) (Z.to_nat shift) fs))
+      PROP(res_part = filter (fun G => (G.(height) <=? Z.to_nat h)%nat) (FormatTrivial.indentDoc (Z.to_nat w) (Z.to_nat shift) fs);
+            good_format_list res_part w h)
       LOCAL(temp _has_item (Val.of_bool (0 <? Zlength res_part)); 
             temp _result result_ptr; gvars gv;
             temp _result_tail result_tail_ptr;
@@ -3287,6 +3314,7 @@ Proof.
   { rewrite eqn_loop.
     Exists 0 p result_ptr ([] : list t).
     entailer!.
+    { vauto. }
     unfold mformat.
     Intros empty_sigma empty_sigma_ptr.
     unff lsegf.
@@ -3294,13 +3322,7 @@ Proof.
     unff lsegf.
     unff listrepf.
     Exists nullval empty_ptr empty_sigma empty_sigma_ptr.
-    entailer!.
-    unnw.
-    unfold good_format.
-    repeat split.
-    { unfold empty; ins; lia. }
-    { unfold empty; ins; lia. }
-    right; ins. }
+    entailer!. }
   2: { subst.
       Intros result_tail_ptr res_part.
       forward_call(fs, p, w, h, gv).
@@ -3318,6 +3340,7 @@ Proof.
         forward.
         Exists nullval ([] : list t); entailer!.
         2: { unff listrepf; entailer!. }
+        split; vauto.
         list_solve. }
       { forward; entailer!; ins.
         assert (Zlength (filter (fun G : t => (height G <=? Z.to_nat h)%nat)
@@ -3380,6 +3403,9 @@ Proof.
   { unfold concrete_mformat.
     do 2 entailer. }
   forward_call((Znth i fs), ith_format_ptr, ith_format_sigma, ith_sigma_ptr, shift, w, h, gv).
+  { getnw; unnw.
+    unfold good_format_list in *.
+    list_solve. }
   Intros vret.
   destruct vret as (vret, result_sigma_pt).
   destruct vret as (result_format_ptr, result_sigma).
@@ -3394,7 +3420,8 @@ Proof.
   forward_if(
     EX res_part_new : list t, EX result_tail_ptr_new : val,
     PROP(0 <= i <= Zlength fs;
-        res_part_new = filter (fun G => (G.(height) <=? Z.to_nat h)%nat) (FormatTrivial.indentDoc (Z.to_nat w) (Z.to_nat shift) (sublist 0 (i + 1) fs)))
+        res_part_new = filter (fun G => (G.(height) <=? Z.to_nat h)%nat) (FormatTrivial.indentDoc (Z.to_nat w) (Z.to_nat shift) (sublist 0 (i + 1) fs));
+        good_format_list res_part_new w h)
     LOCAL(temp _fs_tail head_ptr;
           temp _has_item (Val.of_bool (0 <? Zlength res_part_new)); 
           temp _result result_ptr; gvars gv; 
@@ -3542,7 +3569,6 @@ Proof.
     unff lsegf.
     Exists new_result_tail_ptr result_format_ptr result_sigma result_sigma_pt.
     entailer!.
-    { unfold good_format; split; vauto. }
     unfold concrete_mformat; entailer!. }
   autorewrite with sublist norm.
   desf.
@@ -3563,7 +3589,28 @@ Proof.
     assert (0 <? Zlength part1 + 1 = true) as GG.
     { lia. }
     rewrite GG.
-    list_solve. }
+    split.
+    2: vauto.
+    apply good_format_app; vauto.
+    unfold good_format_list.
+    unfold indentDoc.
+    unfold cross_general.
+    assert ((total_width (indent' (Z.to_nat shift) (Znth i fs)) <= Z.to_nat w)%nat /\
+            (height (indent' (Z.to_nat shift) (Znth i fs)) <= Z.to_nat h)%nat) as T by auto.
+    ins; desf.
+    2: { lia. }
+    ins; desf.
+    2: lia. 
+    apply Forall_cons; ins.
+    unfold good_format.
+    split.
+    { lia. }
+    split.
+    { lia. }
+    unfold good_format_list in *; getnw.
+    assert (good_format (Znth i fs) w h) as T1 by list_solve.
+    unfold good_format in *; desf.
+    apply indent_format; vauto. }
   vauto.
   unfold indentDoc.
   unfold cross_general.
@@ -4115,6 +4162,7 @@ Proof.
   unff listreps.
   Exists nullval result_line_ptr.
   entailer!.
+  { rep_lia. }
   unfold cstring.
   entailer!.
 Qed.
@@ -4123,6 +4171,22 @@ Lemma split_not_nil (s : string):
   split s <> [].
 Proof.
   induction s; ins; desf.
+Qed.
+
+Lemma split_leq_length (sigma : list byte) (s : string) (l : list string):
+  split (list_byte_to_string sigma) = s :: l ->
+  Zlength (string_to_list_byte s) <= Zlength sigma.
+Proof.
+  revert dependent s.
+  revert dependent l.
+  induction sigma; ins.
+  { vauto. }
+  desf; ins.
+  { list_solve. }
+  { list_solve. }
+  autorewrite with sublist norm in *.
+  enough (Zlength (string_to_list_byte s0) <= Zlength sigma) by lia.
+  apply (IHsigma l s0); ins.
 Qed.
 
 Lemma split_first_element_length (l tail_string : list byte) (tail_ar : list (list byte)):
@@ -4278,6 +4342,10 @@ Proof.
   unff listreps.
   Exists x result_string_ptr.
   entailer!.
+  { autorewrite with sublist norm.
+    assert (Zlength (string_to_list_byte s) <= Zlength tail_string) as KK.
+    { apply (split_leq_length _ _ l0); vauto. }
+    list_solve. }
   inv Heqtail_ar.
   entailer!.
   autorewrite with sublist norm.
@@ -4425,12 +4493,7 @@ Proof.
     Intros format_sigma sigma_ptr.
     unff listrepf.
     Exists tail_ptr format_ptr format_sigma sigma_ptr.
-    entailer!.
-    unnw.
-    unfold good_format.
-    unfold line; ins.
-    repeat rewrite length_list_byte_to_string in *.
-    lia. }
+    entailer!. }
   { lia. }
   rewrite length_list_byte_to_string in *.
   repeat rewrite Nat.max_id in *.

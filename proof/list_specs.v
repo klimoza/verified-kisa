@@ -32,7 +32,7 @@ Qed.
 Definition good_format (G : t) (w h : Z) : Prop :=
    (total_width G <= Z.to_nat w)%nat /\
    (G.(height) <= Z.to_nat h)%nat /\
-   (format_correct G \/ G = empty).
+   (format_correct G).
 
 Definition good_format_list (fs : list t) (w h : Z) : Prop :=
   Forall (fun G => good_format G w h) fs.
@@ -41,7 +41,6 @@ Fixpoint listrepf (sigma: list t) (p: val) (wd ht : Z) : mpred :=
  match sigma with
  | G::hs =>
     EX x:val, EX y: val, EX format_sigma : list (Z * list byte), EX sigma_pt : val,
-    !! (<< GOOD_FORMAT : good_format G wd ht >>) &&
     concrete_mformat G y format_sigma sigma_pt *
     malloc_token Ews t_flist p * 
     data_at Ews t_flist ((y, x) : @reptype CompSpecs t_flist) p *
@@ -54,7 +53,7 @@ Arguments listrepf sigma p wd ht : simpl never.
 
 Lemma listrepf_local_facts sigma p w h:
    listrepf sigma p w h |--
-   !! (<< LIST_PTR_FACT : is_pointer_or_null p /\ (p=nullval <-> sigma=nil) /\ good_format_list sigma w h >>).
+   !! (<< LIST_PTR_FACT : is_pointer_or_null p /\ (p=nullval <-> sigma=nil)>>).
 Proof.
   intros.
   revert p; induction sigma; intros p.
@@ -64,27 +63,7 @@ Proof.
   unff listrepf.
   destruct a. entailer. unnw. entailer!.
   repeat split; ins; unfold good_format_list in *.
-  { subst; eapply field_compatible_nullval; eauto. }
-  { desf; apply Forall_cons; auto. }
-  all: unfold good_format in *.
-  all: unfold format_correct in *.
-  all: unfold format_correct1 in *.
-  all: unfold format_correct2 in *.
-  all: unfold format_correct3 in *.
-  all: unfold HahnBase.NW in *.
-  all: desf; ins.
-  all: try lia.
-  all: assert ((total_width a <= Z.to_nat w)%nat /\ ((a.(Format.height)) <= Z.to_nat h)%nat /\ format_correct a) as K.
-  all: try (assert (Forall (fun a => (total_width a <= Z.to_nat w)%nat /\ ((a.(Format.height)) <= Z.to_nat h)%nat /\ format_correct a) sigma) as K).
-  all: try list_solve.
-  all: try apply (HahnList.Forall_in a) in K.
-  all: vauto.
-  all: unfold format_correct in *.
-  all: unfold HahnBase.NW in *.
-  all: unfold format_correct1 in *.
-  all: unfold format_correct2 in *.
-  all: unfold format_correct3 in *.
-  all: desf; ins; lia.
+  subst; eapply field_compatible_nullval; eauto.
 Qed.
 #[export] Hint Resolve listrepf_local_facts : saturate_local.
 
@@ -102,7 +81,6 @@ Fixpoint lsegf (sigma: list t) (x z: val) (wd ht : Z) : mpred :=
   match sigma with
   | nil => !! (<< LSEG_PTR_FACT : x = z >>) && emp
   | G::hs => EX h: val, EX y:val, EX format_sigma : list (Z * list byte), EX sigma_pt : val,
-      !! (<< GOOD_FORMAT : good_format G wd ht >>) &&
       concrete_mformat G y format_sigma sigma_pt *
       malloc_token Ews t_flist x * 
       data_at Ews t_flist ((y, h) : @reptype CompSpecs t_flist) x *
@@ -110,21 +88,6 @@ Fixpoint lsegf (sigma: list t) (x z: val) (wd ht : Z) : mpred :=
   end.
 
 Arguments lsegf sigma x z wd ht : simpl never.
-
-Lemma lsegf_local_facts sigma p q w h :
-   lsegf sigma p q w h |-- !! (<< LSEG_PTR_FACT : good_format_list sigma w h >>).
-Proof.
-   revert dependent p.
-   induction sigma.
-   { unff lsegf; entailer!; unnw; ins. }
-   unff lsegf; ins.
-   Intros h0 y format_sigma sigma_pt.
-   unfold good_format_list in *.
-   unnw.
-   rewrite Forall_cons_iff.
-   entailer!.
-Qed.
-#[export] Hint Resolve lsegf_local_facts : saturate_local.
 
 Lemma lsegf_null_listrepf sigma p w h:
   lsegf sigma p nullval w h |-- listrepf sigma p w h.
@@ -190,12 +153,15 @@ DECLARE _above_doc
    WITH fs1 : list t, fs2 : list t, p1 : val, p2 : val, w : Z, h : Z, gv : globals
    PRE [ tuint, tuint, tptr t_flist, tptr t_flist ]
       PROP (0 <= 8 * w <= Int.max_unsigned - 1;
-            0 <= 8 * h <= Int.max_unsigned)
+            0 <= 8 * h <= Int.max_unsigned;
+            << GOOD_FMT1: good_format_list fs1 w h>>;
+            << GOOD_FMT2: good_format_list fs2 w h>>)
       PARAMS(Vint (Int.repr w); Vint (Int.repr h); p1; p2) GLOBALS(gv)
       SEP (listrepf fs1 p1 w h; listrepf fs2 p2 w h; mem_mgr gv)
    POST [ tptr t_flist ]
       EX p: val, EX sigma: list t,
-      PROP (sigma = filter (fun G => (G.(height) <=? (Z.to_nat h))%nat) (aboveDoc (Z.to_nat w) fs1 fs2))
+      PROP (sigma = filter (fun G => (G.(height) <=? (Z.to_nat h))%nat) (aboveDoc (Z.to_nat w) fs1 fs2);
+            << GOOD_FMT: good_format_list sigma w h >>)
       RETURN(p)
       SEP (listrepf sigma p w h; mem_mgr gv).
 
@@ -204,12 +170,15 @@ DECLARE _beside_doc
    WITH fs1 : list t, fs2 : list t, p1 : val, p2 : val, w : Z, h : Z, gv : globals
    PRE [ tuint, tuint, tptr t_flist, tptr t_flist ]
       PROP (0 <= 8 * w <= Int.max_unsigned - 1;
-            0 <= 8 * h <= Int.max_unsigned)
+            0 <= 8 * h <= Int.max_unsigned;
+            << GOOD_FMT1: good_format_list fs1 w h>>;
+            << GOOD_FMT2: good_format_list fs2 w h>>)
       PARAMS(Vint (Int.repr w); Vint (Int.repr h); p1; p2) GLOBALS(gv)
       SEP (listrepf fs1 p1 w h; listrepf fs2 p2 w h; mem_mgr gv)
    POST [ tptr t_flist ]
       EX p: val, EX sigma: list t,
-      PROP (sigma = filter (fun G => (G.(height) <=? (Z.to_nat h))%nat) (besideDoc (Z.to_nat w) fs1 fs2))
+      PROP (sigma = filter (fun G => (G.(height) <=? (Z.to_nat h))%nat) (besideDoc (Z.to_nat w) fs1 fs2);
+            << GOOD_FMT: good_format_list sigma w h>>)
       RETURN(p)
       SEP (listrepf sigma p w h; mem_mgr gv).
 
@@ -219,12 +188,15 @@ DECLARE _fill_doc
    PRE [ tuint, tuint, tptr t_flist, tptr t_flist, size_t ]
       PROP (0 <= 8 * w <= Int.max_unsigned - 1;
             0 <= 8 * h <= Int.max_unsigned;
-            0 <= shift <= w)
+            0 <= shift <= w;
+            << GOOD_FMT1: good_format_list fs1 w h>>;
+            << GOOD_FMT2: good_format_list fs2 w h>>)
       PARAMS(Vint (Int.repr w); Vint (Int.repr h); p1; p2; Vptrofs (Ptrofs.repr shift)) GLOBALS(gv)
       SEP (listrepf fs1 p1 w h; listrepf fs2 p2 w h; mem_mgr gv)
    POST [ tptr t_flist ]
       EX p: val, EX sigma: list t,
-      PROP (sigma = filter (fun G => (G.(height) <=? (Z.to_nat h))%nat) (fillDoc (Z.to_nat w) fs1 fs2 (Z.to_nat shift)))
+      PROP (sigma = filter (fun G => (G.(height) <=? (Z.to_nat h))%nat) (fillDoc (Z.to_nat w) fs1 fs2 (Z.to_nat shift));
+            << GOOD_FMT: good_format_list sigma w h >>)
       RETURN(p)
       SEP (listrepf sigma p w h; mem_mgr gv).
 
@@ -258,12 +230,15 @@ DECLARE _choice_doc
    WITH fs1 : list t, fs2 : list t, p1 : val, p2 : val, w : Z, h : Z, gv : globals
    PRE [ tptr t_flist, tptr t_flist ]
       PROP (0 <= 8 * w <= Int.max_unsigned - 1;
-            0 <= 8 * h <= Int.max_unsigned)
+            0 <= 8 * h <= Int.max_unsigned;
+            << GOOD_FMT1: good_format_list fs1 w h >>;
+            << GOOD_FMT2: good_format_list fs2 w h >>)
       PARAMS(p1; p2) GLOBALS(gv)
       SEP (listrepf fs1 p1 w h; listrepf fs2 p2 w h; mem_mgr gv)
    POST [ tptr t_flist ]
       EX p: val, EX sigma: list t,
-      PROP (sigma = filter (fun G => (G.(height) <=? (Z.to_nat h))%nat) (choiceDoc fs1 fs2))
+      PROP (sigma = filter (fun G => (G.(height) <=? (Z.to_nat h))%nat) (choiceDoc fs1 fs2);
+            << GOOD_FMT: good_format_list sigma w h >>)
       RETURN(p)
       SEP (listrepf sigma p w h; mem_mgr gv).
 
@@ -275,8 +250,7 @@ DECLARE _indent
          0 <= 8 * w <= Int.max_unsigned - 1;
          0 <= 8 * h <= Int.max_unsigned;
          0 <= shift <= w;
-         << GOOD_FMT: good_format G w h >>
-      )
+         << GOOD_FMT: good_format G w h >>)
       PARAMS(p; Vptrofs (Ptrofs.repr shift)) GLOBALS(gv)
       SEP (concrete_mformat G p sigma sigma_pt; mem_mgr gv)
    POST [ tptr t_format ]
@@ -291,12 +265,14 @@ DECLARE _indent_doc
    PRE [ tuint, tuint, tptr t_flist, size_t ]
       PROP (0 <= 8 * w <= Int.max_unsigned - 1;
             0 <= 8 * h <= Int.max_unsigned;
-            0 <= shift <= w)
+            0 <= shift <= w;
+            << GOOD_FMT: good_format_list fs w h >>)
       PARAMS(Vint (Int.repr w); Vint (Int.repr h); p; Vptrofs (Ptrofs.repr shift)) GLOBALS(gv)
       SEP (listrepf fs p w h; mem_mgr gv)
    POST [ tptr t_flist ]
       EX p: val, EX sigma: list t,
-      PROP (sigma = filter (fun G => (G.(height) <=? (Z.to_nat h))%nat) (indentDoc (Z.to_nat w) (Z.to_nat shift) fs))
+      PROP (sigma = filter (fun G => (G.(height) <=? (Z.to_nat h))%nat) (indentDoc (Z.to_nat w) (Z.to_nat shift) fs);
+            << GOOD_FMT: good_format_list sigma w h >>)
       RETURN(p)
       SEP (listrepf sigma p w h; mem_mgr gv).
 
@@ -322,7 +298,8 @@ DECLARE _construct_doc
       SEP (cstring Ews sigma p; mem_mgr gv)
    POST [ tptr t_flist ]
       EX q: val, EX res: list t,
-      PROP (res = filter (fun G => (G.(height) <=? (Z.to_nat h))%nat) (constructDoc (Z.to_nat w) (list_byte_to_string sigma)))
+      PROP (res = filter (fun G => (G.(height) <=? (Z.to_nat h))%nat) (constructDoc (Z.to_nat w) (list_byte_to_string sigma));
+            << GOOD_FMT: good_format_list res w h >>)
       RETURN(q)
       SEP (listrepf res q w h; cstring Ews sigma p; mem_mgr gv).
 
@@ -386,7 +363,8 @@ DECLARE _evaluator_trivial
       SEP(mdoc d p w h; mem_mgr gv)
    POST [ tptr t_flist ]
       EX q: val, EX res: list t,
-      PROP (res = filter (fun G => (G.(height) <=? (Z.to_nat h))%nat) (evaluatorTrivial (Z.to_nat w) d))
+      PROP (res = filter (fun G => (G.(height) <=? (Z.to_nat h))%nat) (evaluatorTrivial (Z.to_nat w) d);
+            << GOOD_FMT: good_format_list res w h >>)
       RETURN(q)
       SEP (mdoc d p w h; listrepf res q w h; mem_mgr gv).
 
@@ -448,7 +426,7 @@ Arguments lsegs sigma x z : simpl never.
 Definition new_string_list_spec : ident * funspec :=
 DECLARE _new_string_list
    WITH gv: globals
-   PRE []
+   2: PRE []
       PROP ()
       PARAMS() GLOBALS(gv)
       SEP (mem_mgr gv)
